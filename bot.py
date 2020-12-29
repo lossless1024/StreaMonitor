@@ -112,7 +112,7 @@ class Bot(Thread):
         now = datetime.now()
         ydl_opts = {
             'outtmpl': 'downloads/' + self.username + ' [' + self.siteslug + ']/' + self.username + '-' +
-                       str(now.strftime("%Y%m%d-%H%M%S")) + '-%(title)s.%(ext)s',
+                       str(now.strftime("%Y%m%d-%H%M%S")) + '.%(ext)s',
             'quiet': True,
             'logger': self.logger,
             'progress_hooks': [self.progressInfo]
