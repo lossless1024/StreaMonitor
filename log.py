@@ -4,7 +4,7 @@ import logging
 class Logger(object):
     def __init__(self, name="__name__"):
         self.name = name
-        self.formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        self.formatter = logging.Formatter('%(asctime)s - %(levelname)s - {}: %(message)s'.format(name))
         self.handler = logging.StreamHandler()
         self.handler.setFormatter(self.formatter)
 
@@ -29,11 +29,3 @@ class Logger(object):
 
     def info(self, msg):
         self.logger.info(msg)
-
-
-class BotLogger(Logger):
-    def __init__(self, username):
-        super().__init__()
-        self.name = username
-        self.formatter = logging.Formatter('%(asctime)s - %(levelname)s - {}: %(message)s'.format(username))
-        self.handler.setFormatter(self.formatter)

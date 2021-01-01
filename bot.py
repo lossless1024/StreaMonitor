@@ -32,7 +32,7 @@ class Bot(Thread):
     def __init__(self, username):
         super().__init__()
         self.username = username
-        self.logger = log.BotLogger("[" + self.siteslug + "] " + self.username).get_logger()
+        self.logger = log.Logger("[" + self.siteslug + "] " + self.username).get_logger()
 
         self.running = True
         self.ratelimit = False
