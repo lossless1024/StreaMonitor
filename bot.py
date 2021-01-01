@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 import signal
 import youtube_dl
 import log
-import time
 from enum import Enum
 from time import sleep
 from datetime import datetime
@@ -10,6 +9,7 @@ from threading import Thread
 
 
 class Bot(Thread):
+    loaded_sites = set()
     username = None
     site = None
     siteslug = None
@@ -125,3 +125,14 @@ class Bot(Thread):
 
     def export(self):
         return {"site": self.site, "username": self.username, "running": self.running}
+
+    @staticmethod
+    def str2site(site: str):
+        for sitecls in Bot.loaded_sites:
+            if site.lower() == sitecls.site.lower() or site.lower() == sitecls.siteslug.lower():
+                return sitecls
+
+    @staticmethod
+    def createInstance(username: str, site: str = None):
+        if site:
+            return Bot.str2site(site)(username)

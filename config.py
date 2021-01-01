@@ -1,5 +1,6 @@
 import json
 import sys
+from bot import Bot
 
 config_loc = "config.json"
 
@@ -22,3 +23,14 @@ def save_config(config):
     except Exception as e:
         print(e)
         sys.exit(1)
+
+
+def loadStreamers():
+    streamers = {}
+    for streamer in load_config():
+        username = streamer["username"]
+        site = streamer["site"]
+        streamers[username] = Bot.str2site(site)(username)
+        if streamer["running"]:
+            streamers[username].start()
+    return streamers

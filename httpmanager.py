@@ -1,6 +1,8 @@
 from threading import Thread
 from flask import Flask, request
 import os
+from bot import Bot
+
 
 class HTTPManager(Thread):
     def __init__(self, streamers):

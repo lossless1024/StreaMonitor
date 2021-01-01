@@ -1,8 +1,8 @@
 import requests
-import bot
+from bot import Bot
 
 
-class Chaturbate(bot.Bot):
+class Chaturbate(Bot):
     site = 'Chaturbate'
     siteslug = 'CB'
 
@@ -29,3 +29,6 @@ class Chaturbate(bot.Bot):
         except Exception as e:
             self.ratelimit = True
             return self.Status.RATELIMIT
+
+
+Bot.loaded_sites.add(Chaturbate)

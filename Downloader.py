@@ -2,27 +2,11 @@ import zmq
 import config
 from manager import Manager
 from httpmanager import HTTPManager
-from sites.chaturbate import Chaturbate
-from sites.pornhublive import PornHubLive
-from sites.bongacams import BongaCams
-
-sites = [Chaturbate, PornHubLive, BongaCams]
-
-
-def str2site(site):
-    for sitecls in sites:
-        if site.lower() == sitecls.site.lower() or site.lower() == sitecls.siteslug.lower():
-            return sitecls
+import sites  # must have
 
 
 def main():
-    streamers = {}
-    for streamer in config.load_config():
-        username = streamer["username"]
-        site = streamer["site"]
-        streamers[username] = str2site(site)(username)
-        if streamer["running"]:
-            streamers[username].start()
+    streamers = config.loadStreamers()
 
     console_manager = Manager(streamers, "console")
     console_manager.start()
@@ -34,5 +18,6 @@ def main():
 
     http_manager = HTTPManager(streamers)
     http_manager.start()
+
 
 main()

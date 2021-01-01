@@ -1,8 +1,8 @@
 import requests
-import bot
+from bot import Bot
 
 
-class BongaCams(bot.Bot):
+class BongaCams(Bot):
     site = 'BongaCams'
     siteslug = 'BC'
 
@@ -28,9 +28,12 @@ class BongaCams(bot.Bot):
         if r.status_code == 200:
             self.lastInfo = r.json()
             if self.lastInfo["status"] == "error":
-                return bot.Bot.Status.NOTEXIST
+                return Bot.Status.NOTEXIST
             r = requests.get(self.getVideoUrl())
             if len(r.text) == 25 or r.status_code == 404:
-                return bot.Bot.Status.OFFLINE
-            return bot.Bot.Status.PUBLIC
-        return bot.Bot.Status.UNKNOWN
+                return Bot.Status.OFFLINE
+            return Bot.Status.PUBLIC
+        return Bot.Status.UNKNOWN
+
+
+Bot.loaded_sites.add(BongaCams)

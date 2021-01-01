@@ -1,8 +1,8 @@
 import requests
-import bot
+from bot import Bot
 
 
-class PornHubLive(bot.Bot):
+class PornHubLive(Bot):
     site = 'PornHubLive'
     siteslug = 'PHL'
 
@@ -24,4 +24,7 @@ class PornHubLive(bot.Bot):
 
         if r.status_code == 200:
             self.lastInfo = r.json()
-        return bot.Bot.Status(r.status_code)
+        return Bot.Status(r.status_code)
+
+
+Bot.loaded_sites.add(PornHubLive)
