@@ -51,7 +51,7 @@ class Manager(Thread):
                     self.streamers.pop(username)
                     self.reply("OK")
                 except KeyError:
-                    self.reply("no such username")
+                    self.reply("No such username")
                 except:
                     self.reply("Failed to remove streamer")
 
@@ -60,7 +60,7 @@ class Manager(Thread):
                     self.streamers[username].start()
                     self.reply("OK")
                 except KeyError:
-                    self.reply("no such username")
+                    self.reply("No such username")
                 except:
                     self.reply("Failed to start")
 
@@ -69,7 +69,7 @@ class Manager(Thread):
                     self.streamers[username].stop(None, None)
                     self.reply("OK")
                 except KeyError:
-                    self.reply("no such username")
+                    self.reply("No such username")
                 except Exception as e:
                     logger.error(e)
                     self.reply("Failed to stop")

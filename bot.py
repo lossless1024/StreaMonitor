@@ -16,13 +16,14 @@ class Bot(Thread):
 
     sleep_on_offline = 2
     sleep_on_long_offline = 300
-    sleep_on_error = 10
+    sleep_on_error = 20
     sleep_on_ratelimit = 180
     long_offline_timeout = 600
 
     class Status(Enum):
         UNKNOWN = 1
         NOTRUNNING = 2
+        ERROR = 3
         PUBLIC = 200
         NOTEXIST = 400
         PRIVATE = 403
@@ -77,6 +78,8 @@ class Bot(Thread):
             try:
                 self.sc = self.getStatus()
                 self.log(self.status())
+                if self.sc == self.Status.ERROR:
+                    sleep(self.sleep_on_error)
                 if self.sc == self.Status.OFFLINE:
                     offline_time += self.sleep_on_offline
                     if offline_time > self.long_offline_timeout:
@@ -122,7 +125,8 @@ class Bot(Thread):
             try:
                 ydl.download([url])
             except:
-                pass
+                self.sc = self.Status.ERROR
+                self.log("Error while downloading")
 
     def export(self):
         return {"site": self.site, "username": self.username, "running": self.running}
