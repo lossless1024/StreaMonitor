@@ -22,6 +22,7 @@ class Bot(Thread):
 
     class Status(Enum):
         UNKNOWN = 1
+        NOTRUNNING = 2
         PUBLIC = 200
         NOTEXIST = 400
         PRIVATE = 403
@@ -34,13 +35,9 @@ class Bot(Thread):
         self.username = username
         self.logger = log.Logger("[" + self.siteslug + "] " + self.username).get_logger()
 
-        self.running = True
+        self.running = False
         self.ratelimit = False
-        self.sc = 1  # Status code
-
-        # reg signals
-        #signal.signal(signal.SIGINT, self.stop)
-        #signal.signal(signal.SIGTERM, self.stop)
+        self.sc = 2  # Status code
 
     def stop(self, a, b):
         if self.running:
@@ -67,23 +64,27 @@ class Bot(Thread):
         elif self.sc == self.Status.NOTEXIST:
             message = "Nonexistent user"
             self.running = False
+        elif self.sc == self.Status.NOTRUNNING:
+            message = "Not running"
         else:
             message = "Unknown error"
         return message
 
     def run(self):
+        self.running = True
         offline_time = self.long_offline_timeout+1  # Don't start polling when streamer was offline at start
         while self.running:
             try:
                 self.sc = self.getStatus()
                 self.log(self.status())
-                if self.sc == self.Status.PUBLIC:
-                    self.getVideo(self.getVideoUrl())
-                    offline_time = 0
-                elif self.sc == self.Status.OFFLINE:
+                if self.sc == self.Status.OFFLINE:
                     offline_time += self.sleep_on_offline
                     if offline_time > self.long_offline_timeout:
                         self.sc = self.Status.LONG_OFFLINE
+                elif self.sc == self.Status.PUBLIC or self.sc == self.Status.PRIVATE:
+                    offline_time = 0
+                    if self.sc == self.Status.PUBLIC:
+                        self.getVideo(self.getVideoUrl())
             except:
                 self.log(self.status())
                 sleep(self.sleep_on_error)

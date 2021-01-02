@@ -81,6 +81,6 @@ class Manager(Thread):
                                    self.streamers[streamer].username,
                                    self.streamers[streamer].running,
                                    self.streamers[streamer].status()])
-                self.reply(AsciiTable(output).table)
+                self.reply("Status:\n" + AsciiTable(output).table)
 
             config.save_config([self.streamers[x].export() for x in self.streamers])
