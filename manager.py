@@ -8,6 +8,7 @@ from bot import Bot
 class Manager(Thread):
     def __init__(self, streamers, mode, socket=None):
         super().__init__()
+        assert mode in ['console', 'zmq']
         self.streamers = streamers
         self.mode = mode
         self.socket = socket
@@ -44,7 +45,7 @@ class Manager(Thread):
                 else:
                     self.reply("Missing value(s)")
 
-            if command == 'remove':
+            elif command == 'remove':
                 try:
                     self.streamers[username].stop(None, None)
                     self.streamers[username].logger.handlers = []
@@ -52,19 +53,21 @@ class Manager(Thread):
                     self.reply("OK")
                 except KeyError:
                     self.reply("No such username")
-                except:
+                except Exception as e:
+                    logger.error(e)
                     self.reply("Failed to remove streamer")
 
-            if command == 'start':
+            elif command == 'start':
                 try:
                     self.streamers[username].start()
                     self.reply("OK")
                 except KeyError:
                     self.reply("No such username")
-                except:
+                except Exception as e:
+                    logger.error(e)
                     self.reply("Failed to start")
 
-            if command == 'stop':
+            elif command == 'stop':
                 try:
                     self.streamers[username].stop(None, None)
                     self.reply("OK")
@@ -74,13 +77,22 @@ class Manager(Thread):
                     logger.error(e)
                     self.reply("Failed to stop")
 
-            if command == 'status':
-                output = [["Site", "Username", "Started", "Status"]]
-                for streamer in self.streamers:
-                    output.append([self.streamers[streamer].site,
-                                   self.streamers[streamer].username,
-                                   self.streamers[streamer].running,
-                                   self.streamers[streamer].status()])
+            elif command == 'status':
+                output = [["Username", "Site", "Started", "Status"]]
+                streamer_list = []
+                for s in self.streamers:
+                    streamer_list.append(s)
+                streamer_list.sort(key=lambda v: v.upper())
+                
+                for s in streamer_list:
+                    streamer = self.streamers[s]
+                    output.append([streamer.username,
+                                   streamer.site,
+                                   streamer.running,
+                                   streamer.status()])
                 self.reply("Status:\n" + AsciiTable(output).table)
+
+            else:
+                self.reply('Unknown command')
 
             config.save_config([self.streamers[x].export() for x in self.streamers])

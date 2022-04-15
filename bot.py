@@ -13,6 +13,7 @@ class Bot(Thread):
     username = None
     site = None
     siteslug = None
+    aliases = []
 
     sleep_on_offline = 2
     sleep_on_long_offline = 300
@@ -38,7 +39,7 @@ class Bot(Thread):
 
         self.running = False
         self.ratelimit = False
-        self.sc = 2  # Status code
+        self.sc = self.Status.NOTRUNNING  # Status code
 
     def stop(self, a, b):
         if self.running:
@@ -99,7 +100,7 @@ class Bot(Thread):
                 sleep(self.sleep_on_long_offline)
             else:
                 sleep(self.sleep_on_offline)
-
+        self.sc = self.Status.NOTRUNNING
         self.log("Stopped")
 
     def getVideoUrl(self):
@@ -133,8 +134,9 @@ class Bot(Thread):
 
     @staticmethod
     def str2site(site: str):
+        site = site.lower()
         for sitecls in Bot.loaded_sites:
-            if site.lower() == sitecls.site.lower() or site.lower() == sitecls.siteslug.lower():
+            if site == sitecls.site.lower() or site == sitecls.siteslug.lower() or site in sitecls.aliases:
                 return sitecls
 
     @staticmethod
