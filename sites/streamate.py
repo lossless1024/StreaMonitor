@@ -2,9 +2,10 @@ import requests
 from bot import Bot
 
 
-class PornHubLive(Bot):
-    site = 'PornHubLive'
-    siteslug = 'PHL'
+class StreaMate(Bot):
+    site = 'StreaMate'
+    siteslug = 'SM'
+    aliases = ['pornhublive']
 
     def __init__(self, username):
         super().__init__(username)
@@ -17,7 +18,7 @@ class PornHubLive(Bot):
     def getStatus(self):
         headers = {
             'Content-Type': 'application/json',
-            'Referer': 'https://www.pornhublive.com/'
+            'Referer': 'https://streamate.com/'
         }
         r = requests.get('https://manifest-server.naiadsystems.com/live/s:' + self.username + '.json?last=load&format=mp4-hls',
                          headers=headers)
@@ -27,4 +28,4 @@ class PornHubLive(Bot):
         return Bot.Status(r.status_code)
 
 
-Bot.loaded_sites.add(PornHubLive)
+Bot.loaded_sites.add(StreaMate)
