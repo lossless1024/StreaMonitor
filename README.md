@@ -8,6 +8,7 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 * Chaturbate
 * StreaMate (alias: PornHubLive, PepperCams,...)
 * StripChat (alias: XHamsterLive,... copy: cam4)
+* CamSoda
 
 Planned to support:
 * Cam4
@@ -30,7 +31,7 @@ There are hundreds of clones of the sites above, you can read about them on [thi
 
 ## Usage
 
-Start the downloader (it does not fork yet)
+Start the downloader (it does not fork yet)\
 Automatically imports all streamers from the config file.
 ```
 python3 Downloader.py
