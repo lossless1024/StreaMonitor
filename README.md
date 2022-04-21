@@ -8,6 +8,7 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 * Chaturbate
 * StreaMate (alias: PornHubLive, PepperCams,...)
 * StripChat (alias: XHamsterLive,... copy: cam4)
+* SexChat.hu
 * CamSoda
 
 Planned to support:
@@ -16,7 +17,6 @@ Planned to support:
 * Flirt4Free
 * ImLive
 * LiveJasmin
-* SzexChat.hu
 
 There are hundreds of clones of the sites above, you can read about them on [this site](https://adultwebcam.site/clone-sites-by-platform/).
 
