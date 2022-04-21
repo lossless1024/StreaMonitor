@@ -37,9 +37,10 @@ class Manager(Thread):
             if command == 'add':
                 if username and site:
                     try:
-                        self.streamers[username] = Bot.createInstance(username, site)
-                        self.streamers[username].start()
-                        self.reply("Added [" + self.streamers[username].siteslug + "] " + username)
+                        user = Bot.createInstance(username, site)
+                        self.streamers[user.username] = user
+                        self.streamers[user.username].start()
+                        self.reply("Added [" + self.streamers[user.username].siteslug + "] " + user.username)
                     except:
                         self.reply("Failed to add")
                 else:
