@@ -32,6 +32,16 @@ class Bot(Thread):
         LONG_OFFLINE = 410
         RATELIMIT = 429
 
+    status_messages = {
+        Status.PUBLIC: "Channel online",
+        Status.OFFLINE: "No stream",
+        Status.LONG_OFFLINE: "No stream for a while",
+        Status.PRIVATE: "Private show",
+        Status.RATELIMIT: "Rate limited",
+        Status.NOTEXIST: "Nonexistent user",
+        Status.NOTRUNNING: "Not running"
+    }
+
     def __init__(self, username):
         super().__init__()
         self.username = username
@@ -53,23 +63,9 @@ class Bot(Thread):
         self.logger.info(message)
 
     def status(self):
-        if self.sc == self.Status.PUBLIC:
-            message = "Channel online"
-        elif self.sc == self.Status.OFFLINE:
-            message = "No stream"
-        elif self.sc == self.Status.LONG_OFFLINE:
-            message = "No stream for a while"
-        elif self.sc == self.Status.PRIVATE:
-            message = "Private show"
-        elif self.sc == self.Status.RATELIMIT:
-            message = "Rate limited"
-        elif self.sc == self.Status.NOTEXIST:
-            message = "Nonexistent user"
+        message = self.status_messages.get(self.sc) or "Unknown error"
+        if self.sc == self.Status.NOTEXIST:
             self.running = False
-        elif self.sc == self.Status.NOTRUNNING:
-            message = "Not running"
-        else:
-            message = "Unknown error"
         return message
 
     def run(self):
