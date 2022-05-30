@@ -35,7 +35,13 @@ class StripChat(Bot):
         end = b'</script>'
         j = r.content[r.content.find(start) + len(start):]
         j = j[:j.find(end)]
-        self.info = json.loads(j)["viewCam"]
+        try:
+            data_json = json.loads(j)
+        except:
+            self.log('Failed to parse JSON')
+            return Bot.Status.UNKNOWN
+
+        self.info = data_json["viewCam"]
 
         if self.info["model"]["status"] == "public":
             return Bot.Status.PUBLIC
