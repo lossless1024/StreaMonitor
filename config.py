@@ -1,5 +1,7 @@
 import json
 import sys
+import time
+
 from bot import Bot
 
 config_loc = "config.json"
@@ -34,4 +36,5 @@ def loadStreamers():
         streamers[username] = Bot.str2site(site)(room_id or username)
         if streamer["running"]:
             streamers[username].start()
+        time.sleep(0.5)
     return streamers
