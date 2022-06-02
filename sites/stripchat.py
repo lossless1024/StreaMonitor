@@ -8,11 +8,6 @@ class StripChat(Bot):
     siteslug = 'SC'
     aliases = ['xhamsterlive']
 
-    def __init__(self, username):
-        super().__init__(username)
-        self.info = None
-        self.getInfo()
-
     def getVideoUrl(self):
         return "https://b-{server}.stripst.com/hls/{id}/master_{id}.m3u8".format(
                 server=self.info["viewServers"]["flashphoner-hls"],

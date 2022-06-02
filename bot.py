@@ -47,6 +47,7 @@ class Bot(Thread):
         self.username = username
         self.logger = log.Logger("[" + self.siteslug + "] " + self.username).get_logger()
 
+        self.lastInfo = {}  # This dict will hold information about stream after getStatus is called. One can use this in getVideoUrl
         self.running = False
         self.ratelimit = False
         self.sc = self.Status.NOTRUNNING  # Status code

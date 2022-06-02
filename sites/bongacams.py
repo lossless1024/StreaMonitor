@@ -6,10 +6,6 @@ class BongaCams(Bot):
     site = 'BongaCams'
     siteslug = 'BC'
 
-    def __init__(self, username):
-        super().__init__(username)
-        self.lastInfo = None
-
     def getVideoUrl(self):
         return "https:" + \
                self.lastInfo['localData']['videoServerUrl'] + "/hls/stream_" + self.username + "/playlist.m3u8" \

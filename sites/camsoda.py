@@ -6,10 +6,6 @@ class CamSoda(Bot):
     site = 'CamSoda'
     siteslug = 'CS'
 
-    def __init__(self, username):
-        super().__init__(username)
-        self.lastInfo = None
-
     def getVideoUrl(self):
         v = "https://" + self.lastInfo['edge_servers'][0] + "/" + self.lastInfo['stream_name'] + \
             "_v1/index.m3u8?token=" + self.lastInfo['token']

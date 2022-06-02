@@ -7,10 +7,6 @@ class StreaMate(Bot):
     siteslug = 'SM'
     aliases = ['pornhublive']
 
-    def __init__(self, username):
-        super().__init__(username)
-        self.lastInfo = None
-
     def getVideoUrl(self):
         # formats: mp4-rtmp, mp4-hls, mp4-ws
         return self.lastInfo['formats']['mp4-hls']['encodings'][2]['location'] or None
