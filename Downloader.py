@@ -1,8 +1,8 @@
 import zmq
-import config
-from manager import Manager
-from httpmanager import HTTPManager
-import sites  # must have
+import streamonitor.config as config
+from streamonitor.manager import Manager
+from streamonitor.httpmanager import HTTPManager
+import streamonitor.sites  # must have
 
 
 def main():

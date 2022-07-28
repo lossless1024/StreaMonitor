@@ -1,7 +1,7 @@
 from threading import Thread
 from flask import Flask, request
 import os
-from bot import Bot
+from streamonitor.bot import Bot
 
 
 class HTTPManager(Thread):

@@ -2,7 +2,7 @@ import json
 import sys
 import time
 
-from bot import Bot
+from streamonitor.bot import Bot
 
 config_loc = "config.json"
 

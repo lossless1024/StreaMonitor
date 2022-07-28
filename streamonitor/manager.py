@@ -1,8 +1,8 @@
 from threading import Thread
 from terminaltables import AsciiTable
-import config
-import log
-from bot import Bot
+import streamonitor.config as config
+import streamonitor.log as log
+from streamonitor.bot import Bot
 
 
 class Manager(Thread):

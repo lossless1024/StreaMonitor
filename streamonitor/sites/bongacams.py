@@ -1,5 +1,5 @@
 import requests
-from bot import Bot
+from streamonitor.bot import Bot
 
 
 class BongaCams(Bot):

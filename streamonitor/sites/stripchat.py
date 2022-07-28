@@ -1,6 +1,6 @@
 import requests
 import json
-from bot import Bot
+from streamonitor.bot import Bot
 
 
 class StripChat(Bot):

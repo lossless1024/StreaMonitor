@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
 import signal
 import youtube_dl
-import log
 from enum import Enum
 from time import sleep
 from datetime import datetime
 from threading import Thread
+import streamonitor.log as log
 
 
 class Bot(Thread):
@@ -133,7 +133,9 @@ class Bot(Thread):
     def str2site(site: str):
         site = site.lower()
         for sitecls in Bot.loaded_sites:
-            if site == sitecls.site.lower() or site == sitecls.siteslug.lower() or site in sitecls.aliases:
+            if site == sitecls.site.lower() or \
+               site == sitecls.siteslug.lower() or \
+               site in sitecls.aliases:
                 return sitecls
 
     @staticmethod
