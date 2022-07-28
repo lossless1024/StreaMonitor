@@ -101,7 +101,8 @@ class Manager(Thread):
                 table_nx = math.floor(termwidth/(maxlen+3))
 
                 for site in Bot.loaded_sites:
-                    output = site.site + '\n'
+                    output = 'Status:\n'
+                    output += site.site + '\n'
                     output += ('+' + '-'*(maxlen+2))*table_nx + '+\n'
                     site_name = site.site
                     i = 0
@@ -125,7 +126,7 @@ class Manager(Thread):
                     output += '!\n'
                     output += ('+' + '-'*(maxlen+2))*table_nx + '+\n'
                     output += '\n'
-                    print(output)
+                    self.reply(output)
 
             else:
                 self.reply('Unknown command')
