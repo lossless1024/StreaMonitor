@@ -3,3 +3,4 @@ terminaltables
 youtube_dl
 pyzmq
 flask
+termcolor

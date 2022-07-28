@@ -1,4 +1,7 @@
+import math
 from threading import Thread
+from termcolor import colored
+import terminaltables.terminal_io
 from terminaltables import AsciiTable
 import streamonitor.config as config
 import streamonitor.log as log
@@ -80,11 +83,8 @@ class Manager(Thread):
 
             elif command == 'status':
                 output = [["Username", "Site", "Started", "Status"]]
-                streamer_list = []
-                for s in self.streamers:
-                    streamer_list.append(s)
+                streamer_list = list(self.streamers.keys())
                 streamer_list.sort(key=lambda v: v.upper())
-                
                 for s in streamer_list:
                     streamer = self.streamers[s]
                     output.append([streamer.username,
@@ -92,6 +92,40 @@ class Manager(Thread):
                                    streamer.running,
                                    streamer.status()])
                 self.reply("Status:\n" + AsciiTable(output).table)
+
+            elif command == 'status2':
+                streamer_list = list(self.streamers.keys())
+                streamer_list.sort(key=lambda v: v.upper())
+                maxlen = max([len(name) for name in streamer_list])
+                termwidth = terminaltables.terminal_io.terminal_size()[0]
+                table_nx = math.floor(termwidth/(maxlen+3))
+
+                for site in Bot.loaded_sites:
+                    output = site.site + '\n'
+                    output += ('+' + '-'*(maxlen+2))*table_nx + '+\n'
+                    site_name = site.site
+                    i = 0
+                    for s in streamer_list:
+                        streamer = self.streamers[s]
+                        if streamer.site == site_name:
+                            output += '!'
+                            status_color = None
+                            status = streamer.sc
+                            if status == Bot.Status.PUBLIC: status_color = 'green'
+                            if status == Bot.Status.PRIVATE: status_color = 'magenta'
+                            if status == Bot.Status.ERROR: status_color = 'red'
+                            if not streamer.running: status_color = 'grey'
+                            output += colored(' ' + streamer.username + ' '*(maxlen-len(streamer.username)) + ' ', status_color)
+                            i += 1
+                            if i == table_nx:
+                                output += '!\n'
+                                i = 0
+                    for r in range(i, table_nx):
+                        output += '! ' + ' ' * maxlen + ' '
+                    output += '!\n'
+                    output += ('+' + '-'*(maxlen+2))*table_nx + '+\n'
+                    output += '\n'
+                    print(output)
 
             else:
                 self.reply('Unknown command')
