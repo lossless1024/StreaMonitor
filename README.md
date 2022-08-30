@@ -10,9 +10,9 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 * StripChat (alias: XHamsterLive,... copy: cam4)
 * SexChat.hu
 * CamSoda
+* Cam4
 
 Planned to support:
-* Cam4
 * Cams.com
 * Flirt4Free
 * ImLive
