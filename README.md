@@ -11,6 +11,7 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 * SexChat.hu
 * CamSoda
 * Cam4
+* MyFreeCams
 
 Planned to support:
 * Cams.com

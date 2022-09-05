@@ -4,3 +4,4 @@ youtube_dl
 pyzmq
 flask
 termcolor
+beautifulsoup4
