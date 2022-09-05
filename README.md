@@ -7,7 +7,7 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 * Bongacams
 * Chaturbate
 * StreaMate (alias: PornHubLive, PepperCams,...)
-* StripChat (alias: XHamsterLive,... copy: cam4)
+* StripChat (alias: XHamsterLive,...)
 * SexChat.hu
 * CamSoda
 * Cam4
