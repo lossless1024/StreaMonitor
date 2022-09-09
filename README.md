@@ -3,15 +3,15 @@ A Python3 application for monitoring and saving (mostly adult) live streams from
 
 Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 
-## Supported sites
-* Bongacams
-* Chaturbate
-* StreaMate (alias: PornHubLive, PepperCams,...)
-* StripChat (alias: XHamsterLive,...)
-* SexChat.hu
-* CamSoda
-* Cam4
-* MyFreeCams
+## Supported sites and their abbreviations
+* Bongacams `BC`
+* Chaturbate `CB`
+* StreaMate `SM` (alias: PornHubLive, PepperCams,...)
+* StripChat `SC` (alias: XHamsterLive,...)
+* SexChat.hu `SCHU`
+* CamSoda `CS`
+* Cam4 `C4`
+* MyFreeCams `MFC`
 
 Planned to support:
 * Cams.com
@@ -23,21 +23,38 @@ There are hundreds of clones of the sites above, you can read about them on [thi
 
 ## Requirements
 * Python 3
-  * requests
-  * flask
-  * youtube-dl
-  * pyzmq
-  * terminaltables
+  * Install packages listed in requirements.txt with pip.
 * FFmpeg
 
 ## Usage
 
+The application has the following interfaces:
+* Console
+* External console via ZeroMQ (sort of working)
+* Web interface (only status)
+
+#### Starting and console
 Start the downloader (it does not fork yet)\
 Automatically imports all streamers from the config file.
 ```
 python3 Downloader.py
 ```
 
+On the console you can use the following commands:
+```
+add <username> <site> - Add streamer to the list (also starts monitoring)
+remove <username> - Remove streamer from the list (does not interrupt current recording yet)
+start <username> - Start monitoring streamer
+stop <username> - Stop monitoring (does not stop current recording yet)
+status - Status display 
+status2 - A slightly more readable status table
+```
+For the `username` input, you usually have to enter the username as represented in the original URL of the room. 
+Some sites are case-sensitive.
+
+For the `site` input, you can use either the full or the short format of the site name. (And it is case-insensitive)
+
+#### "Remote" controller
 Add or remove a streamer to record (Also saves config file)
 ```
 python3 Controller.py add <username> <website>
@@ -54,3 +71,18 @@ List the streamers in the config
 python3 Controller.py status
 ```
 
+#### Web interface
+
+You can access the web interface on port 5000. 
+It just prints the same information as the status command. 
+You can also get a list of the recorded streams.
+
+Further improvements can be expected.
+
+## Disclaimer
+
+This program is only a proof of concept and education project, I don't encourage anybody to use it. \
+Most (if not every) streamers disallow recording their shows. Please respect their wish. \
+If you don't, and you record them despite this request, please don't ever publish or share any recordings. \
+If you either record or share the recorded shows, you might be legally punished. \
+Also, please don't use this tool for monetization in any way.
