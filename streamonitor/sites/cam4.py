@@ -28,7 +28,7 @@ class Cam4(Bot):
         if r.status_code != 200:
             return Bot.Status.UNKNOWN
         r = r.json()
-        if r['privateStream']:
+        if r.get('privateStream', False):
             return Bot.Status.PRIVATE
 
         r = requests.get(f'https://hu.cam4.com/rest/v1.0/profile/{self.username}/streamInfo', headers=headers)
