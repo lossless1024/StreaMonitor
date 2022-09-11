@@ -14,6 +14,7 @@ class Bot(Thread):
     site = None
     siteslug = None
     aliases = []
+    ratelimit = False
 
     sleep_on_offline = 2
     sleep_on_long_offline = 300
@@ -49,7 +50,6 @@ class Bot(Thread):
 
         self.lastInfo = {}  # This dict will hold information about stream after getStatus is called. One can use this in getVideoUrl
         self.running = False
-        self.ratelimit = False
         self.sc = self.Status.NOTRUNNING  # Status code
 
     def stop(self, a, b):

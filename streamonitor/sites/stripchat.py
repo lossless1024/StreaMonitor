@@ -42,12 +42,13 @@ class StripChat(Bot):
             self.log('Failed to parse JSON')
             return Bot.Status.UNKNOWN
 
-        if self.lastInfo["viewCam"]["model"]["status"] == "public":
+        if self.lastInfo["viewCam"]["model"]["status"] == "public" and self.lastInfo["viewCam"]["isCamAvailable"]:
             return Bot.Status.PUBLIC
-        if self.lastInfo["viewCam"]["model"]["status"] == "private":
+        if self.lastInfo["viewCam"]["model"]["status"] in ["private", "groupShow", "p2p"]:
             return Bot.Status.PRIVATE
         if self.lastInfo["viewCam"]["model"]["status"] == "off":
             return Bot.Status.OFFLINE
+        self.logger.warn(f'Got unknown status: {self.lastInfo["viewCam"]["model"]["status"]}')
         return Bot.Status.UNKNOWN
 
 

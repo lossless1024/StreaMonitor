@@ -21,14 +21,16 @@ class Chaturbate(Bot):
         try:
             r = requests.post("https://chaturbate.com/get_edge_hls_url_ajax/", headers=headers, data=data)
             if r.json()["room_status"] == "public":
-                self.ratelimit = False
-                return self.Status.PUBLIC
-            self.ratelimit = False
-            return self.Status.OFFLINE
-
+                status = self.Status.PUBLIC
+            elif r.json()["room_status"] in ["private", "hidden"]:
+                status = self.Status.PRIVATE
+            else:
+                status = self.Status.OFFLINE
         except Exception as e:
-            self.ratelimit = True
-            return self.Status.RATELIMIT
+            status = self.Status.RATELIMIT
+
+        self.ratelimit = status == self.Status.RATELIMIT
+        return status
 
 
 Bot.loaded_sites.add(Chaturbate)
