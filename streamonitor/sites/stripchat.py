@@ -35,7 +35,6 @@ class StripChat(Bot):
         
         j = r.content[r.content.find(start) + len(start):]
         j = j[:j.find(end)]
-        
         try:
             self.lastInfo = json.loads(j)
         except:
@@ -43,10 +42,14 @@ class StripChat(Bot):
             return Bot.Status.UNKNOWN
 
         if self.lastInfo["viewCam"]["model"]["status"] == "public" and self.lastInfo["viewCam"]["isCamAvailable"]:
-            return Bot.Status.PUBLIC
+            r = requests.get(self.getVideoUrl())
+            if r.status_code == 200:
+                return Bot.Status.PUBLIC
+            else:
+                return Bot.Status.OFFLINE
         if self.lastInfo["viewCam"]["model"]["status"] in ["private", "groupShow", "p2p"]:
             return Bot.Status.PRIVATE
-        if self.lastInfo["viewCam"]["model"]["status"] == "off":
+        if self.lastInfo["viewCam"]["model"]["status"] in ["off", "idle"]:
             return Bot.Status.OFFLINE
         self.logger.warn(f'Got unknown status: {self.lastInfo["viewCam"]["model"]["status"]}')
         return Bot.Status.UNKNOWN
