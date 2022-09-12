@@ -5,14 +5,15 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 
 ## Supported sites and their abbreviations
 * Bongacams `BC`
+* Cam4 `C4`
+* CamSoda `CS`
 * Chaturbate `CB`
+* Cherry.TV `CHTV`
+* Flirt4Free `F4F`
+* MyFreeCams `MFC`
+* SexChat.hu `SCHU` (use the id as username)
 * StreaMate `SM` (alias: PornHubLive, PepperCams,...)
 * StripChat `SC` (alias: XHamsterLive,...)
-* SexChat.hu `SCHU` (use the id as username)
-* CamSoda `CS`
-* Cam4 `C4`
-* MyFreeCams `MFC`
-* Flirt4Free `F4F`
 
 Planned to support:
 * Cams.com
