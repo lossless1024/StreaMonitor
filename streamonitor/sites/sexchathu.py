@@ -7,12 +7,21 @@ class SexChatHU(Bot):
     site = 'SexChatHU'
     siteslug = 'SCHU'
 
-    def __init__(self, room_id):
-        self.room_id = room_id
-        self.lastInfo = {}
-        self.getStatus()
-        username = self.lastInfo.get('screenName')
+    def __init__(self, username, room_id=None):
+        if room_id:
+            self.room_id = room_id
+            self.username = username
+        else:
+            try:
+                int(username)
+            except Exception:
+                raise 'Use the room number from the URL instead the name'
+            self.room_id = username
+            self.getStatus()
+            username = self.lastInfo.get('screenName')
+            self.lastInfo = {}
         super().__init__(username)
+
 
     def export(self):
         data = super().export()

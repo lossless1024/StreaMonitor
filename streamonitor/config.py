@@ -33,7 +33,10 @@ def loadStreamers():
         room_id = streamer.get('room_id')
         username = streamer["username"]
         site = streamer["site"]
-        streamers[username] = Bot.str2site(site)(room_id or username)
+        if room_id:
+            streamers[username] = Bot.str2site(site)(username, room_id=room_id)
+        else:
+            streamers[username] = Bot.str2site(site)(username)
         if streamer["running"]:
             streamers[username].start()
         time.sleep(0.1)

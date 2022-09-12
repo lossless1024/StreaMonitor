@@ -8,14 +8,14 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 * Chaturbate `CB`
 * StreaMate `SM` (alias: PornHubLive, PepperCams,...)
 * StripChat `SC` (alias: XHamsterLive,...)
-* SexChat.hu `SCHU`
+* SexChat.hu `SCHU` (use the id as username)
 * CamSoda `CS`
 * Cam4 `C4`
 * MyFreeCams `MFC`
+* Flirt4Free `F4F`
 
 Planned to support:
 * Cams.com
-* Flirt4Free
 * ImLive
 * LiveJasmin
 
