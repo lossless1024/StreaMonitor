@@ -6,6 +6,7 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 ## Supported sites and their abbreviations
 * Bongacams `BC`
 * Cam4 `C4`
+* Cams.com `CC` (currently only 360p)
 * CamSoda `CS`
 * Chaturbate `CB`
 * Cherry.TV `CHTV`
@@ -16,7 +17,6 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 * StripChat `SC` (alias: XHamsterLive,...)
 
 Planned to support:
-* Cams.com
 * ImLive
 * LiveJasmin
 
