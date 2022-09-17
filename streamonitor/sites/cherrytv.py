@@ -14,7 +14,7 @@ class CherryTV(Bot):
         self.lastInfo = r.json()['data']['streamer']
         
         if not self.lastInfo:
-        	return Bot.Status.NOTEXIST
+            return Bot.Status.NOTEXIST
         if not self.lastInfo['broadcast']:
             return Bot.Status.OFFLINE
         if self.lastInfo['broadcast']['showStatus'] == 'Public':

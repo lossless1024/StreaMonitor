@@ -12,7 +12,7 @@ class Chaturbate(Bot):
         self.sleep_on_error = 60
 
     def getVideoUrl(self):
-        return "https://chaturbate.com/{}/".format(self.username)
+        return f'https://chaturbate.com/{self.username}/'
 
     def getStatus(self):
         headers = {"X-Requested-With": "XMLHttpRequest"}

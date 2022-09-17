@@ -25,10 +25,13 @@ class BongaCams(Bot):
             self.lastInfo = r.json()
             if self.lastInfo["status"] == "error":
                 return Bot.Status.NOTEXIST
-            r = requests.get(self.getVideoUrl())
-            if len(r.text) == 25 or r.status_code == 404:
+            if 'videoServerUrl' in self.lastInfo['localData']:
+                r = requests.get(self.getVideoUrl())
+                if len(r.text) == 25 or r.status_code == 404:
+                    return Bot.Status.OFFLINE
+                return Bot.Status.PUBLIC
+            else:
                 return Bot.Status.OFFLINE
-            return Bot.Status.PUBLIC
         return Bot.Status.UNKNOWN
 
 
