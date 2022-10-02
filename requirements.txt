@@ -5,3 +5,4 @@ pyzmq
 flask
 termcolor
 beautifulsoup4
+ffmpy

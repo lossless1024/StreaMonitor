@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
-import signal
+import os
+import subprocess
 import youtube_dl
+from ffmpy import FFmpeg, FFRuntimeError
 from enum import Enum
 from time import sleep
 from datetime import datetime
@@ -51,6 +53,7 @@ class Bot(Thread):
         self.lastInfo = {}  # This dict will hold information about stream after getStatus is called. One can use this in getVideoUrl
         self.running = False
         self.sc = self.Status.NOTRUNNING  # Status code
+        self.getVideo = self.getVideoYtdl
 
     def stop(self, a, b):
         if self.running:
@@ -71,7 +74,7 @@ class Bot(Thread):
 
     def run(self):
         self.running = True
-        offline_time = self.long_offline_timeout+1  # Don't start polling when streamer was offline at start
+        offline_time = self.long_offline_timeout + 1  # Don't start polling when streamer was offline at start
         while self.running:
             try:
                 self.sc = self.getStatus()
@@ -106,11 +109,26 @@ class Bot(Thread):
 
     def progressInfo(self, p):
         if p['status'] == 'downloading':
-            self.log("Downloading " + str(round(float(p['downloaded_bytes'])/float(p['total_bytes'])*100, 1))+"%")
+            self.log("Downloading " + str(round(float(p['downloaded_bytes']) / float(p['total_bytes']) * 100, 1)) + "%")
         if p['status'] == 'finished':
             self.log("Show ended. File:" + p['filename'])
 
-    def getVideo(self, url):
+    def getVideoFfmpeg(self, url):
+        self.log("Started downloading show")
+        now = datetime.now()
+        folder = 'downloads/' + self.username + ' [' + self.siteslug + ']'
+        os.makedirs(folder, exist_ok=True)
+        ff = FFmpeg(inputs={url: None},
+                    outputs={folder + '/' + self.username + '-' + str(now.strftime("%Y%m%d-%H%M%S")) + '.mp4':
+                             '-c:a copy -c:v copy'})
+        try:
+            ff.run(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except FFRuntimeError:
+            self.sc = self.Status.ERROR
+            self.log("Error while downloading")
+
+
+    def getVideoYtdl(self, url):
         self.log("Started downloading show")
         now = datetime.now()
         ydl_opts = {
@@ -120,6 +138,7 @@ class Bot(Thread):
             'logger': self.logger,
             'progress_hooks': [self.progressInfo]
         }
+
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             try:
                 ydl.download([url])
@@ -135,8 +154,8 @@ class Bot(Thread):
         site = site.lower()
         for sitecls in Bot.loaded_sites:
             if site == sitecls.site.lower() or \
-               site == sitecls.siteslug.lower() or \
-               site in sitecls.aliases:
+                    site == sitecls.siteslug.lower() or \
+                    site in sitecls.aliases:
                 return sitecls
 
     @staticmethod
