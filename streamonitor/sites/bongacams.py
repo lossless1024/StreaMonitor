@@ -13,13 +13,14 @@ class BongaCams(Bot):
 
     def getStatus(self):
         headers = {
+            'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:75.0) Gecko/20100101 Firefox/75.0',
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Referer': 'https://de.bongacams.com/' + self.username,
+            'Referer': 'https://de.bongacams.net/' + self.username,
             'Accept': 'application/json, text/javascript, */*; q=0.01',
             'X-Requested-With': 'XMLHttpRequest'
         }
         data = 'method=getRoomData&args%5B%5D=' + self.username + '&args%5B%5D=false'
-        r = requests.post('https://de.bongacams.com/tools/amf.php', data=data, headers=headers)
+        r = requests.post('https://de.bongacams.net/tools/amf.php', data=data, headers=headers)
 
         if r.status_code == 200:
             self.lastInfo = r.json()
