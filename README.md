@@ -15,6 +15,7 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 * SexChat.hu `SCHU` (use the id as username)
 * StreaMate `SM` (alias: PornHubLive, PepperCams,...)
 * StripChat `SC` (alias: XHamsterLive,...)
+* StripChat VR `SCVR` for VR videos
 
 Planned to support:
 * ImLive

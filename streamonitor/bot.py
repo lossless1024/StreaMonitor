@@ -113,27 +113,28 @@ class Bot(Thread):
         if p['status'] == 'finished':
             self.log("Show ended. File:" + p['filename'])
 
+    def genOutFilename(self, create_dir=True):
+        folder = 'downloads/' + self.username + ' [' + self.siteslug + ']'
+        if create_dir:
+            os.makedirs(folder, exist_ok=True)
+        now = datetime.now()
+        filename = folder + '/' + self.username + '-' + str(now.strftime("%Y%m%d-%H%M%S")) + '.mp4'
+        return filename
+
     def getVideoFfmpeg(self, url):
         self.log("Started downloading show")
-        now = datetime.now()
-        folder = 'downloads/' + self.username + ' [' + self.siteslug + ']'
-        os.makedirs(folder, exist_ok=True)
-        ff = FFmpeg(inputs={url: None},
-                    outputs={folder + '/' + self.username + '-' + str(now.strftime("%Y%m%d-%H%M%S")) + '.mp4':
-                             '-c:a copy -c:v copy'})
+        filename = self.genOutFilename()
+        ff = FFmpeg(inputs={url: None}, outputs={filename: '-c:a copy -c:v copy'})
         try:
             ff.run(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except FFRuntimeError:
             self.sc = self.Status.ERROR
             self.log("Error while downloading")
 
-
     def getVideoYtdl(self, url):
         self.log("Started downloading show")
-        now = datetime.now()
         ydl_opts = {
-            'outtmpl': 'downloads/' + self.username + ' [' + self.siteslug + ']/' + self.username + '-' +
-                       str(now.strftime("%Y%m%d-%H%M%S")) + '.%(ext)s',
+            'outtmpl': self.genOutFilename()[:-4] + '.%(ext)s',
             'quiet': True,
             'logger': self.logger,
             'progress_hooks': [self.progressInfo]

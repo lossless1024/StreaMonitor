@@ -6,3 +6,4 @@ flask
 termcolor
 beautifulsoup4
 ffmpy
+websocket-client

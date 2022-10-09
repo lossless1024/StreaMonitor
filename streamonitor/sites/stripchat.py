@@ -6,13 +6,12 @@ from streamonitor.bot import Bot
 class StripChat(Bot):
     site = 'StripChat'
     siteslug = 'SC'
-    aliases = ['xhamsterlive']
 
     def getVideoUrl(self):
         return "https://b-{server}.{host}/hls/{id}/master_{id}.m3u8".format(
-                server=self.lastInfo["viewCam"]["viewServers"]["flashphoner-hls"],
-                host=self.lastInfo["config"]["data"]["hlsStreamHost"],
-                id=self.lastInfo["viewCam"]["streamName"]
+                server=self.lastInfo["cam"]["viewServers"]["flashphoner-hls"],
+                host='doppiocdn.com',
+                id=self.lastInfo["cam"]["streamName"]
             )
 
     def getStatus(self):
@@ -21,37 +20,19 @@ class StripChat(Bot):
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
         }
 
-        r = requests.get('https://hu.stripchat.com/' + self.username, headers=headers)
-        if r.status_code == 404:
-            return Bot.Status.NOTEXIST
+        r = requests.get('https://stripchat.com/api/vr/v2/models/username/' + self.username, headers=headers)
         if r.status_code != 200:
             return Bot.Status.UNKNOWN
 
-        start = b'window.__PRELOADED_STATE__ = '
-        end = b'</script>'
-        
-        if r.content.find(start) == -1:
-            return Bot.Status.OFFLINE
-        
-        j = r.content[r.content.find(start) + len(start):]
-        j = j[:j.find(end)]
-        try:
-            self.lastInfo = json.loads(j)
-        except:
-            self.log('Failed to parse JSON')
-            return Bot.Status.UNKNOWN
+        self.lastInfo = r.json()
 
-        if self.lastInfo["viewCam"]["model"]["status"] == "public" and self.lastInfo["viewCam"]["isCamAvailable"]:
-            r = requests.get(self.getVideoUrl())
-            if r.status_code == 200:
-                return Bot.Status.PUBLIC
-            else:
-                return Bot.Status.OFFLINE
-        if self.lastInfo["viewCam"]["model"]["status"] in ["private", "groupShow", "p2p"]:
+        if self.lastInfo["model"]["status"] == "public" and self.lastInfo["isCamAvailable"] and self.lastInfo['cam']["isCamActive"]:
+            return Bot.Status.PUBLIC
+        if self.lastInfo["model"]["status"] in ["private", "groupShow", "p2p"]:
             return Bot.Status.PRIVATE
-        if self.lastInfo["viewCam"]["model"]["status"] in ["off", "idle"]:
+        if self.lastInfo["model"]["status"] in ["off", "idle"]:
             return Bot.Status.OFFLINE
-        self.logger.warn(f'Got unknown status: {self.lastInfo["viewCam"]["model"]["status"]}')
+        self.logger.warn(f'Got unknown status: {self.lastInfo["model"]["status"]}')
         return Bot.Status.UNKNOWN
 
 
