@@ -1,5 +1,6 @@
 import requests
 from streamonitor.bot import Bot
+from streamonitor.downloaders.youtubedl import getVideoYtdl
 
 
 class Chaturbate(Bot):
@@ -8,6 +9,7 @@ class Chaturbate(Bot):
 
     def __init__(self, username):
         super().__init__(username)
+        self.getVideo = getVideoYtdl
         self.sleep_on_offline = 30
         self.sleep_on_error = 60
 

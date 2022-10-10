@@ -4,8 +4,11 @@ from enum import Enum
 from time import sleep
 from datetime import datetime
 from threading import Thread
+
+import requests
+
 import streamonitor.log as log
-from streamonitor.downloaders.youtubedl import getVideoYtdl
+from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 
 
 class Bot(Thread):
@@ -51,7 +54,7 @@ class Bot(Thread):
         self.lastInfo = {}  # This dict will hold information about stream after getStatus is called. One can use this in getVideoUrl
         self.running = False
         self.sc = self.Status.NOTRUNNING  # Status code
-        self.getVideo = getVideoYtdl
+        self.getVideo = getVideoFfmpeg
 
     def stop(self, a, b):
         if self.running:
@@ -101,6 +104,14 @@ class Bot(Thread):
                 sleep(self.sleep_on_offline)
         self.sc = self.Status.NOTRUNNING
         self.log("Stopped")
+
+    def getBestSubPlaylist(self, url, position=0):  # Default is the first, set -1 to last
+        try:
+            r = requests.get(url)
+            best = [file for file in r.content.split(b'\n') if b'm3u8' in file][position].decode('utf-8')
+            return '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + best
+        except:
+            return None
 
     def getVideoUrl(self):
         pass

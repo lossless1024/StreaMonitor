@@ -46,7 +46,7 @@ class Flirt4Free(Bot):
         return data
 
     def getVideoUrl(self):
-        return "https:" + self.lastInfo['data']['hls'][0]['url']
+        return self.getBestSubPlaylist("https:" + self.lastInfo['data']['hls'][0]['url'])
 
     def getStatus(self):
         r = requests.get(f'https://www.flirt4free.com/ws/chat/get-stream-urls.php?model_id={self.room_id}').json()

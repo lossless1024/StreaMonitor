@@ -29,7 +29,7 @@ class SexChatHU(Bot):
         return data
 
     def getVideoUrl(self):
-        return "https:" + self.lastInfo['onlineParams']['modeSpecific']['main']['hls']['address']
+        return self.getBestSubPlaylist("https:" + self.lastInfo['onlineParams']['modeSpecific']['main']['hls']['address'])
 
     def getStatus(self):
         headers = {

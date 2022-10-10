@@ -9,7 +9,6 @@ class CamSoda(Bot):
 
     def __init__(self, username):
         super(CamSoda, self).__init__(username)
-        self.getVideo = getVideoFfmpeg
 
     def getVideoUrl(self):
         v = "https://" + self.lastInfo['edge_servers'][0] + "/" + self.lastInfo['stream_name'] + \
