@@ -1,5 +1,6 @@
 import requests
 from streamonitor.bot import Bot
+from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 
 
 class CamSoda(Bot):
@@ -8,7 +9,7 @@ class CamSoda(Bot):
 
     def __init__(self, username):
         super(CamSoda, self).__init__(username)
-        self.getVideo = self.getVideoFfmpeg
+        self.getVideo = getVideoFfmpeg
 
     def getVideoUrl(self):
         v = "https://" + self.lastInfo['edge_servers'][0] + "/" + self.lastInfo['stream_name'] + \

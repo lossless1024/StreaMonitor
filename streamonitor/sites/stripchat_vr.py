@@ -14,7 +14,7 @@ class StripChatVR(StripChat):
         super().__init__(username)
         self.getVideo = self.getVideoWSSVR
 
-    def getVideoWSSVR(self, url):
+    def getVideoWSSVR(self, _, url):
         try:
             with closing(create_connection(url, timeout=10)) as conn:
                 conn.send('{"url":"stream/hello","version":"0.0.1"}')

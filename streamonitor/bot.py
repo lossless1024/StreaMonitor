@@ -1,13 +1,11 @@
 from __future__ import unicode_literals
 import os
-import subprocess
-import youtube_dl
-from ffmpy import FFmpeg, FFRuntimeError
 from enum import Enum
 from time import sleep
 from datetime import datetime
 from threading import Thread
 import streamonitor.log as log
+from streamonitor.downloaders.youtubedl import getVideoYtdl
 
 
 class Bot(Thread):
@@ -53,7 +51,7 @@ class Bot(Thread):
         self.lastInfo = {}  # This dict will hold information about stream after getStatus is called. One can use this in getVideoUrl
         self.running = False
         self.sc = self.Status.NOTRUNNING  # Status code
-        self.getVideo = self.getVideoYtdl
+        self.getVideo = getVideoYtdl
 
     def stop(self, a, b):
         if self.running:
@@ -88,7 +86,7 @@ class Bot(Thread):
                 elif self.sc == self.Status.PUBLIC or self.sc == self.Status.PRIVATE:
                     offline_time = 0
                     if self.sc == self.Status.PUBLIC:
-                        self.getVideo(self.getVideoUrl())
+                        self.getVideo(self, self.getVideoUrl())
             except Exception as e:
                 self.logger.exception(e)
                 self.log(self.status())
@@ -120,32 +118,6 @@ class Bot(Thread):
         now = datetime.now()
         filename = folder + '/' + self.username + '-' + str(now.strftime("%Y%m%d-%H%M%S")) + '.mp4'
         return filename
-
-    def getVideoFfmpeg(self, url):
-        self.log("Started downloading show")
-        filename = self.genOutFilename()
-        ff = FFmpeg(inputs={url: None}, outputs={filename: '-c:a copy -c:v copy'})
-        try:
-            ff.run(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except FFRuntimeError:
-            self.sc = self.Status.ERROR
-            self.log("Error while downloading")
-
-    def getVideoYtdl(self, url):
-        self.log("Started downloading show")
-        ydl_opts = {
-            'outtmpl': self.genOutFilename()[:-4] + '.%(ext)s',
-            'quiet': True,
-            'logger': self.logger,
-            'progress_hooks': [self.progressInfo]
-        }
-
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            try:
-                ydl.download([url])
-            except:
-                self.sc = self.Status.ERROR
-                self.log("Error while downloading")
 
     def export(self):
         return {"site": self.site, "username": self.username, "running": self.running}
