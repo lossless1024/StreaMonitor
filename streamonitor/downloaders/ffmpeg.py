@@ -1,5 +1,4 @@
 import subprocess
-import sys
 from threading import Thread
 from time import sleep
 from ffmpy import FFmpeg, FFRuntimeError

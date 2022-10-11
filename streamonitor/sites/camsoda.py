@@ -1,6 +1,5 @@
 import requests
 from streamonitor.bot import Bot
-from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 
 
 class CamSoda(Bot):
