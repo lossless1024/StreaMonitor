@@ -22,7 +22,6 @@ class SexChatHU(Bot):
             self.lastInfo = {}
         super().__init__(username)
 
-
     def export(self):
         data = super().export()
         data['room_id'] = self.room_id

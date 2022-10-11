@@ -116,7 +116,8 @@ class Bot(Thread):
             self.sc = self.Status.NOTRUNNING
             self.log("Stopped")
 
-    def getBestSubPlaylist(self, url, position=0):  # Default is the first, set -1 to last
+    @staticmethod
+    def getBestSubPlaylist(url, position=0):  # Default is the first, set -1 to last
         try:
             r = requests.get(url)
             best = [file for file in r.content.split(b'\n') if b'm3u8' in file][position].decode('utf-8')

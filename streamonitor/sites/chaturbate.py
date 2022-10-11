@@ -28,7 +28,7 @@ class Chaturbate(Bot):
                 status = self.Status.PRIVATE
             else:
                 status = self.Status.OFFLINE
-        except Exception as e:
+        except:
             status = self.Status.RATELIMIT
 
         self.ratelimit = status == self.Status.RATELIMIT

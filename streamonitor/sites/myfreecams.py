@@ -21,7 +21,6 @@ class MyFreeCams(Bot):
         a = 'a_' if self.attrs['data-is-webrtc'] == 'false' else ''
         return self.getBestSubPlaylist(f"https://edgevideo.myfreecams.com/hls/NxServer/{sid}/ngrp:mfc_{a}{mid}.f4v_mobile/playlist.m3u8")
 
-
     def getStatus(self):
         r = requests.get(f'https://share.myfreecams.com/{self.username}')
         if r.status_code != 200:

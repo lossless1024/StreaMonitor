@@ -14,7 +14,7 @@ class CamsCom(Bot):
         self.lastInfo = r.json()
         
         if 'stream_name' not in self.lastInfo:
-        	return Bot.Status.NOTEXIST
+            return Bot.Status.NOTEXIST
         if self.lastInfo['online'] == '0':
             return Bot.Status.OFFLINE
         if self.lastInfo['online'] == '1':

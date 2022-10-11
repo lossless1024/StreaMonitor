@@ -102,6 +102,5 @@ ENV/
 
 # CUSTOM
 .idea/
-downloads/
 config.json
 

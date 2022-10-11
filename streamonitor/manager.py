@@ -11,7 +11,8 @@ from streamonitor.bot import Bot
 class Manager(Thread):
     def __init__(self, streamers, mode, socket=None):
         super().__init__()
-        assert mode in ['console', 'zmq']
+        if mode not in ['console', 'zmq']:
+            raise
         self.streamers = streamers
         self.mode = mode
         self.socket = socket

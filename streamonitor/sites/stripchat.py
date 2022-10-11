@@ -1,5 +1,4 @@
 import requests
-import json
 from streamonitor.bot import Bot
 
 
