@@ -7,11 +7,8 @@ class CLIManager(Manager):
         super().__init__(streamers)
         self.logger = log.Logger("manager_cli")
 
-    def reply(self, msg):
-        self.logger.info(msg)
-
     def run(self):
         while True:
             line = input("> ")
             reply = self.execCmd(line)
-            self.reply(reply)
+            self.logger.info(reply)

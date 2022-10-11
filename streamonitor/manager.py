@@ -45,12 +45,9 @@ class Manager(Thread):
                         return None
         return found
 
-    def reply(self, msg):
-        self.logger.info(msg)
-
     def do_add(self, streamer, username, site):
         if streamer:
-            self.reply('Streamer already exists')
+            return 'Streamer already exists'
         elif username and site:
             try:
                 streamer = Bot.createInstance(username, site)
@@ -65,16 +62,15 @@ class Manager(Thread):
 
     def do_remove(self, streamer, username, site):
         if not streamer:
-            self.reply("Streamer not found")
-        else:
-            try:
-                streamer.stop(None, None)
-                streamer.logger.handlers = []
-                self.streamers.remove(streamer)
-                self.reply("OK")
-            except Exception as e:
-                self.logger.error(e)
-                self.reply("Failed to remove streamer")
+            return "Streamer not found"
+        try:
+            streamer.stop(None, None)
+            streamer.logger.handlers = []
+            self.streamers.remove(streamer)
+            return "OK"
+        except Exception as e:
+            self.logger.error(e)
+            return "Failed to remove streamer"
 
     def do_start(self, streamer, username, site):
         if not streamer:
@@ -114,7 +110,7 @@ class Manager(Thread):
         else:
             for streamer in self.streamers:
                 line()
-        self.reply("Status:\n" + AsciiTable(output).table)
+        return "Status:\n" + AsciiTable(output).table
 
     def do_status2(self, streamer, username, site):
         maxlen = max([len(s.username) for s in self.streamers])
