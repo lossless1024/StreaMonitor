@@ -18,6 +18,22 @@ class Manager(Thread):
         self.socket = socket
         self.logger = log.Logger("manager_" + mode)
 
+    def getStreamer(self, username, site):
+        found = None
+        site = Bot.str2site(site)
+        for streamer in self.streamers:
+            if streamer.username == username:
+                if site and site != "":
+                    if streamer.site == site:
+                        return streamer
+                else:
+                    if not found:
+                        found = streamer
+                    else:
+                        self.logger.error('Multiple users exist with this username, specify site too')
+                        return None
+        return found
+
     def reply(self, msg):
         if self.mode == "zmq":
             self.socket.send_string(msg)
@@ -37,70 +53,78 @@ class Manager(Thread):
             command = parts[0]
             username = parts[1] if len(parts) > 1 else ""
             site = parts[2] if len(parts) > 2 else ""
+            streamer = self.getStreamer(username, site)
 
             if command == 'add':
-                if username and site:
+                if streamer:
+                    self.reply('Streamer already exists')
+                elif username and site:
                     try:
-                        user = Bot.createInstance(username, site)
-                        self.streamers[user.username] = user
-                        self.streamers[user.username].start()
-                        self.streamers[user.username].restart()
-                        self.reply("Added [" + self.streamers[user.username].siteslug + "] " + user.username)
+                        streamer = Bot.createInstance(username, site)
+                        self.streamers.append(streamer)
+                        streamer.start()
+                        streamer.restart()
+                        self.reply("Added [" + streamer.siteslug + "] " + streamer.username)
                     except:
                         self.reply("Failed to add")
                 else:
                     self.reply("Missing value(s)")
 
             elif command == 'remove':
-                try:
-                    self.streamers[username].stop(None, None)
-                    self.streamers[username].logger.handlers = []
-                    self.streamers.pop(username)
-                    self.reply("OK")
-                except KeyError:
-                    self.reply("No such username")
-                except Exception as e:
-                    logger.error(e)
-                    self.reply("Failed to remove streamer")
+                if not streamer:
+                    self.reply("Streamer not found")
+                else:
+                    try:
+                        streamer.stop(None, None)
+                        streamer.logger.handlers = []
+                        self.streamers.remove(streamer)
+                        self.reply("OK")
+                    except Exception as e:
+                        logger.error(e)
+                        self.reply("Failed to remove streamer")
 
             elif command == 'start':
-                try:
-                    if not self.streamers[username].is_alive():
-                        self.streamers[username].start()
-                    self.streamers[username].restart()
-                    self.reply("OK")
-                except KeyError:
-                    self.reply("No such username")
-                except Exception as e:
-                    logger.error(e)
-                    self.reply("Failed to start")
+                if not streamer:
+                    self.reply("Streamer not found")
+                else:
+                    try:
+                        if not streamer.is_alive():
+                            streamer.start()
+                        streamer.restart()
+                        self.reply("OK")
+                    except Exception as e:
+                        logger.error(e)
+                        self.reply("Failed to start")
 
             elif command == 'stop':
-                try:
-                    self.streamers[username].stop(None, None)
-                    self.reply("OK")
-                except KeyError:
-                    self.reply("No such username")
-                except Exception as e:
-                    logger.error(e)
-                    self.reply("Failed to stop")
+                if not streamer:
+                    self.reply("Streamer not found")
+                else:
+                    try:
+                        streamer.stop(None, None)
+                        self.reply("OK")
+                    except Exception as e:
+                        logger.error(e)
+                        self.reply("Failed to stop")
 
             elif command == 'status':
                 output = [["Username", "Site", "Started", "Status"]]
-                streamer_list = list(self.streamers.keys())
-                streamer_list.sort(key=lambda v: v.upper())
-                for s in streamer_list:
-                    streamer = self.streamers[s]
+
+                def line():
                     output.append([streamer.username,
                                    streamer.site,
                                    streamer.running,
                                    streamer.status()])
+
+                if streamer:
+                    line()
+                else:
+                    for streamer in self.streamers:
+                        line()
                 self.reply("Status:\n" + AsciiTable(output).table)
 
             elif command == 'status2':
-                streamer_list = list(self.streamers.keys())
-                streamer_list.sort(key=lambda v: v.upper())
-                maxlen = max([len(name) for name in streamer_list])
+                maxlen = max([len(s.username) for s in self.streamers])
                 termwidth = terminaltables.terminal_io.terminal_size()[0]
                 table_nx = math.floor(termwidth/(maxlen+3))
                 output = ''
@@ -111,8 +135,7 @@ class Manager(Thread):
                     output += ('+' + '-'*(maxlen+2))*table_nx + '+\n'
                     site_name = site.site
                     i = 0
-                    for s in streamer_list:
-                        streamer = self.streamers[s]
+                    for streamer in self.streamers:
                         if streamer.site == site_name:
                             output += '!'
                             status_color = None
@@ -136,4 +159,4 @@ class Manager(Thread):
             else:
                 self.reply('Unknown command')
 
-            config.save_config([self.streamers[x].export() for x in self.streamers])
+            config.save_config([s.export() for s in self.streamers])

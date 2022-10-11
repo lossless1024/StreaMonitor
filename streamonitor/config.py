@@ -28,17 +28,18 @@ def save_config(config):
 
 
 def loadStreamers():
-    streamers = {}
+    streamers = []
     for streamer in load_config():
         room_id = streamer.get('room_id')
         username = streamer["username"]
         site = streamer["site"]
         if room_id:
-            streamers[username] = Bot.str2site(site)(username, room_id=room_id)
+            streamer_bot = Bot.str2site(site)(username, room_id=room_id)
         else:
-            streamers[username] = Bot.str2site(site)(username)
-        streamers[username].start()
+            streamer_bot = Bot.str2site(site)(username)
+        streamers.append(streamer_bot)
+        streamer_bot.start()
         if streamer["running"]:
-            streamers[username].restart()
+            streamer_bot.restart()
             time.sleep(0.1)
     return streamers
