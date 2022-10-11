@@ -1,11 +1,15 @@
 import json
+import os
+import subprocess
 from threading import Thread
 from websocket import create_connection, WebSocketConnectionClosedException, WebSocketException
 from contextlib import closing
+from ffmpy import FFmpeg, FFRuntimeError
 
 
 def getVideoWSSVR(self, url, filename):
     self.stopDownloadFlag = False
+    tmpfilename = filename[:-len('.mp4')] + '.tmp.mp4'
 
     def execute():
         try:
@@ -25,7 +29,7 @@ def getVideoWSSVR(self, url, filename):
                     except:
                         return False
 
-                with open(filename, 'wb') as outfile:
+                with open(tmpfilename, 'wb') as outfile:
                     while not self.stopDownloadFlag:
                         outfile.write(conn.recv())
         except WebSocketConnectionClosedException:
@@ -42,4 +46,14 @@ def getVideoWSSVR(self, url, filename):
     self.stopDownload = terminate
     process.join()
     self.stopDownload = None
+
+    # Post-processing
+    try:
+        ff = FFmpeg(inputs={tmpfilename: None}, outputs={filename: '-c:a copy -c:v copy'})
+        ff.run(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except FFRuntimeError as e:
+        if e.exit_code and e.exit_code != 255:
+            return False
+
+    os.remove(tmpfilename)
     return True
