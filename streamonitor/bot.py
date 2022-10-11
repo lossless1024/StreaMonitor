@@ -57,6 +57,9 @@ class Bot(Thread):
         self.getVideo = getVideoFfmpeg
         self.stopDownload = None
 
+    def restart(self):
+        self.running = True
+
     def stop(self, a, b):
         if self.running:
             self.log("Stopping...")
@@ -77,37 +80,41 @@ class Bot(Thread):
         return message
 
     def run(self):
-        self.running = True
-        offline_time = self.long_offline_timeout + 1  # Don't start polling when streamer was offline at start
-        while self.running:
-            try:
-                self.sc = self.getStatus()
-                self.log(self.status())
-                if self.sc == self.Status.ERROR:
-                    sleep(self.sleep_on_error)
-                if self.sc == self.Status.OFFLINE:
-                    offline_time += self.sleep_on_offline
-                    if offline_time > self.long_offline_timeout:
-                        self.sc = self.Status.LONG_OFFLINE
-                elif self.sc == self.Status.PUBLIC or self.sc == self.Status.PRIVATE:
-                    offline_time = 0
-                    if self.sc == self.Status.PUBLIC:
-                        self.log('Started downloading show')
-                        self.getVideo(self, self.getVideoUrl(), self.genOutFilename())
-            except Exception as e:
-                self.logger.exception(e)
-                self.log(self.status())
-                sleep(self.sleep_on_error)
-                continue
+        while True:
+            while not self.running:
+                sleep(1)
 
-            if self.ratelimit:
-                sleep(self.sleep_on_ratelimit)
-            elif offline_time > self.long_offline_timeout:
-                sleep(self.sleep_on_long_offline)
-            else:
-                sleep(self.sleep_on_offline)
-        self.sc = self.Status.NOTRUNNING
-        self.log("Stopped")
+            offline_time = self.long_offline_timeout + 1  # Don't start polling when streamer was offline at start
+            while self.running:
+                try:
+                    self.sc = self.getStatus()
+                    self.log(self.status())
+                    if self.sc == self.Status.ERROR:
+                        sleep(self.sleep_on_error)
+                    if self.sc == self.Status.OFFLINE:
+                        offline_time += self.sleep_on_offline
+                        if offline_time > self.long_offline_timeout:
+                            self.sc = self.Status.LONG_OFFLINE
+                    elif self.sc == self.Status.PUBLIC or self.sc == self.Status.PRIVATE:
+                        offline_time = 0
+                        if self.sc == self.Status.PUBLIC:
+                            self.log('Started downloading show')
+                            self.getVideo(self, self.getVideoUrl(), self.genOutFilename())
+                except Exception as e:
+                    self.logger.exception(e)
+                    self.log(self.status())
+                    sleep(self.sleep_on_error)
+                    continue
+
+                if self.ratelimit:
+                    sleep(self.sleep_on_ratelimit)
+                elif offline_time > self.long_offline_timeout:
+                    sleep(self.sleep_on_long_offline)
+                else:
+                    sleep(self.sleep_on_offline)
+
+            self.sc = self.Status.NOTRUNNING
+            self.log("Stopped")
 
     def getBestSubPlaylist(self, url, position=0):  # Default is the first, set -1 to last
         try:

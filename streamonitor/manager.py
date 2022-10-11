@@ -43,6 +43,7 @@ class Manager(Thread):
                         user = Bot.createInstance(username, site)
                         self.streamers[user.username] = user
                         self.streamers[user.username].start()
+                        self.streamers[user.username].restart()
                         self.reply("Added [" + self.streamers[user.username].siteslug + "] " + user.username)
                     except:
                         self.reply("Failed to add")
@@ -63,7 +64,9 @@ class Manager(Thread):
 
             elif command == 'start':
                 try:
-                    self.streamers[username].start()
+                    if not self.streamers[username].is_alive():
+                        self.streamers[username].start()
+                    self.streamers[username].restart()
                     self.reply("OK")
                 except KeyError:
                     self.reply("No such username")

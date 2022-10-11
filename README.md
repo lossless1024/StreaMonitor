@@ -45,9 +45,9 @@ python3 Downloader.py
 On the console you can use the following commands:
 ```
 add <username> <site> - Add streamer to the list (also starts monitoring)
-remove <username> - Remove streamer from the list (does not interrupt current recording yet)
+remove <username> - Remove streamer from the list
 start <username> - Start monitoring streamer
-stop <username> - Stop monitoring (does not stop current recording yet)
+stop <username> - Stop monitoring
 status - Status display 
 status2 - A slightly more readable status table
 ```
