@@ -99,9 +99,10 @@ class Manager(Thread):
                 maxlen = max([len(name) for name in streamer_list])
                 termwidth = terminaltables.terminal_io.terminal_size()[0]
                 table_nx = math.floor(termwidth/(maxlen+3))
+                output = ''
+                output += 'Status:\n'
 
                 for site in Bot.loaded_sites:
-                    output = 'Status:\n'
                     output += site.site + '\n'
                     output += ('+' + '-'*(maxlen+2))*table_nx + '+\n'
                     site_name = site.site
@@ -126,7 +127,7 @@ class Manager(Thread):
                     output += '!\n'
                     output += ('+' + '-'*(maxlen+2))*table_nx + '+\n'
                     output += '\n'
-                    self.reply(output)
+                self.reply(output)
 
             else:
                 self.reply('Unknown command')
