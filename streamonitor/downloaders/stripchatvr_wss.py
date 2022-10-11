@@ -12,7 +12,7 @@ def getVideoWSSVR(self, url, filename):
     tmpfilename = filename[:-len('.mp4')] + '.tmp.mp4'
 
     def execute():
-        with open(tmpfilename, 'ab') as outfile:
+        with open(tmpfilename, 'wb') as outfile:
             while not self.stopDownloadFlag:
                 try:
                     with closing(create_connection(url, timeout=10)) as conn:

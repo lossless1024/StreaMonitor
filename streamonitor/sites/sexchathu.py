@@ -44,7 +44,7 @@ class SexChatHU(Bot):
 
         if not self.lastInfo["active"]:
             return Bot.Status.NOTEXIST
-        elif self.lastInfo["onlineStatus"] == "free":
+        elif self.lastInfo["onlineStatus"] == "free" and 'hls' in self.lastInfo['onlineParams']['modeSpecific']['main']:
             return Bot.Status.PUBLIC
         elif self.lastInfo["onlineStatus"] in ['vip', 'group', 'priv']:
             return Bot.Status.PRIVATE
