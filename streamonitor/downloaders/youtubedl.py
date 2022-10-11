@@ -1,18 +1,18 @@
+import logging
+
 import youtube_dl
 
 
-def getVideoYtdl(self, url):
-    self.log("Started downloading show")
+def getVideoYtdl(self, url, filename):
     ydl_opts = {
-        'outtmpl': self.genOutFilename()[:-4] + '.%(ext)s',
-        'quiet': True,
-        'logger': self.logger,
-        'progress_hooks': [self.progressInfo]
+        'outtmpl': filename[:-4] + '.%(ext)s',
+        'quiet': False,
+        'logger': self.logger
     }
 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         try:
             ydl.download([url])
         except:
-            self.sc = self.Status.ERROR
-            self.log("Error while downloading")
+            return False
+    return True

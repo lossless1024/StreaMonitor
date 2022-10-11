@@ -55,10 +55,13 @@ class Bot(Thread):
         self.running = False
         self.sc = self.Status.NOTRUNNING  # Status code
         self.getVideo = getVideoFfmpeg
+        self.stopDownload = None
 
     def stop(self, a, b):
         if self.running:
             self.log("Stopping...")
+            if self.stopDownload:
+                self.stopDownload()
             self.running = False
 
     def getStatus(self):
@@ -89,7 +92,8 @@ class Bot(Thread):
                 elif self.sc == self.Status.PUBLIC or self.sc == self.Status.PRIVATE:
                     offline_time = 0
                     if self.sc == self.Status.PUBLIC:
-                        self.getVideo(self, self.getVideoUrl())
+                        self.log('Started downloading show')
+                        self.getVideo(self, self.getVideoUrl(), self.genOutFilename())
             except Exception as e:
                 self.logger.exception(e)
                 self.log(self.status())
