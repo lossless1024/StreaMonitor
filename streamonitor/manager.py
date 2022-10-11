@@ -21,6 +21,8 @@ class Manager(Thread):
     def getStreamer(self, username, site):
         found = None
         site = Bot.str2site(site)
+        if site:
+            site = site.site
         for streamer in self.streamers:
             if streamer.username == username:
                 if site and site != "":
