@@ -25,9 +25,11 @@ class BongaCams(Bot):
 
         if r.status_code == 200:
             self.lastInfo = r.json()
-            self.username = self.lastInfo['performerData']['username']
             if self.lastInfo["status"] == "error":
                 return Bot.Status.NOTEXIST
+            if self.username != self.lastInfo['performerData']['username']:
+                self.username = self.lastInfo['performerData']['username']
+                self.logger = self.getLogger()
             if self.lastInfo['performerData']['showType'] in ['private', 'group']:
                 return Bot.Status.PRIVATE
             if 'videoServerUrl' in self.lastInfo['localData']:

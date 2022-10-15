@@ -49,13 +49,16 @@ class Bot(Thread):
     def __init__(self, username):
         super().__init__()
         self.username = username
-        self.logger = log.Logger("[" + self.siteslug + "] " + self.username).get_logger()
+        self.logger = self.getLogger()
 
         self.lastInfo = {}  # This dict will hold information about stream after getStatus is called. One can use this in getVideoUrl
         self.running = False
         self.sc = self.Status.NOTRUNNING  # Status code
         self.getVideo = getVideoFfmpeg
         self.stopDownload = None
+
+    def getLogger(self):
+        return log.Logger("[" + self.siteslug + "] " + self.username).get_logger()
 
     def restart(self):
         self.running = True
