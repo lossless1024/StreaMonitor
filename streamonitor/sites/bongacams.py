@@ -6,10 +6,11 @@ class BongaCams(Bot):
     site = 'BongaCams'
     siteslug = 'BC'
 
+    def getPlaylistUrl(self):
+        return "https:" + self.lastInfo['localData']['videoServerUrl'] + "/hls/stream_" + self.username + "/playlist.m3u8"
+
     def getVideoUrl(self):
-        return "https:" + \
-               self.lastInfo['localData']['videoServerUrl'] + "/hls/stream_" + self.username + "/playlist.m3u8" \
-               or None
+        return self.getBestSubPlaylist(self.getPlaylistUrl(), position=-1)
 
     def getStatus(self):
         headers = {
@@ -24,10 +25,11 @@ class BongaCams(Bot):
 
         if r.status_code == 200:
             self.lastInfo = r.json()
+            self.username = self.lastInfo['performerData']['username']
             if self.lastInfo["status"] == "error":
                 return Bot.Status.NOTEXIST
             if 'videoServerUrl' in self.lastInfo['localData']:
-                r = requests.get(self.getVideoUrl())
+                r = requests.get(self.getPlaylistUrl())
                 if len(r.text) == 25 or r.status_code == 404:
                     return Bot.Status.OFFLINE
                 return Bot.Status.PUBLIC
