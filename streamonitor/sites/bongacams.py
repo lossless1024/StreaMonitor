@@ -28,6 +28,8 @@ class BongaCams(Bot):
             self.username = self.lastInfo['performerData']['username']
             if self.lastInfo["status"] == "error":
                 return Bot.Status.NOTEXIST
+            if self.lastInfo['performerData']['showType'] in ['private', 'group']:
+                return Bot.Status.PRIVATE
             if 'videoServerUrl' in self.lastInfo['localData']:
                 r = requests.get(self.getPlaylistUrl())
                 if len(r.text) == 25 or r.status_code == 404:
