@@ -45,6 +45,9 @@ class Manager(Thread):
                         return None
         return found
 
+    def saveConfig(self):
+        config.save_config([s.export() for s in self.streamers])
+
     def do_add(self, streamer, username, site):
         if streamer:
             return 'Streamer already exists'
@@ -54,6 +57,7 @@ class Manager(Thread):
                 self.streamers.append(streamer)
                 streamer.start()
                 streamer.restart()
+                self.saveConfig()
                 return "Added [" + streamer.siteslug + "] " + streamer.username
             except:
                 return "Failed to add"
@@ -67,6 +71,7 @@ class Manager(Thread):
             streamer.stop(None, None)
             streamer.logger.handlers = []
             self.streamers.remove(streamer)
+            self.saveConfig()
             return "OK"
         except Exception as e:
             self.logger.error(e)
@@ -80,6 +85,7 @@ class Manager(Thread):
                 if not streamer.is_alive():
                     streamer.start()
                 streamer.restart()
+                self.saveConfig()
                 return "OK"
             except Exception as e:
                 self.logger.error(e)
@@ -91,6 +97,7 @@ class Manager(Thread):
         else:
             try:
                 streamer.stop(None, None)
+                self.saveConfig()
                 return "OK"
             except Exception as e:
                 self.logger.error(e)
