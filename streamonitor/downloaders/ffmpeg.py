@@ -1,4 +1,6 @@
 import subprocess
+import signal
+import sys
 from threading import Thread
 from time import sleep
 from ffmpy import FFmpeg, FFRuntimeError
@@ -19,7 +21,9 @@ def getVideoFfmpeg(self, url, filename):
     process.start()
     while not ff.process:
         sleep(1)
-    self.stopDownload = ff.process.terminate
+    self.stopDownload = \
+        lambda: ff.process.send_signal(signal.CTRL_C_EVENT) if sys.platform == "win32" \
+        else ff.process.terminate()
     process.join()
     self.stopDownload = None
     return True
