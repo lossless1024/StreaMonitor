@@ -45,9 +45,11 @@ python3 Downloader.py
 On the console you can use the following commands:
 ```
 add <username> <site> - Add streamer to the list (also starts monitoring)
-remove <username> - Remove streamer from the list
-start <username> - Start monitoring streamer
-stop <username> - Stop monitoring
+remove <username> [<site>] - Remove streamer from the list
+start <username> [<site>] - Start monitoring streamer
+start * - Start all
+stop <username> [<site>] - Stop monitoring
+stop * - stop all
 status - Status display 
 status2 - A slightly more readable status table
 ```

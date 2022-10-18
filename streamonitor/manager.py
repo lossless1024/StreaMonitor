@@ -79,7 +79,15 @@ class Manager(Thread):
 
     def do_start(self, streamer, username, site):
         if not streamer:
-            return "Streamer not found"
+            if username == '*':
+                for streamer in self.streamers:
+                    if not streamer.is_alive():
+                        streamer.start()
+                    streamer.restart()
+                self.saveConfig()
+                return "Started all"
+            else:
+                return "Streamer not found"
         else:
             try:
                 if not streamer.is_alive():
@@ -93,7 +101,13 @@ class Manager(Thread):
 
     def do_stop(self, streamer, username, site):
         if not streamer:
-            return "Streamer not found"
+            if username == '*':
+                for streamer in self.streamers:
+                    streamer.stop(None, None)
+                self.saveConfig()
+                return "Stopped all"
+            else:
+                return "Streamer not found"
         else:
             try:
                 streamer.stop(None, None)
