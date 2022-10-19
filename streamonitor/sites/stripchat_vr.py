@@ -21,9 +21,11 @@ class StripChatVR(StripChat):
 
     def getStatus(self):
         status = super(StripChatVR, self).getStatus()
-        if status == Bot.Status.PUBLIC and self.lastInfo['model']['isVr']:
-            return status
-        return Bot.Status.OFFLINE
+        if status == Bot.Status.PUBLIC:
+            if self.lastInfo['model']['isVr'] and type(self.lastInfo['broadcastSettings']['vrCameraSettings']) is dict:
+                return Bot.Status.PUBLIC
+            return Bot.Status.OFFLINE
+        return status
 
 
 Bot.loaded_sites.add(StripChatVR)
