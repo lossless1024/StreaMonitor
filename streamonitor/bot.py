@@ -57,6 +57,7 @@ class Bot(Thread):
 
         self.lastInfo = {}  # This dict will hold information about stream after getStatus is called. One can use this in getVideoUrl
         self.running = False
+        self.quitting = False
         self.sc = self.Status.NOTRUNNING  # Status code
         self.getVideo = getVideoFfmpeg
         self.stopDownload = None
@@ -67,12 +68,14 @@ class Bot(Thread):
     def restart(self):
         self.running = True
 
-    def stop(self, a, b):
+    def stop(self, a, b, thread_too=False):
         if self.running:
             self.log("Stopping...")
             if self.stopDownload:
                 self.stopDownload()
             self.running = False
+        if thread_too:
+            self.quitting = True
 
     def getStatus(self):
         return self.Status.UNKNOWN
@@ -86,10 +89,19 @@ class Bot(Thread):
             self.running = False
         return message
 
+    def _sleep(self, time):
+        while time > 0:
+            sleep(1)
+            time -= 1
+            if self.quitting:
+                return
+
     def run(self):
-        while True:
-            while not self.running:
+        while not self.quitting:
+            while not self.running and not self.quitting:
                 sleep(1)
+            if self.quitting:
+                break
 
             offline_time = self.long_offline_timeout + 1  # Don't start polling when streamer was offline at start
             while self.running:
@@ -97,7 +109,7 @@ class Bot(Thread):
                     self.sc = self.getStatus()
                     self.log(self.status())
                     if self.sc == self.Status.ERROR:
-                        sleep(self.sleep_on_error)
+                        self._sleep(self.sleep_on_error)
                     if self.sc == self.Status.OFFLINE:
                         offline_time += self.sleep_on_offline
                         if offline_time > self.long_offline_timeout:
@@ -110,15 +122,15 @@ class Bot(Thread):
                 except Exception as e:
                     self.logger.exception(e)
                     self.log(self.status())
-                    sleep(self.sleep_on_error)
+                    self._sleep(self.sleep_on_error)
                     continue
 
                 if self.ratelimit:
-                    sleep(self.sleep_on_ratelimit)
+                    self._sleep(self.sleep_on_ratelimit)
                 elif offline_time > self.long_offline_timeout:
-                    sleep(self.sleep_on_long_offline)
+                    self._sleep(self.sleep_on_long_offline)
                 else:
-                    sleep(self.sleep_on_offline)
+                    self._sleep(self.sleep_on_offline)
 
             self.sc = self.Status.NOTRUNNING
             self.log("Stopped")
