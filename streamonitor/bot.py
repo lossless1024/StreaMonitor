@@ -25,6 +25,10 @@ class Bot(Thread):
     sleep_on_ratelimit = 180
     long_offline_timeout = 600
 
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:75.0) Gecko/20100101 Firefox/75.0"
+    }
+
     class Status(Enum):
         UNKNOWN = 1
         NOTRUNNING = 2
@@ -119,12 +123,15 @@ class Bot(Thread):
             self.sc = self.Status.NOTRUNNING
             self.log("Stopped")
 
-    @staticmethod
-    def getBestSubPlaylist(url, position=0):  # Default is the first, set -1 to last
+    def getBestSubPlaylist(self, url, position=0):  # Default is the first, set -1 to last
         try:
-            r = requests.get(url)
+            r = requests.get(url, headers=self.headers)
             best = [file for file in r.content.split(b'\n') if b'm3u8' in file][position].decode('utf-8')
-            return '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + best
+
+            if best.startswith('https://'):
+                return best
+            else:
+                return '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + best
         except:
             return None
 

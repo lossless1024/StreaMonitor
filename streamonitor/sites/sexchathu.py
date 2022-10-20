@@ -31,12 +31,7 @@ class SexChatHU(Bot):
         return self.getBestSubPlaylist("https:" + self.lastInfo['onlineParams']['modeSpecific']['main']['hls']['address'])
 
     def getStatus(self):
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:75.0) Gecko/20100101 Firefox/75.0",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
-        }
-
-        r = requests.get('https://chat.a.apn2.com/chat-api/index.php/room/getRoom?tokenID=guest&roomID=' + self.room_id, headers=headers)
+        r = requests.get('https://chat.a.apn2.com/chat-api/index.php/room/getRoom?tokenID=guest&roomID=' + self.room_id, headers=self.headers)
         if r.status_code != 200:
             return Bot.Status.UNKNOWN
 

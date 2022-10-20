@@ -14,12 +14,7 @@ class StripChat(Bot):
             )
 
     def getStatus(self):
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:75.0) Gecko/20100101 Firefox/75.0",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
-        }
-
-        r = requests.get('https://stripchat.com/api/vr/v2/models/username/' + self.username, headers=headers)
+        r = requests.get('https://stripchat.com/api/vr/v2/models/username/' + self.username, headers=self.headers)
         if r.status_code != 200:
             return Bot.Status.UNKNOWN
 

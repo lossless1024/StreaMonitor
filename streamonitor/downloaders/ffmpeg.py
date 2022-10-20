@@ -7,7 +7,8 @@ from ffmpy import FFmpeg, FFRuntimeError
 
 
 def getVideoFfmpeg(self, url, filename):
-    ff = FFmpeg(inputs={url: None}, outputs={filename: '-c:a copy -c:v copy'})
+    ff = FFmpeg(inputs={url: f"-user_agent '{self.headers['User-Agent']}'"},
+                outputs={filename: '-c:a copy -c:v copy'})
 
     def execute():
         try:
@@ -21,9 +22,8 @@ def getVideoFfmpeg(self, url, filename):
     process.start()
     while not ff.process:
         sleep(1)
-    self.stopDownload = \
-        lambda: ff.process.send_signal(signal.CTRL_C_EVENT) if sys.platform == "win32" \
-        else ff.process.terminate()
+    self.stopDownload = ff.process.kill if sys.platform == "win32" else ff.process.terminate
+
     process.join()
     self.stopDownload = None
     return True

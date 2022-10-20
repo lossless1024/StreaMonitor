@@ -12,7 +12,7 @@ class StreaMate(Bot):
         return self.lastInfo['formats']['mp4-hls']['encodings'][2]['location'] or None
 
     def getStatus(self):
-        headers = {
+        headers = self.headers | {
             'Content-Type': 'application/json',
             'Referer': 'https://streamate.com/'
         }

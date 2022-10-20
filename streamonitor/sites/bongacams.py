@@ -13,8 +13,7 @@ class BongaCams(Bot):
         return self.getBestSubPlaylist(self.getPlaylistUrl(), position=-1)
 
     def getStatus(self):
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:75.0) Gecko/20100101 Firefox/75.0',
+        headers = self.headers | {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Referer': 'https://de.bongacams.net/' + self.username,
             'Accept': 'application/json, text/javascript, */*; q=0.01',
