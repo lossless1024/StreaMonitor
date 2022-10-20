@@ -52,6 +52,7 @@ stop <username> [<site>] - Stop monitoring
 stop * - stop all
 status - Status display 
 status2 - A slightly more readable status table
+quit - Clean exit
 ```
 For the `username` input, you usually have to enter the username as represented in the original URL of the room. 
 Some sites are case-sensitive.

@@ -8,6 +8,7 @@ from streamonitor.manager import Manager
 class HTTPManager(Manager):
     def __init__(self, streamers):
         super().__init__(streamers)
+        self.daemon = True
         self.logger = log.Logger("manager")
 
     def run(self):
