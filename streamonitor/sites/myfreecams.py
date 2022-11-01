@@ -37,7 +37,10 @@ class MyFreeCams(Bot):
         params = doc.find(class_='campreview')
         if params:
             self.attrs = params.attrs
-            return Bot.Status.PUBLIC
+            if self.getVideoUrl():
+                return Bot.Status.PUBLIC
+            else:
+                return Bot.Status.PRIVATE
         else:
             return Bot.Status.OFFLINE
 
