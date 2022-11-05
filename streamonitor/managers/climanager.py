@@ -17,8 +17,8 @@ class CLIManager(Manager):
             try:
                 line = input("> ")
             except EOFError:
-                print()
-                continue
+                self.do_quit(None, None, None)
+                return
             reply = self.execCmd(line)
             if line == "quit":
                 return
