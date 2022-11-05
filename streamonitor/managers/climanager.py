@@ -1,6 +1,7 @@
 from streamonitor.manager import Manager
 from streamonitor.clean_exit import CleanExit
 import streamonitor.log as log
+import readline
 
 
 class CLIManager(Manager):
