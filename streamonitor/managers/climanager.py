@@ -11,7 +11,11 @@ class CLIManager(Manager):
 
     def run(self):
         while True:
-            line = input("> ")
+            try:
+                line = input("> ")
+            except EOFError:
+                print()
+                continue
             reply = self.execCmd(line)
             if line == "quit":
                 return

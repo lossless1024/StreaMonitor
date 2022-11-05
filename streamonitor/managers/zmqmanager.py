@@ -5,7 +5,6 @@ import streamonitor.log as log
 class ZMQManager(Manager):
     def __init__(self, streamers, socket):
         super().__init__(streamers)
-        self.daemon = True
         self.socket = socket
         self.logger = log.Logger("manager_zmq")
 

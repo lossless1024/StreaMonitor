@@ -1,29 +1,52 @@
+import errno
 import subprocess
-import signal
-import sys
 from threading import Thread
-from time import sleep
-from ffmpy import FFmpeg, FFRuntimeError
 
 
 def getVideoFfmpeg(self, url, filename):
-    ff = FFmpeg(inputs={url: f"-user_agent '{self.headers['User-Agent']}'"},
-                outputs={filename: '-c:a copy -c:v copy'})
+    cmd = [
+        'ffmpeg',
+        '-user_agent', self.headers['User-Agent'],
+        '-i', url,
+        '-c:a', 'copy',
+        '-c:v', 'copy',
+        filename
+    ]
+
+    class _Stopper:
+        def __init__(self):
+            self.stop = False
+
+        def pls_stop(self):
+            self.stop = True
+
+    stopping = _Stopper()
 
     def execute():
         try:
-            ff.run(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except FFRuntimeError as e:
-            if e.exit_code and e.exit_code != 255:
+            process = subprocess.Popen(args=cmd, stdin=subprocess.PIPE, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+        except OSError as e:
+            if e.errno == errno.ENOENT:
+                self.logger.error('FFMpeg executable not found!')
+                return
+            else:
                 raise
-        return
 
-    process = Thread(target=execute)
-    process.start()
-    while not ff.process:
-        sleep(1)
-    self.stopDownload = ff.process.kill if sys.platform == "win32" else ff.process.terminate
+        while process.poll() is None:
+            if stopping.stop:
+                process.communicate(b'q')
+                break
+            try:
+                process.wait(1)
+            except subprocess.TimeoutExpired:
+                pass
 
-    process.join()
+        if process.returncode and process.returncode != 0 and process.returncode != 255:
+            raise
+
+    thread = Thread(target=execute)
+    thread.start()
+    self.stopDownload = lambda: stopping.pls_stop()
+    thread.join()
     self.stopDownload = None
     return True

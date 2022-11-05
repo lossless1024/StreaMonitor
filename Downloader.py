@@ -11,6 +11,11 @@ import streamonitor.sites  # must have
 def main():
     streamers = config.loadStreamers()
 
+    clean_exit = CleanExit(streamers).clean_exit
+    signal.signal(signal.SIGINT, clean_exit)
+    signal.signal(signal.SIGTERM, clean_exit)
+    signal.signal(signal.SIGABRT, clean_exit)
+
     console_manager = CLIManager(streamers)
     console_manager.start()
 
@@ -21,11 +26,6 @@ def main():
 
     http_manager = HTTPManager(streamers)
     http_manager.start()
-
-    clean_exit = CleanExit(streamers).clean_exit
-    signal.signal(signal.SIGINT, clean_exit)
-    signal.signal(signal.SIGTERM, clean_exit)
-    signal.signal(signal.SIGABRT, clean_exit)
 
 
 main()

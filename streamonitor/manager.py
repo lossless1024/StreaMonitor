@@ -12,6 +12,7 @@ from streamonitor.bot import Bot
 class Manager(Thread):
     def __init__(self, streamers):
         super().__init__()
+        self.daemon = True
         self.streamers = streamers
         self.logger = log.Logger("manager")
 
