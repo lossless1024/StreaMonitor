@@ -24,7 +24,10 @@ class CleanExit:
         if not self.dummy_thread.is_alive():
             self.dummy_thread.start()
 
-    def clean_exit(self, a, b):
+    def __call__(self, *args, **kwargs):
+        self.clean_exit()
+
+    def clean_exit(self, _=None, __=None):
         for streamer in self.streamers:
             streamer.stop(None, None, True)
         for streamer in self.streamers:

@@ -17,12 +17,12 @@ class CLIManager(Manager):
             try:
                 line = input("> ")
             except EOFError:
-                self.do_quit(None, None, None)
+                self.do_quit()
                 return
             reply = self.execCmd(line)
             if line == "quit":
                 return
             self.logger.info(reply)
 
-    def do_quit(self, _, __, ___):
-        CleanExit(self.streamers).clean_exit(0, 0)
+    def do_quit(self, _=None, __=None, ___=None):
+        CleanExit(self.streamers)()

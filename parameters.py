@@ -1,0 +1,1 @@
+MIN_FREE_DISK_PERCENT = 1.0  # in %
