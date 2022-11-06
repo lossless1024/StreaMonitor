@@ -7,6 +7,7 @@ from terminaltables import AsciiTable
 import streamonitor.config as config
 import streamonitor.log as log
 from streamonitor.bot import Bot
+from streamonitor.managers.outofspace_detector import OOSDetector
 
 
 class Manager(Thread):
@@ -132,7 +133,7 @@ class Manager(Thread):
         else:
             for streamer in self.streamers:
                 line()
-        return "Status:\n" + AsciiTable(output).table
+        return "Status:\n" + f'Free space: {str(round(OOSDetector.free_space(), 3))}%\n\n' + AsciiTable(output).table
 
     def do_status2(self, streamer, username, site):
         maxlen = max([len(s.username) for s in self.streamers])
