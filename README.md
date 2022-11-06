@@ -84,6 +84,10 @@ You can also get a list of the recorded streams.
 
 Further improvements can be expected.
 
+## Configuration
+
+You can set some parameters in the parameters.py.
+
 ## Disclaimer
 
 This program is only a proof of concept and education project, I don't encourage anybody to use it. \

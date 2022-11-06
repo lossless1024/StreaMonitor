@@ -8,6 +8,7 @@ from threading import Thread
 import requests
 
 import streamonitor.log as log
+from parameters import DOWNLOADS_DIR
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 
 
@@ -157,11 +158,11 @@ class Bot(Thread):
             self.log("Show ended. File:" + p['filename'])
 
     def genOutFilename(self, create_dir=True):
-        folder = 'downloads/' + self.username + ' [' + self.siteslug + ']'
+        folder = os.path.join(DOWNLOADS_DIR, self.username + ' [' + self.siteslug + ']')
         if create_dir:
             os.makedirs(folder, exist_ok=True)
         now = datetime.now()
-        filename = folder + '/' + self.username + '-' + str(now.strftime("%Y%m%d-%H%M%S")) + '.mp4'
+        filename = os.path.join(folder, self.username + '-' + str(now.strftime("%Y%m%d-%H%M%S")) + '.mp4')
         return filename
 
     def export(self):
