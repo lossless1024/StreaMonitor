@@ -11,6 +11,9 @@ def getVideoWSSVR(self, url, filename):
     self.stopDownloadFlag = False
     tmpfilename = filename[:-len('.mp4')] + '.tmp.mp4'
 
+    def debug_(message):
+        self.debug(message, filename + '.log')
+
     def execute():
         with open(tmpfilename, 'wb') as outfile:
             while not self.stopDownloadFlag:
@@ -24,19 +27,24 @@ def getVideoWSSVR(self, url, filename):
                                 if 'url' in tj:
                                     if tj['url'] == 'stream/qual':
                                         conn.send('{"quality":"test","url":"stream/play","version":"0.0.1"}')
+                                        debug_('Connection opened')
                                         break
                                 if 'message' in tj:
                                     if tj['message'] == 'ping':
+                                        debug_('Server is not ready or there was a change')
                                         return False
                             except:
+                                debug_('Failed to open the connection')
                                 return False
 
                         while not self.stopDownloadFlag:
                             outfile.write(conn.recv())
                 except WebSocketConnectionClosedException:
-                    self.log('WebSocket connection closed')
+                    debug_('WebSocket connection closed - try to continue')
                     continue
-                except WebSocketException:
+                except WebSocketException as wex:
+                    debug_('Error when downloading')
+                    debug_(wex)
                     return False
 
     def terminate():

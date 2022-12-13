@@ -8,7 +8,7 @@ from threading import Thread
 import requests
 
 import streamonitor.log as log
-from parameters import DOWNLOADS_DIR
+from parameters import DOWNLOADS_DIR, DEBUG
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 
 
@@ -84,6 +84,14 @@ class Bot(Thread):
     def log(self, message):
         self.logger.info(message)
 
+    def debug(self, message, filename=None):
+        if DEBUG:
+            self.logger.debug(message)
+            if not filename:
+                filename = os.path.join([self.outputFolder, 'debug.log'])
+            with open(filename, 'a+') as debugfile:
+                debugfile.write(message + '\n')
+
     def status(self):
         message = self.status_messages.get(self.sc) or "Unknown error"
         if self.sc == self.Status.NOTEXIST:
@@ -157,8 +165,12 @@ class Bot(Thread):
         if p['status'] == 'finished':
             self.log("Show ended. File:" + p['filename'])
 
+    @property
+    def outputFolder(self):
+        return os.path.join(DOWNLOADS_DIR, self.username + ' [' + self.siteslug + ']')
+
     def genOutFilename(self, create_dir=True):
-        folder = os.path.join(DOWNLOADS_DIR, self.username + ' [' + self.siteslug + ']')
+        folder = self.outputFolder
         if create_dir:
             os.makedirs(folder, exist_ok=True)
         now = datetime.now()

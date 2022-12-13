@@ -1,6 +1,7 @@
 import errno
 import subprocess
 from threading import Thread
+from parameters import DEBUG
 
 
 def getVideoFfmpeg(self, url, filename):
@@ -24,7 +25,9 @@ def getVideoFfmpeg(self, url, filename):
 
     def execute():
         try:
-            process = subprocess.Popen(args=cmd, stdin=subprocess.PIPE, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+            stdout = open(filename + '.stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
+            stderr = open(filename + '.stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
+            process = subprocess.Popen(args=cmd, stdin=subprocess.PIPE, stderr=stderr, stdout=stdout)
         except OSError as e:
             if e.errno == errno.ENOENT:
                 self.logger.error('FFMpeg executable not found!')

@@ -1,4 +1,5 @@
 import logging
+import parameters
 
 
 class Logger(object):
@@ -9,7 +10,8 @@ class Logger(object):
         self.handler.setFormatter(self.formatter)
 
         self.logger = logging.getLogger(self.name)
-        self.logger.setLevel(logging.DEBUG)
+        loglevel = logging.DEBUG if parameters.DEBUG else logging.INFO
+        self.logger.setLevel(loglevel)
         self.logger.addHandler(self.handler)
 
     def get_logger(self):
