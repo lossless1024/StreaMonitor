@@ -23,7 +23,9 @@ def getVideoFfmpeg(self, url, filename):
 
     stopping = _Stopper()
 
+    error = False
     def execute():
+        nonlocal error
         try:
             stdout = open(filename + '.stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
             stderr = open(filename + '.stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
@@ -31,9 +33,12 @@ def getVideoFfmpeg(self, url, filename):
         except OSError as e:
             if e.errno == errno.ENOENT:
                 self.logger.error('FFMpeg executable not found!')
+                error = True
                 return
             else:
-                raise
+                self.logger.error("Got OSError, errno: " + str(e.errno))
+                error = True
+                return
 
         while process.poll() is None:
             if stopping.stop:
@@ -45,11 +50,13 @@ def getVideoFfmpeg(self, url, filename):
                 pass
 
         if process.returncode and process.returncode != 0 and process.returncode != 255:
-            raise
+            self.logger.error('The process exited with an error. Return code: ' + str(process.returncode))
+            error = True
+            return
 
     thread = Thread(target=execute)
     thread.start()
     self.stopDownload = lambda: stopping.pls_stop()
     thread.join()
     self.stopDownload = None
-    return True
+    return not error

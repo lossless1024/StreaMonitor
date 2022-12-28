@@ -9,12 +9,14 @@ from ffmpy import FFmpeg, FFRuntimeError
 
 def getVideoWSSVR(self, url, filename):
     self.stopDownloadFlag = False
+    error = False
     tmpfilename = filename[:-len('.mp4')] + '.tmp.mp4'
 
     def debug_(message):
         self.debug(message, filename + '.log')
 
     def execute():
+        nonlocal error
         with open(tmpfilename, 'wb') as outfile:
             while not self.stopDownloadFlag:
                 try:
@@ -32,10 +34,12 @@ def getVideoWSSVR(self, url, filename):
                                 if 'message' in tj:
                                     if tj['message'] == 'ping':
                                         debug_('Server is not ready or there was a change')
-                                        return False
+                                        error = True
+                                        return
                             except:
                                 debug_('Failed to open the connection')
-                                return False
+                                error = True
+                                return
 
                         while not self.stopDownloadFlag:
                             outfile.write(conn.recv())
@@ -45,7 +49,8 @@ def getVideoWSSVR(self, url, filename):
                 except WebSocketException as wex:
                     debug_('Error when downloading')
                     debug_(wex)
-                    return False
+                    error = True
+                    return
 
     def terminate():
         self.stopDownloadFlag = True
@@ -56,6 +61,9 @@ def getVideoWSSVR(self, url, filename):
     process.join()
     self.stopDownload = None
 
+    if error:
+        return False
+
     # Post-processing
     try:
         ff = FFmpeg(inputs={tmpfilename: '-ignore_editlist 1'}, outputs={filename: '-codec copy'})
@@ -65,4 +73,5 @@ def getVideoWSSVR(self, url, filename):
             return False
 
     os.remove(tmpfilename)
+
     return True

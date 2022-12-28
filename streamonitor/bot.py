@@ -48,7 +48,8 @@ class Bot(Thread):
         Status.PRIVATE: "Private show",
         Status.RATELIMIT: "Rate limited",
         Status.NOTEXIST: "Nonexistent user",
-        Status.NOTRUNNING: "Not running"
+        Status.NOTRUNNING: "Not running",
+        Status.ERROR: "Error on downloading"
     }
 
     def __init__(self, username):
@@ -127,7 +128,12 @@ class Bot(Thread):
                         offline_time = 0
                         if self.sc == self.Status.PUBLIC:
                             self.log('Started downloading show')
-                            self.getVideo(self, self.getVideoUrl(), self.genOutFilename())
+                            ret = self.getVideo(self, self.getVideoUrl(), self.genOutFilename())
+                            if not ret:
+                                self.sc = self.Status.ERROR
+                                self.log(self.status())
+                                self._sleep(self.sleep_on_error)
+                                continue
                 except Exception as e:
                     self.logger.exception(e)
                     self.log(self.status())
