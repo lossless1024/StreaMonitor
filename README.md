@@ -84,6 +84,11 @@ You can also get a list of the recorded streams.
 
 Further improvements can be expected.
 
+## Docker support
+
+You can run this application in docker. I prefer docker-compose so I included an example docker-compose.yml file that you can use.
+Simply start it in the folder with `docker-compose up`.
+
 ## Configuration
 
 You can set some parameters in the parameters.py.

@@ -1,0 +1,8 @@
+downloads
+__pycache__
+venv
+.git
+.gitignore
+config.json
+Dockerfile
+docker-compose.yml

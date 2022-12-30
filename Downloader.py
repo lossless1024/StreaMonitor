@@ -1,4 +1,5 @@
 import zmq
+import os
 import sys
 import signal
 import streamonitor.config as config
@@ -8,6 +9,14 @@ from streamonitor.managers.zmqmanager import ZMQManager
 from streamonitor.managers.outofspace_detector import OOSDetector
 from streamonitor.clean_exit import CleanExit
 import streamonitor.sites  # must have
+
+        
+def is_docker():
+    path = '/proc/self/cgroup'
+    return (
+        os.path.exists('/.dockerenv') or
+        os.path.isfile(path) and any('docker' in line for line in open(path))
+    )
 
 
 def main():
@@ -25,8 +34,9 @@ def main():
     oos_detector = OOSDetector(streamers)
     oos_detector.start()
 
-    console_manager = CLIManager(streamers)
-    console_manager.start()
+    if not is_docker():
+        console_manager = CLIManager(streamers)
+        console_manager.start()
 
     socket = zmq.Context.instance().socket(zmq.REP)
     socket.bind("tcp://*:6969")
