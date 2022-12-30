@@ -1,4 +1,3 @@
-import zmq
 import os
 import sys
 import signal
@@ -38,9 +37,7 @@ def main():
         console_manager = CLIManager(streamers)
         console_manager.start()
 
-    socket = zmq.Context.instance().socket(zmq.REP)
-    socket.bind("tcp://*:6969")
-    zmq_manager = ZMQManager(streamers, socket)
+    zmq_manager = ZMQManager(streamers)
     zmq_manager.start()
 
     http_manager = HTTPManager(streamers)
