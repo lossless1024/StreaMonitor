@@ -1,4 +1,5 @@
 import time
+import signal
 from threading import Thread
 
 
@@ -23,6 +24,10 @@ class CleanExit:
         self.streamers = streamers
         if not self.dummy_thread.is_alive():
             self.dummy_thread.start()
+            
+        signal.signal(signal.SIGINT, self.clean_exit)
+        signal.signal(signal.SIGTERM, self.clean_exit)
+        signal.signal(signal.SIGABRT, self.clean_exit)
 
     def __call__(self, *args, **kwargs):
         self.clean_exit()

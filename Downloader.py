@@ -1,6 +1,5 @@
 import os
 import sys
-import signal
 import streamonitor.config as config
 from streamonitor.managers.httpmanager import HTTPManager
 from streamonitor.managers.climanager import CLIManager
@@ -25,10 +24,7 @@ def main():
 
     streamers = config.loadStreamers()
 
-    clean_exit = CleanExit(streamers).clean_exit
-    signal.signal(signal.SIGINT, clean_exit)
-    signal.signal(signal.SIGTERM, clean_exit)
-    signal.signal(signal.SIGABRT, clean_exit)
+    clean_exit = CleanExit(streamers)
 
     oos_detector = OOSDetector(streamers)
     oos_detector.start()
