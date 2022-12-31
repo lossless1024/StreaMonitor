@@ -10,7 +10,11 @@ class CherryTV(Bot):
         return self.getBestSubPlaylist(self.lastInfo['broadcast']['pullUrl'], position=-1)
 
     def getStatus(self):
-        r = requests.get('https://api.cherry.tv/graphql?operationName=findStreamerBySlug&variables={"slug":"' + self.username + '"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"3a7f547209f75ceca3a7850a49fc37f3762859d208222014163647367edacda3"}}')
+        operationName = 'findStreamerBySlug'
+        variables = '{"slug": "' + self.username + '"}'
+        extensions = '{"persistedQuery":{"version":1,"sha256Hash":"1fd980c874484de0b139ef4a67c867200a87f44aa51caf54319e93a4108a7510"}}'
+
+        r = requests.get(f'https://api.cherry.tv/graphql?operationName={operationName}&variables={variables}&extensions={extensions}', headers=self.headers)
         self.lastInfo = r.json()['data']['streamer']
         
         if not self.lastInfo:
