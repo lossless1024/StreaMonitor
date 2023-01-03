@@ -3,23 +3,26 @@ A Python3 application for monitoring and saving (mostly adult) live streams from
 
 Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 
-## Supported sites and their abbreviations
-* Bongacams `BC`
-* Cam4 `C4`
-* Cams.com `CC` (currently only 360p)
-* CamSoda `CS`
-* Chaturbate `CB`
-* Cherry.TV `CHTV`
-* Flirt4Free `F4F`
-* MyFreeCams `MFC`
-* SexChat.hu `SCHU` (use the id as username)
-* StreaMate `SM` (alias: PornHubLive, PepperCams,...)
-* StripChat `SC` (alias: XHamsterLive,...)
-* StripChat VR `SCVR` for VR videos
+## Supported sites
+| Site name    | Abbreviation | Aliases                     | Quirks                 | Selectable resolution |
+|--------------|--------------|-----------------------------|------------------------|-----------------------|
+| Bongacams    | `BC`         |                             |                        | Yes                   |
+| Cam4         | `C4`         |                             |                        | Yes                   |
+| Cams.com     | `CC`         |                             |                        | Currently only 360p   |
+| CamSoda      | `CS`         |                             |                        | Yes                   |
+| Chaturbate   | `CB`         |                             |                        | Yes                   |
+| Cherry.TV    | `CHTV`       |                             |                        | Yes                   |
+| Dreamcam VR  | `DCVR`       |                             |                        | No                    |
+| Flirt4Free   | `F4F`        |                             |                        | Yes                   |
+| MyFreeCams   | `MFC`        |                             |                        | Yes                   |
+| SexChat.hu   | `SCHU`       |                             | use the id as username | No                    |
+| StreaMate    | `SM`         | PornHubLive, PepperCams,... |                        | Yes                   |
+| StripChat    | `SC`         | XHamsterLive,...            |                        | Yes                   |
+| StripChat VR | `SCVR`       |                             | for VR videos          | No                    |
 
-Planned to support:
-* ImLive
-* LiveJasmin
+Currently not supported:
+* ImLive (Too strict captcha protection for scraping)
+* LiveJasmin (No nudity in free streams)
 
 There are hundreds of clones of the sites above, you can read about them on [this site](https://adultwebcam.site/clone-sites-by-platform/).
 
