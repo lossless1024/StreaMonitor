@@ -7,7 +7,7 @@ class Cam4(Bot):
     siteslug = 'C4'
 
     def getVideoUrl(self):
-        return self.lastInfo['cdnURL']
+        return self.getWantedResolutionPlaylist(self.lastInfo['cdnURL'])
 
     def getStatus(self):
         headers = {

@@ -10,7 +10,7 @@ class BongaCams(Bot):
         return "https:" + self.lastInfo['localData']['videoServerUrl'] + "/hls/stream_" + self.username + "/playlist.m3u8"
 
     def getVideoUrl(self):
-        return self.getBestSubPlaylist(self.getPlaylistUrl(), position=-1)
+        return self.getWantedResolutionPlaylist(self.getPlaylistUrl())
 
     def getStatus(self):
         headers = self.headers | {

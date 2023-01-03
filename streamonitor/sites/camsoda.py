@@ -12,11 +12,7 @@ class CamSoda(Bot):
     def getVideoUrl(self):
         v = "https://" + self.lastInfo['edge_servers'][0] + "/" + self.lastInfo['stream_name'] + \
             "_v1/index.m3u8?token=" + self.lastInfo['token']
-
-        v = "https://" + self.lastInfo['edge_servers'][0] + "/" + self.lastInfo['stream_name'] + \
-            "_v1/" + requests.get(v).content.split(b'\n')[-2].decode('ascii')
-
-        return v
+        return self.getWantedResolutionPlaylist(v)
 
     def getStatus(self):
         headers = self.headers | {

@@ -19,7 +19,11 @@ class MyFreeCams(Bot):
         sid = self.attrs['data-campreview-sid']
         mid = 100000000 + int(self.attrs['data-campreview-mid'])
         a = 'a_' if self.attrs['data-is-webrtc'] == 'false' else ''
-        return self.getBestSubPlaylist(f"https://edgevideo.myfreecams.com/hls/NxServer/{sid}/ngrp:mfc_{a}{mid}.f4v_mobile/playlist.m3u8")
+        playlist_url = f"https://edgevideo.myfreecams.com/hls/NxServer/{sid}/ngrp:mfc_{a}{mid}.f4v_mobile/playlist.m3u8"
+        r = requests.get(playlist_url)
+        if r.status_code != 200:
+            return None
+        return self.getWantedResolutionPlaylist(playlist_url)
 
     def getStatus(self):
         r = requests.get(f'https://share.myfreecams.com/{self.username}')

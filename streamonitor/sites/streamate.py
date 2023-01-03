@@ -7,9 +7,15 @@ class StreaMate(Bot):
     siteslug = 'SM'
     aliases = ['pornhublive']
 
-    def getVideoUrl(self):
+    def getPlaylistVariants(self, url):
+        sources = []
         # formats: mp4-rtmp, mp4-hls, mp4-ws
-        return self.lastInfo['formats']['mp4-hls']['encodings'][2]['location'] or None
+        for source in self.lastInfo['formats']['mp4-hls']['encodings']:
+            sources.append(( source['location'], (source['videoWidth'], source['videoHeight']) ))
+        return sources
+
+    def getVideoUrl(self):
+        return self.getWantedResolutionPlaylist(None)
 
     def getStatus(self):
         headers = self.headers | {

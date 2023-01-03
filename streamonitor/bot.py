@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import os
+import m3u8
 from enum import Enum
 from time import sleep
 from datetime import datetime
@@ -8,7 +9,7 @@ from threading import Thread
 import requests
 
 import streamonitor.log as log
-from parameters import DOWNLOADS_DIR, DEBUG
+from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 
 
@@ -127,8 +128,14 @@ class Bot(Thread):
                     elif self.sc == self.Status.PUBLIC or self.sc == self.Status.PRIVATE:
                         offline_time = 0
                         if self.sc == self.Status.PUBLIC:
+                            video_url = self.getVideoUrl()
+                            if video_url is None:
+                                self.sc = self.Status.ERROR
+                                self.logger.error(self.status())
+                                self._sleep(self.sleep_on_error)
+                                continue
                             self.log('Started downloading show')
-                            ret = self.getVideo(self, self.getVideoUrl(), self.genOutFilename())
+                            ret = self.getVideo(self, video_url, self.genOutFilename())
                             if not ret:
                                 self.sc = self.Status.ERROR
                                 self.log(self.status())
@@ -140,7 +147,9 @@ class Bot(Thread):
                     self._sleep(self.sleep_on_error)
                     continue
 
-                if self.ratelimit:
+                if self.quitting:
+                    return
+                elif self.ratelimit:
                     self._sleep(self.sleep_on_ratelimit)
                 elif offline_time > self.long_offline_timeout:
                     self._sleep(self.sleep_on_long_offline)
@@ -150,16 +159,75 @@ class Bot(Thread):
             self.sc = self.Status.NOTRUNNING
             self.log("Stopped")
 
-    def getBestSubPlaylist(self, url, position=0):  # Default is the first, set -1 to last
-        try:
-            r = requests.get(url, headers=self.headers)
-            best = [file for file in r.content.split(b'\n') if b'm3u8' in file][position].decode('utf-8')
+    def getPlaylistVariants(self, url):
+        sources = []
+        result = requests.get(url)
+        m3u8_doc = result.content.decode("utf-8")
+        variant_m3u8 = m3u8.loads(m3u8_doc)
+        for playlist in variant_m3u8.playlists:
+            resolution = playlist.stream_info.resolution if type(playlist.stream_info.resolution) is tuple else (0, 0)
+            sources.append(( playlist.uri, resolution ))
 
-            if best.startswith('https://'):
-                return best
+        if not variant_m3u8.is_variant and len(sources) >= 1:
+            self.logger.warn("Not variant playlist, can't select resolution")
+            return None
+        return sources #  [(url, (width, height)),...]
+
+    def getWantedResolutionPlaylist(self, url):
+        try:
+            sources = self.getPlaylistVariants(url)
+            if sources is None:
+                return None
+
+            if len(sources) == 0:
+                self.logger.error("No available sources")
+                return None
+
+            sources2 = []
+            for source in sources:
+                width, height = source[1]
+                if width < height:
+                    source += (width - WANTED_RESOLUTION,)
+                else:
+                    source += (height - WANTED_RESOLUTION,)
+                sources2.append(source)
+            sources = sources2
+
+            sources.sort(key=lambda a: abs(a[2]))
+            selected_source = None
+
+            if WANTED_RESOLUTION_PREFERENCE == 'exact':
+                if sources[0][2] == 0:
+                    selected_source = sources[0]
+            elif WANTED_RESOLUTION_PREFERENCE == 'closest' or len(sources) == 1:
+                selected_source = sources[0]
+            elif WANTED_RESOLUTION_PREFERENCE == 'exact_or_least_higher':
+                for source in sources:
+                    if source[2] >= 0:
+                        selected_source = source
+                        break
+            elif WANTED_RESOLUTION_PREFERENCE == 'exact_or_highest_lower':
+                for source in sources:
+                    if source[2] <= 0:
+                        selected_source = source
+                        break
             else:
-                return '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + best
-        except:
+                self.logger.error('Invalid value for WANTED_RESOLUTION_PREFERENCE')
+                return None
+
+            if selected_source is None:
+                self.logger.error("Couldn't select a resolution")
+                return None
+
+            if selected_source[1][1] != 0:
+                self.logger.info(f'Selected {selected_source[1][0]}x{selected_source[1][1]} resolution')
+            selected_source_url = selected_source[0]
+            if selected_source_url.startswith("https://"):
+                return selected_source_url
+            else:
+                return '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + selected_source_url
+        except BaseException as e:
+            self.logger.error("Can't get playlist, got some error: " + str(e))
             return None
 
     def getVideoUrl(self):

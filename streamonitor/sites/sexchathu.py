@@ -28,7 +28,7 @@ class SexChatHU(Bot):
         return data
 
     def getVideoUrl(self):
-        return self.getBestSubPlaylist("https:" + self.lastInfo['onlineParams']['modeSpecific']['main']['hls']['address'])
+        return self.getWantedResolutionPlaylist("https:" + self.lastInfo['onlineParams']['modeSpecific']['main']['hls']['address'])
 
     def getStatus(self):
         r = requests.get('https://chat.a.apn2.com/chat-api/index.php/room/getRoom?tokenID=guest&roomID=' + self.room_id, headers=self.headers)

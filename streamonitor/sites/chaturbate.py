@@ -12,7 +12,7 @@ class Chaturbate(Bot):
         self.sleep_on_error = 60
 
     def getVideoUrl(self):
-        return self.getBestSubPlaylist(self.lastInfo['url'], position=-1)
+        return self.getWantedResolutionPlaylist(self.lastInfo['url'])
 
     def getStatus(self):
         headers = {"X-Requested-With": "XMLHttpRequest"}

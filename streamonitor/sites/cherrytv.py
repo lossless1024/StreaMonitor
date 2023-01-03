@@ -7,7 +7,7 @@ class CherryTV(Bot):
     siteslug = 'CHTV'
 
     def getVideoUrl(self):
-        return self.getBestSubPlaylist(self.lastInfo['broadcast']['pullUrl'], position=-1)
+        return self.getWantedResolutionPlaylist(self.lastInfo['broadcast']['pullUrl'])
 
     def getStatus(self):
         operationName = 'findStreamerBySlug'
