@@ -1,6 +1,6 @@
 from streamonitor.sites.stripchat import StripChat
 from streamonitor.bot import Bot
-from streamonitor.downloaders.stripchatvr_wss import getVideoWSSVR
+from streamonitor.downloaders.fmp4s_wss import getVideoWSSVR
 
 
 class StripChatVR(StripChat):
