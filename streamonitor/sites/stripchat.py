@@ -22,7 +22,7 @@ class StripChat(Bot):
 
         if self.lastInfo["model"]["status"] == "public" and self.lastInfo["isCamAvailable"] and self.lastInfo['cam']["isCamActive"]:
             return Bot.Status.PUBLIC
-        if self.lastInfo["model"]["status"] in ["private", "groupShow", "p2p", "virtualPrivate"]:
+        if self.lastInfo["model"]["status"] in ["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"]:
             return Bot.Status.PRIVATE
         if self.lastInfo["model"]["status"] in ["off", "idle"]:
             return Bot.Status.OFFLINE

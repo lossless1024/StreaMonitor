@@ -7,15 +7,15 @@ class ZMQManager(Manager):
     def __init__(self, streamers):
         super().__init__(streamers)
         self.logger = log.Logger("manager_zmq")
-        self.socket = zmq.Context.instance().socket(zmq.REP)
-        self.socket.bind("tcp://*:6969")
 
     def run(self):
-        while True:
-            line = self.socket.recv_string()
-            self.logger.info("[ZMQ] " + line)
-            reply = self.execCmd(line)
-            if type(reply) is str:
-                self.socket.send_string(reply)
-            else:
-                self.socket.send_string('')
+        with zmq.Context.instance().socket(zmq.REP) as socket:
+            socket.bind("tcp://*:6969")
+            while True:
+                line = socket.recv_string()
+                self.logger.info("[ZMQ] " + line)
+                reply = self.execCmd(line)
+                if type(reply) is str:
+                    socket.send_string(reply)
+                else:
+                    socket.send_string('')

@@ -55,6 +55,8 @@ class Flirt4Free(Bot):
             return Bot.Status.NOTEXIST
         if r['code'] == 0:
             s = requests.get(f'https://www.flirt4free.com/ws/rooms/chat-room-interface.php?a=login_room&model_id={self.room_id}').json()
+            if 'config' not in s:
+                return Bot.Status.UNKNOWN
             if s['config']['room']['status'] == 'O':
                 return Bot.Status.PUBLIC
             if s['config']['room']['status'] == 'P':
