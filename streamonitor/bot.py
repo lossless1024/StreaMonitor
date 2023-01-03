@@ -148,7 +148,7 @@ class Bot(Thread):
                     continue
 
                 if self.quitting:
-                    return
+                    break
                 elif self.ratelimit:
                     self._sleep(self.sleep_on_ratelimit)
                 elif offline_time > self.long_offline_timeout:
