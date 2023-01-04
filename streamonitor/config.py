@@ -11,6 +11,10 @@ def load_config():
     try:
         with open(config_loc, "r+") as f:
             return json.load(f)
+    except FileNotFoundError:
+        with open(config_loc, "w+") as f:
+            json.dump([], f, indent=4)
+            return []
     except Exception as e:
         print(e)
         sys.exit(1)
