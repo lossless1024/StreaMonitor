@@ -59,7 +59,7 @@ class Bot(Thread):
         self.username = username
         self.logger = self.getLogger()
 
-        self.cookies = requests.cookies.RequestsCookieJar()
+        self.cookies = None
         self.cookieUpdater = None
         self.cookie_update_interval = 0
 
@@ -137,8 +137,11 @@ class Bot(Thread):
                                 def update_cookie():
                                     while self.sc == self.Status.PUBLIC and not self.quitting and self.running:
                                         self._sleep(self.cookie_update_interval)
-                                        self.cookieUpdater()
-                                        self.debug('Updated cookies')
+                                        ret = self.cookieUpdater()
+                                        if ret:
+                                            self.debug('Updated cookies')
+                                        else:
+                                            self.logger.warning('Failed to update cookies')
                                 cookie_update_process = Thread(target=update_cookie)
                                 cookie_update_process.start()
 
