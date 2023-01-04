@@ -1,5 +1,6 @@
 import errno
 import subprocess
+import requests.cookies
 from threading import Thread
 from parameters import DEBUG
 
@@ -7,12 +8,25 @@ from parameters import DEBUG
 def getVideoFfmpeg(self, url, filename):
     cmd = [
         'ffmpeg',
-        '-user_agent', self.headers['User-Agent'],
+        '-user_agent', self.headers['User-Agent']
+    ]
+
+    if type(self.cookies) is requests.cookies.RequestsCookieJar:
+        cookies_text = ''
+        for cookie in self.cookies:
+            cookies_text += cookie.name + "=" + cookie.value + "; path=" + cookie.path + '; domain=' + cookie.domain + '\n'
+        if len(cookies_text) > 10:
+            cookies_text = cookies_text[:-1]
+        cmd.extend([
+            '-cookies', cookies_text
+        ])
+
+    cmd.extend([
         '-i', url,
         '-c:a', 'copy',
         '-c:v', 'copy',
         filename
-    ]
+    ])
 
     class _Stopper:
         def __init__(self):

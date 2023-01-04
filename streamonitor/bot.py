@@ -7,6 +7,7 @@ from datetime import datetime
 from threading import Thread
 
 import requests
+import requests.cookies
 
 import streamonitor.log as log
 from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE
@@ -58,6 +59,7 @@ class Bot(Thread):
         self.username = username
         self.logger = self.getLogger()
 
+        self.cookies = requests.cookies.RequestsCookieJar()
         self.lastInfo = {}  # This dict will hold information about stream after getStatus is called. One can use this in getVideoUrl
         self.running = False
         self.quitting = False
@@ -161,7 +163,7 @@ class Bot(Thread):
 
     def getPlaylistVariants(self, url):
         sources = []
-        result = requests.get(url)
+        result = requests.get(url, headers=self.headers, cookies=self.cookies)
         m3u8_doc = result.content.decode("utf-8")
         variant_m3u8 = m3u8.loads(m3u8_doc)
         for playlist in variant_m3u8.playlists:

@@ -4,21 +4,22 @@ A Python3 application for monitoring and saving (mostly adult) live streams from
 Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 
 ## Supported sites
-| Site name    | Abbreviation | Aliases                     | Quirks                 | Selectable resolution |
-|--------------|--------------|-----------------------------|------------------------|-----------------------|
-| Bongacams    | `BC`         |                             |                        | Yes                   |
-| Cam4         | `C4`         |                             |                        | Yes                   |
-| Cams.com     | `CC`         |                             |                        | Currently only 360p   |
-| CamSoda      | `CS`         |                             |                        | Yes                   |
-| Chaturbate   | `CB`         |                             |                        | Yes                   |
-| Cherry.TV    | `CHTV`       |                             |                        | Yes                   |
-| Dreamcam VR  | `DCVR`       |                             |                        | No                    |
-| Flirt4Free   | `F4F`        |                             |                        | Yes                   |
-| MyFreeCams   | `MFC`        |                             |                        | Yes                   |
-| SexChat.hu   | `SCHU`       |                             | use the id as username | No                    |
-| StreaMate    | `SM`         | PornHubLive, PepperCams,... |                        | Yes                   |
-| StripChat    | `SC`         | XHamsterLive,...            |                        | Yes                   |
-| StripChat VR | `SCVR`       |                             | for VR videos          | No                    |
+| Site name      | Abbreviation | Aliases                     | Quirks                 | Selectable resolution |
+|----------------|--------------|-----------------------------|------------------------|-----------------------|
+| Bongacams      | `BC`         |                             |                        | Yes                   |
+| Cam4           | `C4`         |                             |                        | Yes                   |
+| Cams.com       | `CC`         |                             |                        | Currently only 360p   |
+| CamSoda        | `CS`         |                             |                        | Yes                   |
+| Chaturbate     | `CB`         |                             |                        | Yes                   |
+| Cherry.TV      | `CHTV`       |                             |                        | Yes                   |
+| Dreamcam VR    | `DCVR`       |                             |                        | No                    |
+| Flirt4Free     | `F4F`        |                             |                        | Yes                   |
+| ManyVids Live  | `MV`         |                             |                        | Yes                   |
+| MyFreeCams     | `MFC`        |                             |                        | Yes                   |
+| SexChat.hu     | `SCHU`       |                             | use the id as username | No                    |
+| StreaMate      | `SM`         | PornHubLive, PepperCams,... |                        | Yes                   |
+| StripChat      | `SC`         | XHamsterLive,...            |                        | Yes                   |
+| StripChat VR   | `SCVR`       |                             | for VR videos          | No                    |
 
 Currently not supported:
 * ImLive (Too strict captcha protection for scraping)
