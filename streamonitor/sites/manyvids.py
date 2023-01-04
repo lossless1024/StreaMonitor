@@ -2,6 +2,7 @@ import requests
 import base64
 import json
 from streamonitor.bot import Bot
+from streamonitor.downloaders.hls import getVideoNativeHLS
 
 
 class ManyVids(Bot):
@@ -10,19 +11,24 @@ class ManyVids(Bot):
 
     def __init__(self, username):
         super().__init__(username)
+        self.getVideo = getVideoNativeHLS
+        self.stopDownloadFlag = False
+        self.updateSiteCookies()
+        self.cookieUpdater = self.requestStreamInfo
+        self.cookie_update_interval = 120
 
-        self.getCookies()
-
-    def getCookies(self):
+    def updateSiteCookies(self):
         r = requests.get('https://www.manyvids.com/tak-live-redirect.php', allow_redirects=False)
         self.cookies.update(r.cookies)
 
-    def getVideoUrl(self):
+    def requestStreamInfo(self):
         r = requests.get("/".join([self.lastInfo['publicAPIURL'], self.lastInfo['floorId'], 'player-settings', self.username]), headers=self.headers, cookies=self.cookies)
-        if r.cookies is None:
-            return None
+        if r.cookies is not None:
+            self.cookies.update(r.cookies)
+        return r
 
-        self.cookies.update(r.cookies)
+    def getVideoUrl(self):
+        r = self.requestStreamInfo()
         params = json.loads(base64.b64decode(r.cookies.get('CloudFront-Policy').replace('_', '=')))
         url = params['Statement'][0]['Resource'][:-1] + self.username + '.m3u8'
 

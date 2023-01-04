@@ -60,6 +60,9 @@ class Bot(Thread):
         self.logger = self.getLogger()
 
         self.cookies = requests.cookies.RequestsCookieJar()
+        self.cookieUpdater = None
+        self.cookie_update_interval = 0
+
         self.lastInfo = {}  # This dict will hold information about stream after getStatus is called. One can use this in getVideoUrl
         self.running = False
         self.quitting = False
@@ -92,7 +95,7 @@ class Bot(Thread):
         if DEBUG:
             self.logger.debug(message)
             if not filename:
-                filename = os.path.join([self.outputFolder, 'debug.log'])
+                filename = os.path.join(self.outputFolder, 'debug.log')
             with open(filename, 'a+') as debugfile:
                 debugfile.write(message + '\n')
 
@@ -130,6 +133,15 @@ class Bot(Thread):
                     elif self.sc == self.Status.PUBLIC or self.sc == self.Status.PRIVATE:
                         offline_time = 0
                         if self.sc == self.Status.PUBLIC:
+                            if self.cookie_update_interval > 0 and self.cookieUpdater is not None:
+                                def update_cookie():
+                                    while self.sc == self.Status.PUBLIC and not self.quitting and self.running:
+                                        self._sleep(self.cookie_update_interval)
+                                        self.cookieUpdater()
+                                        self.debug('Updated cookies')
+                                cookie_update_process = Thread(target=update_cookie)
+                                cookie_update_process.start()
+
                             video_url = self.getVideoUrl()
                             if video_url is None:
                                 self.sc = self.Status.ERROR

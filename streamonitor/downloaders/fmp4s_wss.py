@@ -5,6 +5,7 @@ from threading import Thread
 from websocket import create_connection, WebSocketConnectionClosedException, WebSocketException
 from contextlib import closing
 from ffmpy import FFmpeg, FFRuntimeError
+from parameters import DEBUG
 
 
 def getVideoWSSVR(self, url, filename):
@@ -67,8 +68,10 @@ def getVideoWSSVR(self, url, filename):
 
     # Post-processing
     try:
+        stdout = open(filename + '.postprocess_stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
+        stderr = open(filename + '.postprocess_stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
         ff = FFmpeg(inputs={tmpfilename: '-ignore_editlist 1'}, outputs={filename: '-codec copy'})
-        ff.run(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        ff.run(stdout=stdout, stderr=stderr)
     except FFRuntimeError as e:
         if e.exit_code and e.exit_code != 255:
             return False
