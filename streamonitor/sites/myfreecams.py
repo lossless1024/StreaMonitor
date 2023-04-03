@@ -13,12 +13,12 @@ class MyFreeCams(Bot):
         self.attrs = {}
 
     def getVideoUrl(self):
-        if 'data-campreview-mid' not in self.attrs:
+        if 'data-cam-preview-model-id-value' not in self.attrs:
             return None
 
-        sid = self.attrs['data-campreview-sid']
-        mid = 100000000 + int(self.attrs['data-campreview-mid'])
-        a = 'a_' if self.attrs['data-is-webrtc'] == 'false' else ''
+        sid = self.attrs['data-cam-preview-server-id-value']
+        mid = 100000000 + int(self.attrs['data-cam-preview-model-id-value'])
+        a = 'a_' if self.attrs['data-cam-preview-is-webrtc-value'] == 'false' else ''
         playlist_url = f"https://edgevideo.myfreecams.com/hls/NxServer/{sid}/ngrp:mfc_{a}{mid}.f4v_mobile/playlist.m3u8"
         r = requests.get(playlist_url)
         if r.status_code != 200:
@@ -38,7 +38,7 @@ class MyFreeCams(Bot):
             return Bot.Status.NOTEXIST
 
         doc = BeautifulSoup(doc, 'html.parser')
-        params = doc.find(class_='campreview')
+        params = doc.find(class_='campreview-link')
         if params:
             self.attrs = params.attrs
             if self.getVideoUrl():
