@@ -9,6 +9,7 @@ import os
 import shlex
 import subprocess
 from optparse import OptionParser
+from tqdm import tqdm
 
 
 def split_by_manifest(filename, manifest, vcodec="copy", acodec="copy",
@@ -75,11 +76,13 @@ def split_by_manifest(filename, manifest, vcodec="copy", acodec="copy",
 
 
 def get_video_length(filename):
-    output = subprocess.check_output(("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of",
-                                      "default=noprint_wrappers=1:nokey=1", filename)).strip()
-    video_length = int(float(output))
-    print("Video length in seconds: " + str(video_length))
-
+    try:
+        output = subprocess.check_output(("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of",
+                                          "default=noprint_wrappers=1:nokey=1", filename)).strip()
+        video_length = int(float(output))
+    # print("Video length in seconds: " + str(video_length))
+    except Exception as e:
+        raise SystemExit
     return video_length
 
 
@@ -87,8 +90,13 @@ def ceildiv(a, b):
     return int(math.ceil(a / float(b)))
 
 
+def get_name_from_path(path):
+    return os.path.splitext(os.path.basename(path))[0]
+
+
 def split_by_seconds(filename, split_length, vcodec="copy", acodec="copy",
-                     extra="", video_length=None, **kwargs):
+                     extra="", video_length=None, tqdm_opt: bool = True,
+                     **kwargs):
     if split_length and split_length <= 0:
         print("Split length can't be 0")
         raise SystemExit
@@ -97,16 +105,20 @@ def split_by_seconds(filename, split_length, vcodec="copy", acodec="copy",
         video_length = get_video_length(filename)
     split_count = ceildiv(video_length, split_length)
     if split_count == 1:
-        print("Video length is less then the target split length.")
+        # print("Video length is less then the target split length.")
         raise SystemExit
 
-    split_cmd = ["ffmpeg", "-i", filename, "-vcodec", vcodec, "-acodec", acodec] + shlex.split(extra)
+    split_cmd = ["ffmpeg", "-i", filename, "-vcodec",
+                 vcodec, "-acodec", acodec] + shlex.split(extra)
     try:
         filebase = ".".join(filename.split(".")[:-1])
         fileext = filename.split(".")[-1]
     except IndexError as e:
         raise IndexError("No . in filename. Error: " + str(e))
-    for n in range(0, split_count):
+    for n in tqdm(
+            range(0, split_count),
+            desc=f"Splitting {get_name_from_path(filename) + '.' + fileext}")\
+            if tqdm_opt else range(0, split_count):
         split_args = []
         if n == 0:
             split_start = 0
@@ -116,7 +128,7 @@ def split_by_seconds(filename, split_length, vcodec="copy", acodec="copy",
         split_args += ["-ss", str(split_start), "-t", str(split_length),
                        filebase + "-" + str(n + 1) + "-of-" +
                        str(split_count) + "." + fileext]
-        print("About to run: " + " ".join(split_cmd + split_args))
+        # print("About to run: " + " ".join(split_cmd + split_args))
         subprocess.check_output(split_cmd + split_args)
 
 
@@ -209,13 +221,16 @@ def main():
             file_size = os.stat(options.filename).st_size
             split_filesize = None
             if options.split_filesize:
-                split_filesize = int(options.split_filesize * options.filesize_factor)
+                split_filesize = int(
+                    options.split_filesize * options.filesize_factor)
             if split_filesize and options.chunk_strategy == 'even':
                 options.split_chunks = ceildiv(file_size, split_filesize)
             if options.split_chunks:
-                options.split_length = ceildiv(video_length, options.split_chunks)
+                options.split_length = ceildiv(
+                    video_length, options.split_chunks)
             if not options.split_length and split_filesize:
-                options.split_length = int(split_filesize / float(file_size) * video_length)
+                options.split_length = int(
+                    split_filesize / float(file_size) * video_length)
         if not options.split_length:
             bailout()
         split_by_seconds(video_length=video_length, **options.__dict__)

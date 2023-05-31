@@ -1,29 +1,21 @@
 import sys
 import argparse as arg
 import os
+import colorama as col
 
 
-black = '\x1b[30m'
-red = '\x1b[31m'
-green = '\x1b[32m'
-yellow = '\x1b[33m'
-blue = '\x1b[34m'
-magenta = '\x1b[35m'
-cyan = '\x1b[36m'
-white = '\x1b[37m'
-background_black = '\x1b[40m'
-background_red = '\x1b[41m'
-background_green = '\x1b[42m'
-background_yellow = '\x1b[43m'
-background_blue = '\x1b[44m'
-background_magenta = '\x1b[45m'
-background_cyan = '\x1b[46m'
-background_white = '\x1b[47m'
-reset = '\x1b[0m'
+def delete_less(directory_path: str, size: int = 200000000, ext: str = ".mp4",
+                log: bool = True):
+    """
+    Delete all files in directory_path that are less than size in bytes.
 
-
-def delete_less(directory_path, size=200000000, ext="mp4"):
-    ext = "." + ext
+    Parameters
+    ----------
+        directory_path (str): path to directory
+        size (int): size in bytes, default is 200000000
+        ext (str): extension of files to delete, default is ".mp4"
+        log (bool): if True, print all deleted files
+    """
     counter = 0
     # Get the list of files in the directory
     files = os.listdir(directory_path)
@@ -41,13 +33,14 @@ def delete_less(directory_path, size=200000000, ext="mp4"):
             if size_ < size:
                 # Delete the file
                 os.remove(file_path)
-                print(f"Deleted {file_path}")
+                if log:
+                    print(
+                        f'{col.Style.RESET_ALL}[DELETER]: \"{file_path}\" \
+deleted')
                 counter += 1
-    if counter != 0:
-        print(
-            f"delete_less :: {green}[SUCCESS]{reset} Deleted {counter} files less than {size} bytes.")
-
-# python delete_less200mb.py -p /home/username/Videos -s 200000000
+    if log:
+        print(f'{col.Style.RESET_ALL}[DELETER]: \
+{col.Fore.GREEN}DONE!{col.Style.RESET_ALL}')
 
 
 if __name__ == "__main__":
