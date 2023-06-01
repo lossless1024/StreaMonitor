@@ -28,10 +28,16 @@ ERROR:{col.Style.RESET_ALL} \
                 src_path = os.path.join(root, f)
                 dst_path = os.path.join(dst, f)
                 try:
-                    os.rename(src_path, dst_path)
-                    if log:
-                        print(f'{col.Style.RESET_ALL}[MOVER]: \"{src_path}\" \
--> \"{dst_path}\"')
+                    # check if file occupied by another process
+                    if os.access(src_path, os.W_OK):
+                        os.rename(src_path, dst_path)
+                        if log:
+                            print(f'{col.Style.RESET_ALL}[MOVER]: \
+\"{src_path}\" -> \"{dst_path}\"')
+                except PermissionError:
+                    print(
+                        f'{col.Style.RESET_ALL}[MOVER]: {col.Fore.RED}\
+ERROR{col.Style.RESET_ALL}: \"{src_path}\" is occupied by another process')
                 except FileExistsError:
                     print(
                         f'{col.Style.RESET_ALL}[MOVER]: \

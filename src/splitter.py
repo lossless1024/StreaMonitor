@@ -31,7 +31,7 @@ Default is ''.
     video_length = ffs.get_video_length(filename)
     file_size = os.stat(filename).st_size
     split_filesize = int(split_filesize * filesize_factor)
-    if file_size < split_filesize * 1.1:
+    if file_size < split_filesize * 1.2:
         return
     if split_filesize and chunk_strategy == 'even':
         split_chunks = ffs.ceildiv(file_size, split_filesize)
