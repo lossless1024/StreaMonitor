@@ -37,8 +37,8 @@ def main():
     zmq_manager = ZMQManager(streamers)
     zmq_manager.start()
 
-    http_manager = HTTPManager(streamers)
-    http_manager.start()
+    # http_manager = HTTPManager(streamers)
+    # http_manager.start()
 
     dash_manager = DashManager(streamers)
     dash_manager.start()

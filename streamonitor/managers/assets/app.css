@@ -425,3 +425,8 @@ h1 {
 .dash-header {
     background-color: #101010;
 }
+
+h2 {
+    /* center text */
+    text-align: center;
+}

@@ -12,6 +12,8 @@ from dash import dash_table
 from dash import dependencies
 from timeit import default_timer as timer
 import time
+import shutil
+import parameters
 
 
 class DashManager(Manager):
@@ -68,9 +70,17 @@ class DashManager(Manager):
             white = '#EEEEEE'
             black = '#191919'
 
+        def get_disk_space():
+            total, used, free = shutil.disk_usage("./")
+            return total, used, free
+
         app.layout = html.Div(
             [
                 html.H1("CG-DL Status"),
+                html.H2(
+                    f'Disk space: {round(get_disk_space()[1]/1024/1024/1024,2)}\
+/{round(get_disk_space()[0]/1024/1024/1024,2)} GB (limit=\
+{round(get_disk_space()[0]/1024*(100-parameters.MIN_FREE_DISK_PERCENT)/1024/1024/100,2)} GB)', id="disk_space"),
                 dcc.Interval(
                     id='interval-component',
                     interval=20*1000,  # in milliseconds
@@ -110,6 +120,15 @@ class DashManager(Manager):
                         {
                             'if': {
                                 'filter_query': '{Status} = "Not running"',
+                                'column_id': 'Status'
+                            },
+                            'backgroundColor': colors.yellow,
+                            'color': colors.black,
+                            'font-family': 'font-family: JetBrains Mono, monospace'
+                        },
+                        {
+                            'if': {
+                                'filter_query': '{Status} = "Rate limited"',
                                 'column_id': 'Status'
                             },
                             'backgroundColor': colors.yellow,
@@ -169,4 +188,13 @@ class DashManager(Manager):
         def update_data(timestamp):
             return status().to_dict('records')
 
-        app.run(host="127.0.0.1", port=6969)
+        # update disk space
+        @app.callback(
+            dependencies.Output('disk_space', 'children'),
+            dependencies.Input('interval-component', 'n_intervals'))
+        def update_disk_space(timestamp):
+            return f'Disk space: {round(get_disk_space()[1]/1024/1024/1024,2)}\
+/{round(get_disk_space()[0]/1024/1024/1024,2)} GB (limit=\
+{round(get_disk_space()[0]/1024*(100-parameters.MIN_FREE_DISK_PERCENT)/1024/1024/100,2)} GB)'
+
+        app.run(host="127.0.0.1", port=5001)
