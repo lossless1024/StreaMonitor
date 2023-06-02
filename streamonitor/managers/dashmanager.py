@@ -146,6 +146,15 @@ class DashManager(Manager):
                         },
                         {
                             'if': {
+                                'filter_query': '{Status} = "Error on downloading"',
+                                'column_id': 'Status'
+                            },
+                            'backgroundColor': colors.red,
+                            'color': colors.white,
+                            'font-family': 'font-family: JetBrains Mono, monospace'
+                        },
+                        {
+                            'if': {
                                 'filter_query': '{Status} = "No stream for a while"',
                                 'column_id': 'Status'
                             },
