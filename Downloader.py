@@ -4,11 +4,12 @@ import streamonitor.config as config
 from streamonitor.managers.httpmanager import HTTPManager
 from streamonitor.managers.climanager import CLIManager
 from streamonitor.managers.zmqmanager import ZMQManager
+from streamonitor.managers.dashmanager import DashManager
 from streamonitor.managers.outofspace_detector import OOSDetector
 from streamonitor.clean_exit import CleanExit
 import streamonitor.sites  # must have
 
-        
+
 def is_docker():
     path = '/proc/self/cgroup'
     return (
@@ -38,6 +39,9 @@ def main():
 
     http_manager = HTTPManager(streamers)
     http_manager.start()
+
+    dash_manager = DashManager(streamers)
+    dash_manager.start()
 
 
 main()

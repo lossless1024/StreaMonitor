@@ -2,6 +2,7 @@ import sys
 from streamonitor.manager import Manager
 from streamonitor.clean_exit import CleanExit
 import streamonitor.log as log
+import colorama as color
 
 if sys.platform != "win32":
     import readline
@@ -10,7 +11,8 @@ if sys.platform != "win32":
 class CLIManager(Manager):
     def __init__(self, streamers):
         super().__init__(streamers)
-        self.logger = log.Logger("manager_cli")
+        self.logger = log.Logger(f"{color.Style.RESET_ALL}{color.Fore.CYAN}\
+manager_cli{color.Style.RESET_ALL}")
 
     def run(self):
         while True:
