@@ -169,4 +169,4 @@ class DashManager(Manager):
         def update_data(timestamp):
             return status().to_dict('records')
 
-        app.run(host="127.0.0.2", port=5000)
+        app.run(host="127.0.0.1", port=6969)
