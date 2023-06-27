@@ -1,7 +1,8 @@
 # StreaMonitor
-A Python3 application for monitoring and saving (mostly adult) live streams from various websites.
+A Python application for monitoring and saving (mostly adult) live streams from various websites.
 
-Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
+Inspired by: [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
+Thumbnail system code by: [VCSI](https://github.com/amietn/vcsi)
 
 ## Supported sites
 | Site name      | Abbreviation | Aliases                     | Quirks                 | Selectable resolution |
@@ -40,11 +41,12 @@ The application has the following interfaces:
 * Web interface (only status)
 
 #### Starting and console
-Start the downloader (it does not fork yet)\
+Start the downloader with the following command.
 Automatically imports all streamers from the config file.
 ```
-python3 Downloader.py
+python Downloader.py
 ```
+(On Windows you can use the `run.bat` file)
 
 On the console you can use the following commands:
 ```
