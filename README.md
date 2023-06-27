@@ -31,7 +31,10 @@ There are hundreds of clones of the sites above, you can read about them on [thi
 
 ## Requirements
 * Python 3
-  * Install packages listed in requirements.txt with pip.
+  * Install packages listed in requirements.txt:
+  ```
+  pip install -r requirements.txt
+  ```
 * FFmpeg
 
 ## Usage
@@ -41,7 +44,7 @@ The application has the following interfaces:
 * External console via ZeroMQ (sort of working)
 * Web interface (only status)
 
-#### Starting and console
+#### Starting
 Start the downloader with the following command.
 Automatically imports all streamers from the config file.
 ```
@@ -49,6 +52,7 @@ python Downloader.py
 ```
 (On Windows you can use the `run.bat` file)
 
+#### Console
 On the console you can use the following commands:
 ```
 add <username> <site> - Add streamer to the list (also starts monitoring)
