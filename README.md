@@ -35,7 +35,7 @@ There are hundreds of clones of the sites above, you can read about them on [thi
   ```
   pip install -r requirements.txt
   ```
-* FFmpeg
+* [FFmpeg](https://ffmpeg.org/download.html)
 
 ## Usage
 
