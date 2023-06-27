@@ -1,8 +1,9 @@
 # StreaMonitor
 A Python application for monitoring and saving (mostly adult) live streams from various websites.
 
-Inspired by: [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
-Thumbnail system code by: [VCSI](https://github.com/amietn/vcsi)
+# Credits
+- Inspired by: [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
+- Thumbnail system code by: [VCSI](https://github.com/amietn/vcsi)
 
 ## Supported sites
 | Site name      | Abbreviation | Aliases                     | Quirks                 | Selectable resolution |
