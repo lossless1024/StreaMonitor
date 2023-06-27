@@ -3,6 +3,7 @@ import sys
 import colorama as col
 import threading as th
 from tqdm import tqdm
+import make_vcsis
 
 from src import move_all as ma
 from src import splitter as sp
@@ -60,7 +61,35 @@ ERROR:{col.Style.RESET_ALL} Keyboard interrupt')
 DONE!{col.Style.RESET_ALL}')
 
 
+def vcsis(foldername: str = 'videos', overwrite: bool = False):
+    """
+    Create a video contact sheet image for each video file in foldername.
+
+    Parameters
+    ----------
+        foldername (str): name of folder containing video files
+        overwrite (bool): overwrite existing vcsi files, default is False
+    """
+    for root, dirs, filenames in os.walk(foldername):
+        for filename in tqdm(filenames, desc=f'{col.Style.RESET_ALL}\
+[VCSI]: Making thumbnails'):
+            if filename.endswith(('.mp4', '.mkv', '.avi', '.mov')):
+                try:
+                    make_vcsis.main(foldername + '/' +
+                                    filename, overwrite=overwrite)
+                except Exception as e:
+                    print(
+                        f'{col.Style.RESET_ALL}[VCSI]: {col.Fore.RED}\
+ERROR:{col.Style.RESET_ALL} {e}')
+                except KeyboardInterrupt:
+                    print(f'{col.Style.RESET_ALL}[VCSI]: {col.Fore.RED}\
+ERROR:{col.Style.RESET_ALL} Keyboard interrupt')
+    print(f'{col.Style.RESET_ALL}[VCSI]: {col.Fore.GREEN}\
+DONE!{col.Style.RESET_ALL}')
+
+
 if __name__ == '__main__':
     move_and_split('downloads', 'videos', file_size=2000000000)
     dl.delete_less('videos', 200000000, log=True)
+    vcsis('videos', overwrite=False)
     input()
