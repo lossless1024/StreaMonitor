@@ -6,6 +6,7 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 ## Supported sites
 | Site name      | Abbreviation | Aliases                     | Quirks                 | Selectable resolution |
 |----------------|--------------|-----------------------------|------------------------|-----------------------|
+| Amateur.TV     | `ATV`        |                             |                        | Yes                   |
 | Bongacams      | `BC`         |                             |                        | Yes                   |
 | Cam4           | `C4`         |                             |                        | Yes                   |
 | Cams.com       | `CC`         |                             |                        | Currently only 360p   |
