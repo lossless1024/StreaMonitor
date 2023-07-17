@@ -74,7 +74,7 @@ class Manager(Thread):
             streamer.logger.handlers = []
             self.streamers.remove(streamer)
             self.saveConfig()
-            return "OK"
+            return f"REMOVED {username} OK"
         except Exception as e:
             self.logger.error(e)
             return "Failed to remove streamer"
@@ -96,7 +96,7 @@ class Manager(Thread):
                     streamer.start()
                 streamer.restart()
                 self.saveConfig()
-                return "OK"
+                return f"STARTED {username} OK"
             except Exception as e:
                 self.logger.error(e)
                 return "Failed to start"
@@ -114,7 +114,7 @@ class Manager(Thread):
             try:
                 streamer.stop(None, None)
                 self.saveConfig()
-                return "OK"
+                return f"STOPPED {username} OK"
             except Exception as e:
                 self.logger.error(e)
                 return "Failed to stop"

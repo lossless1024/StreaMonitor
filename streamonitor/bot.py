@@ -69,6 +69,7 @@ class Bot(Thread):
         self.sc = self.Status.NOTRUNNING  # Status code
         self.getVideo = getVideoFfmpeg
         self.stopDownload = None
+        self.allias_bot = []
 
     def getLogger(self):
         return log.Logger("[" + self.siteslug + "] " + self.username).get_logger()
@@ -258,14 +259,15 @@ class Bot(Thread):
 
     @property
     def outputFolder(self):
-        return os.path.join(DOWNLOADS_DIR, self.username + ' [' + self.siteslug + ']')
+        #return os.path.join(DOWNLOADS_DIR, self.username + ' [' + self.siteslug + ']')
+        return os.path.join(DOWNLOADS_DIR, self.siteslug, self.username)
 
     def genOutFilename(self, create_dir=True):
         folder = self.outputFolder
         if create_dir:
             os.makedirs(folder, exist_ok=True)
         now = datetime.now()
-        filename = os.path.join(folder, self.username + '-' + str(now.strftime("%Y%m%d-%H%M%S")) + '.mp4')
+        filename = os.path.join(folder, self.username + '_' + str(now.strftime("%Y-%m-%d_%H-%M-%S")) + '.mp4')
         return filename
 
     def export(self):
