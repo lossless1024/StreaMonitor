@@ -1,31 +1,42 @@
-from streamonitor.sites.stripchat import StripChat
+import requests
 from streamonitor.bot import Bot
-from streamonitor.downloaders.fmp4s_wss import getVideoWSSVR
 
 
-class StripChatVR(StripChat):
+class StripChatVR(Bot):
     site = 'StripChatVR'
     siteslug = 'SCVR'
 
-    def __init__(self, username):
-        super().__init__(username)
-        self.getVideo = getVideoWSSVR
-        self.stopDownloadFlag = False
-
     def getVideoUrl(self):
-        return "wss://s-{server}.{host}/{id}_vr_webxr?".format(
-            server=self.lastInfo["broadcastSettings"]["vrBroadcastServer"],
-            host='stripcdn.com',
-            id=self.lastInfo["cam"]["streamName"]
-        ) + '&'.join([k + '=' + v for k, v in self.lastInfo['broadcastSettings']['vrCameraSettings'].items()])
+        return self.getWantedResolutionPlaylist(None)
+
+    def getPlaylistVariants(self, url):
+        def formatUrl(auto):
+            return "https://edge-hls.{host}/hls/{id}_vr/master/{id}_vr{auto}.m3u8".format(
+            server=self.lastInfo["cam"]["viewServers"]["flashphoner-vr"],
+            host='doppiocdn.com',
+            id=self.lastInfo["cam"]["streamName"],
+            auto='_auto' if auto else '')
+
+        variants = []
+        variants.extend(super().getPlaylistVariants(formatUrl(False)))
+        variants.extend(super().getPlaylistVariants(formatUrl(True)))
+        return variants
 
     def getStatus(self):
-        status = super(StripChatVR, self).getStatus()
-        if status == Bot.Status.PUBLIC:
-            if self.lastInfo['model']['isVr'] and type(self.lastInfo['broadcastSettings']['vrCameraSettings']) is dict:
-                return Bot.Status.PUBLIC
+        r = requests.get('https://stripchat.com/api/vr/v2/models/username/' + self.username, headers=self.headers)
+        if r.status_code != 200:
+            return Bot.Status.UNKNOWN
+
+        self.lastInfo = r.json()
+        
+        if self.lastInfo["model"]["status"] == "public" and self.lastInfo["isCamAvailable"] and self.lastInfo['cam']["isCamActive"]:
+            return Bot.Status.PUBLIC
+        if self.lastInfo["model"]["status"] in ["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"]:
+            return Bot.Status.PRIVATE
+        if self.lastInfo["model"]["status"] in ["off", "idle"]:
             return Bot.Status.OFFLINE
-        return status
+        self.logger.warn(f'Got unknown status: {self.lastInfo["model"]["status"]}')
+        return Bot.Status.UNKNOWN
 
 
 Bot.loaded_sites.add(StripChatVR)
