@@ -1,4 +1,4 @@
-DOWNLOADS_DIR = 'downloads'
+DOWNLOADS_DIR = 'E:\Chaturbate\downloads' # change directory for Download folder
 MIN_FREE_DISK_PERCENT = 1.0  # in %
 DEBUG = False
 
