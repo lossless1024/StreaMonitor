@@ -43,7 +43,9 @@ def getVideoFfmpeg(self, url, filename):
         try:
             stdout = open(filename + '.stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
             stderr = open(filename + '.stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
-            process = subprocess.Popen(args=cmd, stdin=subprocess.PIPE, stderr=stderr, stdout=stdout)
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            process = subprocess.Popen(args=cmd, stdin=subprocess.PIPE, stderr=stderr, stdout=stdout, startupinfo=startupinfo)
         except OSError as e:
             if e.errno == errno.ENOENT:
                 self.logger.error('FFMpeg executable not found!')
