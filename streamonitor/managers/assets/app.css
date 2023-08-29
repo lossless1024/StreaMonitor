@@ -455,11 +455,12 @@ h4 {
     text-align: left;
 }
 
-button {
+button,
+a#v_manager.btn.btn-primary {
     margin-top: 0;
     margin-bottom: 0;
     margin-left: 0;
-    margin-right: 0;
+    margin-right: 10px;
 
     border-width: 2px;
     border-radius: 10px;
@@ -484,7 +485,8 @@ button {
     box-shadow: var(--shadow);
 }
 
-button:hover {
+button:hover,
+a#v_manager.btn.btn-primary {
     background: var(--color-background-dark);
     color: var(--color-text);
 }
@@ -492,7 +494,29 @@ button:hover {
 button#start_all,
 button#add_streamer {
     background-color: var(--color-green);
-    margin-left: 10px;
+}
+
+a#v_manager.btn.btn-primary {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
+
+    width: auto;
+    min-width: 106px;
+    max-width: 106px;
+    min-height: 22px;
+    max-height: 22px;
+
+    background-color: var(--color-black);
+
+
+    display: inline-block;
+
+}
+
+a#v_manager.btn.btn-primary:hover {
+    background: var(--color-black-dark);
 }
 
 button#start_all:hover,
@@ -579,8 +603,8 @@ input#username {
 
 div#user-manage {
     display: grid;
-    /* grid to the right */
-    grid-template-columns: 1fr 1fr;
+    /* put elements to the left  */
+    grid-template-columns: 0fr 0fr;
     grid-template-rows: 1fr 1fr;
 
     margin: 0;
@@ -589,6 +613,8 @@ div#user-manage {
     margin-bottom: 10px;
     height: 40px;
     text-align: left;
+    width: auto;
+    min-width: 400px;
     font-family: var(--font-jet-brains);
 }
 

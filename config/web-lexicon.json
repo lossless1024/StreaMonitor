@@ -17,5 +17,6 @@
     "gigabyte": "GB",
     "limit": "Limit",
     "credits": "Kseen715@git",
-    "versions": "Plotly-5.14.1 Dash-2.9.3"
+    "versions": "Plotly-5.14.1 Dash-2.9.3",
+    "v_manager": "V-Manager"
 }

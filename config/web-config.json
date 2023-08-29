@@ -1,0 +1,12 @@
+{
+    "update_interval_s": 5,
+    "color_positive": "#3D9970",
+    "color_warning": "#FFDC00",
+    "color_negative": "#FF4136",
+    "color_neutral": "#DDDDDD",
+    "color_text": "#EEEEEE",
+    "color_text_inv": "#191919",
+    "color_dropdown_background": "#606060",
+    "color_cell_background": "#2f2f2f",
+    "color_table_header_background": "#101010"
+}
