@@ -3,14 +3,17 @@ import os
 from streamonitor.bot import Bot
 import streamonitor.log as log
 from streamonitor.manager import Manager
-import dash
-from dash import Dash
-from dash import dcc
-from dash import html
-import plotly.express as px
 import pandas as pd
-from dash import dash_table
-from dash import dependencies
+import datetime
+
+import dash
+from dash import Dash, dcc, callback, html, dash_table, dependencies
+# from dash import Input
+# from dash import Output
+# from dash import State
+
+from dash_extensions.enrich import DashProxy, Input, Output, \
+    html, MultiplexerTransform, State
 
 from timeit import default_timer as timer
 import time
@@ -31,10 +34,13 @@ gl_status = pd.DataFrame(
              lex['started'], lex['status']])
 
 
-app = Dash(__name__, title=lex['title'], update_title=None,
-           external_stylesheets=["https://raw.githubusercontent.com/necolas/normalize.css/master/normalize.css",
-                                 ],
-           use_pages=True, pages_folder="dash_pages")
+app = DashProxy(__name__,
+                prevent_initial_callbacks=True,
+                transforms=[MultiplexerTransform()],
+                title=lex['title'], update_title=None,
+                external_stylesheets=["https://raw.githubusercontent.com/necolas/normalize.css/master/normalize.css",
+                                      ],
+                use_pages=True, pages_folder="dash_pages")
 
 app.css.config.serve_locally = False
 
@@ -133,5 +139,38 @@ class DashManager(Manager):
                              (100-parameters.MIN_FREE_DISK_PERCENT) /
                              1024/1024/100, 2),
                        lex['gigabyte'])
+
+        @app.callback(
+            Output('console', 'children'),
+            Input('stop_all', 'n_clicks'))
+        def update_stop_all():
+            reply = self.execCmd('stop *')
+            return datetime.datetime.now().__str__() + ' >> ' + reply
+
+        @app.callback(
+            Output('console', 'children'),
+            Input('start_all', 'n_clicks'))
+        def update_start_all():
+            reply = self.execCmd('start *')
+            return datetime.datetime.now().__str__() + ' >> ' + reply
+
+        @app.callback(
+            Output('console', 'children'),
+            Input('remove_streamer', 'n_clicks'),
+            State('username', 'value'))
+        def update_remove_streamer(n_clicks, username):
+            reply = self.execCmd('remove ' + username)
+            return datetime.datetime.now().__str__() + ' >> ' + reply
+
+        @app.callback(
+            Output('console', 'children'),
+            Input('add_streamer', 'n_clicks'),
+            State('username', 'value'),
+            State('site', 'value'))
+        def update_add_streamer(n_clicks, username, site):
+            reply = self.execCmd('add ' + username + ' ' + site)
+            return datetime.datetime.now().__str__() + ' >> ' + reply
+
+            # dose_of_sex
 
         app.run(host="127.0.0.1", port=5001)

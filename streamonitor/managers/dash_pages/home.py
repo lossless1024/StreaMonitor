@@ -3,7 +3,6 @@ from dash import Dash
 from dash import dcc
 from dash import html
 from dash import dash_table
-from dash import dependencies
 
 import dash_bootstrap_components as dbc
 from streamonitor.managers.dashmanager import lex
@@ -55,13 +54,66 @@ layout = html.Div([
                 dcc.Dropdown(
                     id="site",
                     options=[
-                        {'label': html.Span(['Chaturbate'],
-                                            style={
-                                            'background-color':
-                                            config["color_dropdown_background"]}),
-                         'value': 'chaturbate'},
-                        {'label': 'OnlyFans',
-                         'value': 'onlyfans'}],
+                        {'label': html.Span(['Amateur.TV'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'ATV'},
+
+                        {'label': html.Span(['BongaCams'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'BC'},
+
+                        {'label': html.Span(['Cam4'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'C4'},
+
+                        {'label': html.Span(['Cams.com'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'CC'},
+
+                        {'label': html.Span(['CamSoda'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'CS'},
+
+                        {'label': html.Span(['Chaturbate'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'CB'},
+
+                        {'label': html.Span(['Cherry.TV'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'CHTV'},
+
+                        {'label': html.Span(['Dreamcam VR'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'DCVR'},
+
+                        {'label': html.Span(['Flirt4Free'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'F4F'},
+
+                        {'label': html.Span(['ManyVids Live'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'MV'},
+
+                        {'label': html.Span(['MyFreeCams'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'MFC'},
+
+                        {'label': html.Span(['SexChat.hu'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'SCHU'},
+
+                        {'label': html.Span(['StreaMate'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'SM'},
+
+                        {'label': html.Span(['StripChat'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'SC'},
+
+                        {'label': html.Span(['StripChat VR'], style={
+                            'color': config["color_text_inv"]}),
+                            'value': 'SCVR'},
+                    ],
                     className="site-dropdown",
                     placeholder=lex['site'],
                     style={
@@ -176,6 +228,15 @@ layout = html.Div([
                     {
                         'if': {
                             'filter_query': '{Status} = "Unknown error"',
+                                            'column_id': 'Status'
+                        },
+                        'backgroundColor': config["color_negative"],
+                        'color': config["color_text"],
+                        'font-family': 'font-family: JetBrains Mono, monospace'
+                    },
+                    {
+                        'if': {
+                            'filter_query': '{Status} = "Nonexistent user"',
                                             'column_id': 'Status'
                         },
                         'backgroundColor': config["color_negative"],

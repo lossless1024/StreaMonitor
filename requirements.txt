@@ -14,3 +14,4 @@ numpy>=1.24.3
 pandas>=2.0.2
 vcsi>=7.0.15
 dash_bootstrap_components
+dash_extensions

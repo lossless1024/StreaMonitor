@@ -1,5 +1,5 @@
 {
-    "update_interval_s": 5,
+    "update_interval_s": 1,
     "color_positive": "#3D9970",
     "color_warning": "#FFDC00",
     "color_negative": "#FF4136",
