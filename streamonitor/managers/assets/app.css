@@ -378,42 +378,156 @@ template {
     display: none;
 }
 
+/* END OF RESET.CSS */
+
+/* START OF STYLE.CSS */
+
+:root {
+    --color-green-light: #50c590;
+    --color-green: #3D9970;
+    --color-green-dark: #2b6a4d;
+    --color-yellow-light: #ffe53a;
+    --color-yellow: #FFDC00;
+    --color-yellow-dark: #bba200;
+    --color-red-light: #e46c65;
+    --color-red: #FF4136;
+    --color-red-dark: #c0352d;
+
+    --color-white-light: #FFFFFF;
+    --color-white: #EEEEEE;
+    --color-grey-light: #a1a1a1;
+    --color-grey: #606060;
+    --color-grey-dark: #2f2f2f;
+    --color-black: #191919;
+    --color-black-dark: #101010;
+
+    --color-background-light: var(--color-grey);
+    --color-background: var(--color-black);
+    --color-background-dark: var(--color-black-dark);
+    --color-text: var(--color-white);
+    --color-border: var(--color-grey-light);
+
+    --font-jet-brains: JetBrains Mono, monospace;
+
+    --color-shadow: rgba(108, 108, 108, 0.04);
+    --shadow:
+        2px 1px 1px var(--color-shadow),
+        2px 2px 2px var(--color-shadow),
+        2px 3px 3px var(--color-shadow),
+        2px 4px 4px var(--color-shadow),
+        2px 5px 5px var(--color-shadow),
+        2px 6px 6px var(--color-shadow),
+        2px 7px 7px var(--color-shadow);
+}
+
+div#main_div {
+    margin-left: 15%;
+    margin-right: 15%;
+    margin-top: 0;
+    margin-bottom: 0;
+
+    font-family: var(--font-jet-brains);
+}
+
 html {
     box-sizing: border-box;
-    font-family: JetBrains Mono, monospace;
-    background-color: #191919;
-    color: #EEEEEE;
-    margin: 8px;
+    font-family: var(--jet-brains-font);
+    background-color: var(--color-background);
+    color: var(--color-text);
 }
 
 h1 {
-    /* center text */
     text-align: center;
 }
 
-/* div id=table */
-#table {
-    border-collapse: collapse;
-    border-spacing: 0;
-    /* center table */
-    margin-left: auto;
-    margin-right: auto;
-
-    /* table width */
-    width: 70%;
-    max-width: 100%;
-    min-width: 10%
+h2 {
+    text-align: center;
 }
 
-#table {
-    background-color: #606060;
+h3 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    text-align: left;
+}
 
-    /* shadow */
-    box-shadow: 0 1px 1px rgba(255, 255, 255, 0.12),
-        0 3px 3px rgba(255, 255, 255, 0.12),
-        0 6px 6px rgba(255, 255, 255, 0.12),
-        0 10px 10px rgba(255, 255, 255, 0.12),
-        0 20px 20px rgba(255, 255, 255, 0.12);
+h4 {
+    margin-top: 0;
+    text-align: left;
+}
+
+button {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
+
+    border-width: 2px;
+    border-radius: 10px;
+    border-color: var(--color-border);
+    border-style: inset;
+
+    text-align: right;
+
+    padding-top: 7px;
+    padding-bottom: 7px;
+    padding-left: 20px;
+    padding-right: 20px;
+
+    min-width: 150px;
+    min-height: 40px;
+
+    text-align: center;
+
+    background-color: var(--color-background);
+    color: var(--color-text);
+
+    box-shadow: var(--shadow);
+}
+
+button:hover {
+    background: var(--color-background-dark);
+    color: var(--color-text);
+}
+
+button#start_all,
+button#add_streamer {
+    background-color: var(--color-green);
+    margin-left: 10px;
+}
+
+button#start_all:hover,
+button#add_streamer:hover {
+    background: var(--color-green-dark);
+}
+
+button#stop_all,
+button#remove_streamer {
+    background-color: var(--color-red);
+}
+
+button#stop_all:hover,
+button#remove_streamer:hover {
+    background: var(--color-red-dark);
+}
+
+div#buttons-all-streamers,
+div#buttons-single-streamer {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+div#table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin-top: 30px;
+    margin-bottom: 300px;
+
+    background-color: var(--color-background-light);
+    box-shadow: var(--shadow);
+    color: var(--color-text);
+    font-family: var(--font-jet-brains);
 }
 
 /* class column-header-name */
@@ -423,10 +537,133 @@ h1 {
 }
 
 .dash-header {
-    background-color: #101010;
+    background-color: var(--color-background-dark);
 }
 
-h2 {
-    /* center text */
+
+input {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
+
+    background-color: var(--color-background-light);
+
+    border-width: 2px;
+    border-radius: 10px;
+    border-color: var(--color-border);
+    border-style: inset;
+}
+
+input#username {
+    width: 300px;
+    height: 36px;
+    max-height: 36px;
+    min-height: 36px;
+    text-align: left;
+
+    margin-right: 10px;
+
+    color: var(--color-white);
+    font-family: var(--font-jet-brains);
+
+    padding-left: 10px;
+    padding-right: 10px;
+
+    box-shadow: var(--shadow);
+}
+
+::placeholder {
+    color: var(--color-grey-light);
+}
+
+div#user-manage {
+    display: grid;
+    /* grid to the right */
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+
+    margin: 0;
+    padding: 0;
+    margin-top: 40px;
+    margin-bottom: 10px;
+    height: 40px;
+    text-align: left;
+    font-family: var(--font-jet-brains);
+}
+
+div#console_div {
+    margin-top: 20px;
+    margin-bottom: 30px;
+    max-height: 200px;
+    min-height: 200px;
+
+    padding: 10px;
+
+    background-color: var(--color-background-dark);
+    color: var(--color-text);
+
+    font-family: var(--font-jet-brains);
+    box-shadow: var(--shadow);
+
+    border-width: 2px;
+    border-radius: 10px;
+    border-color: var(--color-border);
+    border-style: inset;
+}
+
+div#credits,
+div#versions {
+    margin-top: 20px;
+    margin-bottom: 20px;
     text-align: center;
+    font-family: var(--font-jet-brains);
+}
+
+div#credit-version-box {
+    background-color: var(--color-background-dark);
+
+    padding-top: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 30px;
+
+    border-color: var(--color-border);
+    border-width: 2px;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-style: inset;
+
+    box-shadow: var(--shadow);
+}
+
+div#site.dash-dropdown {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 20px;
+    margin-right: 0;
+
+    background-color: var(--color-background-light);
+    min-height: 40px;
+    max-height: 40px;
+    height: 40px;
+    border-width: 2px;
+    border-radius: 10px;
+    border-color: var(--color-border);
+    border-style: inset;
+}
+
+div.Select-control {
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+div.Select {
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
 }

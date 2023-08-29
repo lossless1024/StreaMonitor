@@ -1,0 +1,21 @@
+{
+    "title": "StreaMonitor",
+    "remove": "Remove",
+    "add": "Add",
+    "stop_all": "Stop all",
+    "start_all": "Start all",
+    "username": "Username",
+    "site": "Site",
+    "status": "Status",
+    "started": "Started",
+    "console_placeholder": "Console output will appear here",
+    "loading": "Loading",
+    "running": "Running",
+    "cpu": "CPU",
+    "ram": "RAM",
+    "harddrive": "Disk",
+    "gigabyte": "GB",
+    "limit": "Limit",
+    "credits": "Kseen715@git",
+    "versions": "Plotly-5.14.1 Dash-2.9.3"
+}
