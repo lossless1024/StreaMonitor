@@ -7,7 +7,6 @@ class StripChatVR(Bot):
     siteslug = 'SCVR'
     ModelID = ""
 
-    #Temporary approach to access the VR url.
     def ConvertURlToVR(self, url):
         if self.ModelID == "":
             self.logger.warn(f'Unable to replace URL with VR URL: StreamID is empty')
@@ -16,7 +15,7 @@ class StripChatVR(Bot):
 
 
     def getVideoUrl(self):
-        return self.ConvertURlToVR(self.getWantedVRResolutionPlaylist(None))
+        return self.ConvertURlToVR(self.getWantedResolutionPlaylist(None))
 
     def getStatus(self):
         r = requests.get('https://stripchat.com/api/vr/v2/models/username/' + self.username, headers=self.headers)
