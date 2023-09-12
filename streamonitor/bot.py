@@ -63,6 +63,9 @@ class Bot(Thread):
         self.cookieUpdater = None
         self.cookie_update_interval = 0
 
+        #this will store the latest status of the current model
+        self.previous_status = None
+        
         self.lastInfo = {}  # This dict will hold information about stream after getStatus is called. One can use this in getVideoUrl
         self.running = False
         self.quitting = False
@@ -123,7 +126,10 @@ class Bot(Thread):
             while self.running:
                 try:
                     self.sc = self.getStatus()
-                    self.log(self.status())
+                    # Check if the status has changed and log the update if it's different from the previous status
+                    if self.sc != self.previous_status:
+                        self.log(self.status())
+                        self.previous_status = self.sc
                     if self.sc == self.Status.ERROR:
                         self._sleep(self.sleep_on_error)
                     if self.sc == self.Status.OFFLINE:
