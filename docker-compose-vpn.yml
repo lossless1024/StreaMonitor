@@ -1,6 +1,44 @@
 # cat docker-compose.yml
 version: '3.7'
 services:
+    protonwire:
+    container_name: protonwire
+    # Use semver tags or sha256 hashes of manifests.
+    # using latest tag can lead to issues when used with
+    # automatic image updaters like watchtower.
+    image: ghcr.io/tprasadtp/protonwire:latest
+    init: true
+    restart: unless-stopped
+    environment:
+      # Quote this value as server name can contain '#'.
+      PROTONVPN_SERVER: ""  # NL-FREE#100070
+      # Set this to 1 to show debug logs for issue forms.
+      DEBUG: "0"
+      # Set this to 0 to disable kill-switch.
+      KILL_SWITCH: "1"
+      WIREGUARD_PRIVATE_KEY: ""
+    # NET_ADMIN capability is mandatory!
+    cap_add:
+      - NET_ADMIN
+    # sysctl net.ipv4.conf.all.rp_filter is mandatory!
+    # net.ipv6.conf.all.disable_ipv6 disables IPv6 as protonVPN does not support IPv6.
+    # 'net.*' sysctls are not required on application containers,
+    # as they share network stack with protonwire container.
+    sysctls:
+      net.ipv4.conf.all.rp_filter: 2
+      net.ipv6.conf.all.disable_ipv6: 1
+    ports:
+      - 8000:80
+  # This is sample application which will be routed over VPN
+  # Replace this with your preferred application(s).
+  caddy_proxy:
+    image: caddy:latest
+    network_mode: service:protonwire
+    command: |
+      caddy reverse-proxy \
+          --change-host-header \
+          --from :80 \
+          --to https://ip.me:443
   streamonitor:
     build: ./
     image: streamonitor:latest
@@ -8,4 +46,4 @@ services:
       - ./downloads:/app/downloads
       - ./config.json:/app/config.json
       - ./parameters.py:/app/parameters.py
-    network_mode: container:protonwire
+    network_mode: service:protonwire
