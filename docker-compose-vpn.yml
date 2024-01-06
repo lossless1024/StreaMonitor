@@ -1,0 +1,11 @@
+# cat docker-compose.yml
+version: '3.7'
+services:
+  streamonitor:
+    build: ./
+    image: streamonitor:latest
+    volumes:
+      - ./downloads:/app/downloads
+      - ./config.json:/app/config.json
+      - ./parameters.py:/app/parameters.py
+    network_mode: container:protonwire
