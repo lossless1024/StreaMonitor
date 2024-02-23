@@ -12,7 +12,7 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 | Cams.com       | `CC`         |                             |                        | Currently only 360p   |
 | CamSoda        | `CS`         |                             |                        | Yes                   |
 | Chaturbate     | `CB`         |                             |                        | Yes                   |
-| Cherry.TV      | `CHTV`       |                             |                        | Yes                   |
+| Cherry.tv      | `CHTV`       |                             |                        | Yes                   |
 | Dreamcam VR    | `DCVR`       |                             |                        | No                    |
 | Flirt4Free     | `F4F`        |                             |                        | Yes                   |
 | ManyVids Live  | `MV`         |                             |                        | Yes                   |
