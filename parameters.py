@@ -11,3 +11,10 @@ WANTED_RESOLUTION = 1080
 # Possible values: exact, exact_or_least_higher, exact_or_highest_lower, closest
 # Beware of the exact policy. Nothing gets downloaded if the wanted resolution is not available
 WANTED_RESOLUTION_PREFERENCE = 'closest'
+
+# Video files will be saved with the specified extension.
+# For example, if '.mkv' is used, the file will be saved in the mkv format and you will be able to
+# watch it while it's being downloaded.
+# Also, if someting goes wrong, you will still be able to play the partially downloaded mkv file, 
+# as opposed to a mp4 file.
+VIDEO_FILE_EXTENSION = '.mkv'
