@@ -10,7 +10,7 @@ import requests
 import requests.cookies
 
 import streamonitor.log as log
-from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE
+from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, VIDEO_FILE_EXTENSION
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 
 
@@ -271,7 +271,7 @@ class Bot(Thread):
         if create_dir:
             os.makedirs(folder, exist_ok=True)
         now = datetime.now()
-        filename = os.path.join(folder, self.username + '-' + str(now.strftime("%Y%m%d-%H%M%S")) + '.mp4')
+        filename = os.path.join(folder, self.username + '-' + str(now.strftime("%Y%m%d-%H%M%S")) + VIDEO_FILE_EXTENSION)
         return filename
 
     def export(self):
