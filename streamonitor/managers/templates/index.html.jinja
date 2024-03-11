@@ -1,0 +1,58 @@
+{% extends "layout.html.jinja" %}
+{% block title %}StreaMonitor - List{% endblock %}
+{% block head %}
+    {{ super() }}
+    <style type="text/css">
+        .important { color: #336699; }
+    </style>
+    <script>
+        htmx.on('htmx:beforeSwap', function(evt) {
+            if(evt.detail.elt.classList.contains('delete-streamer') && !detail.shouldSwap) {
+                evt.detail.target = htmx.find("#delete-error");
+            }
+            evt.detail.shouldSwap = true;
+        });
+    </script>
+{% endblock %}
+{% block content %}
+    <h1>CG-DL Status</h1>
+    <div>
+        <form hx-post="/add"
+            hx-trigger="submit"
+            hx-target="#streamers"
+            hx-swap="innerHTML"
+            hx-disabled-elt=".modify-streamers"
+            id="add-streamer-form">
+            <label>
+                <span>Streamer's username: </span>
+                <input type="text" name="username" minlength="3" required="required">
+            </label>
+            <label>
+                <span>site:  </span>
+                <select name="site" id="site" required="required">
+                    {% for site in sites %}
+                        <option value="{{ site.site }}" {% if site.site == 'Chaturbate' %}selected="selected"{% endif %}>{{ site.site }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="submit" class="modify-streamers add-streamer">Add</button>
+        </form>
+    </div>
+    <div class="all-streamers-actions">
+        <button hx-patch="/stop/all"
+            hx-trigger="click"
+            hx-target="#streamers"
+            hx-swap="innerHTML"
+            hx-disabled-elt=".modify-streamers" 
+            class="modify-streamers stop-streamers">Stop All</button>
+        <button hx-patch="/start/all"
+            hx-trigger="click"
+            hx-target="#streamers"
+            hx-swap="innerHTML"
+            hx-disabled-elt=".modify-streamers" 
+            class="modify-streamers start-streamers">Start All</button>
+    </div>
+    <div id="delete-error">
+    </div>
+    {% include 'streamers_result.html.jinja' ignore missing with context %}
+{% endblock %}

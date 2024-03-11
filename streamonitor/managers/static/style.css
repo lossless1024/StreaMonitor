@@ -1,0 +1,250 @@
+@keyframes spin {
+    0% {
+        transform: rotate(0deg); 
+    } 
+    100% {
+        transform: rotate(360deg); 
+    } 
+}
+
+body {
+    width: 100%;
+    margin: 0;
+    background-color: #232323;
+    font-family: "PT Sans", sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+#content {
+    margin: 1rem;
+    color: #BDBDBD;
+    font-family: "PT Sans", sans-serif;
+    font-weight: 700;
+    font-style: normal;
+    font-size: 1.2rem;
+}
+
+a {
+    color: #BABBAB;
+}
+
+.nav {
+    background-color: #090A0C;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 50px 1fr 50px;
+}
+
+.nav h1 {
+    font-size: 2rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+    color: #BDBDBD;
+    justify-self: center;
+}
+
+.nav a.home-link {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+}
+
+.nav a.home-link i {
+    font-size: 2.25rem;
+}
+
+a:visited {
+    color: #A0B2CB;
+}
+
+.error-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    max-height: 600px;
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    justify-content: space-between;
+    background-color: #801818;
+    color: #F7F7F7;
+    font-weight: 700;
+}
+
+input[type=text] {
+    background-color: #D9D9D9;
+    border: none;
+    line-height: 1.5;
+    padding-left: 0.5rem;
+    font-size: 1.1rem;
+}
+
+#site {
+    font-size: 1.1rem;
+    height: 1.9rem;
+    border-radius: 3px;
+    border: none;
+    background-color: #D9D9D9;
+}
+
+#add-streamer-form {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+td, th {
+    padding: 0.5rem;
+}
+
+@media screen and (max-width: 600px) {
+    tr {
+        display: grid;
+        justify-content: center;
+        text-align: center;
+    }
+}
+
+.streamer:nth-child(2n + 1) {
+    background-color: #2F2F2F;
+}
+
+.all-streamers-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.streamer-will-record i.feather {
+    font-size: 1.25rem;
+}
+
+.streamer-will-record button {
+    display: inline-flex;
+    gap: 0.25rem;
+    justify-content: center;
+    align-items: center;
+}
+
+button:has(.icon-pause-circle) span {
+    margin-left: 0.4rem;
+}
+
+button:has(.icon-pause-circle) i {
+    margin-right: 0.4rem;
+}
+
+button:has(.icon-pause-circle) {
+    margin-left: 6px;
+}
+
+button {
+    background-color: #CCCCCC;
+    border: none;
+    border-radius: 3px;
+    padding-inline: 10px;
+    padding-block: 6px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: wait;
+}
+
+button:disabled i.icon-refresh-cw {
+    display: inline-block;
+    animation:spin 1s linear infinite;
+}
+
+button:hover {
+    background-color: #BFBFBF;
+}
+
+.streamers-results {
+    width: 100%;
+    margin-top: 1.25rem;
+    text-align: center;
+}
+
+.streamers-results.error {
+    background-color: #801818;
+    color: #F7F7F7;
+    padding: 0.5rem;
+}
+
+.streamers-results.success {
+    background-color: #284B63;
+    color: #F7F7F7;
+    padding: 0.5rem;
+}
+
+.streamers-list {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    border:1px solid #BDBDBD;
+}
+
+td.streamer-status,
+td.streamer-remove,
+td.streamer-will-record {
+    text-align: center;
+}
+
+.video-list {
+    margin-top: 1rem;
+    margin-bottom: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    max-width: 1366px;
+    margin-inline: auto;
+}
+
+#video-list div {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+}
+
+#video-area {
+    text-align: center;
+    aspect-ratio: 16/8;
+    max-height: 760px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#video-area:not(:has(video)) {
+    height: 20vh;
+}
+
+#video-area video {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+    margin-bottom: 0.5rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    aspect-ratio: 16/9;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.center {
+    text-align: center;
+}

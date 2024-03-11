@@ -1,3 +1,4 @@
+from flask import Flask, render_template, request, send_from_directory
 import os
 import json
 import logging
@@ -10,6 +11,9 @@ from streamonitor.manager import Manager
 from streamonitor.managers.outofspace_detector import OOSDetector
 from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD
 from secrets import compare_digest
+from streamonitor.sites.camsoda import CamSoda
+from streamonitor.sites.chaturbate import Chaturbate
+from streamonitor.sites.stripchat import StripChat
 
 
 class HTTPManager(Manager):
@@ -38,11 +42,16 @@ class HTTPManager(Manager):
 
             return wrapped_view
 
-        def header():
-            return "<h1>CG-DL Status</h1>"
-
-        def scripts():
-            pass
+        @app.template_filter('tostreamerurl')
+        def streamer_url(streamer):
+            if (streamer.site == Chaturbate.site):
+                return f"https://chaturbate.com/{streamer.username}"
+            elif(streamer.site == CamSoda.site):
+                return f"https://www.camsoda.com/{streamer.username}"
+            elif(streamer.site == StripChat.site):
+                return f"https://stripchat.com/{streamer.username}"
+            else:
+                return "javascript:void(0)"
 
         def humanReadbleSize(num, suffix="B"):
             for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
@@ -100,44 +109,135 @@ class HTTPManager(Manager):
         @app.route('/old')
         @login_required
         def status():
-            output = header()
-            output += """
-                <table style="border:1px solid">
-                <tr>
-                <th>Site</th>
-                <th>Username</th>
-                <th>Started</th>
-                <th>Status</th>
-                </tr>"""
-
-            for streamer in self.streamers:
-                output += """
-                    <tr>
-                    <td>{s}</td>
-                    <td><a href="/recordings?user={u}&site={s}">{u}</a></td>
-                    <td><a onclick="togglerunning({u})">{r}</a></td>
-                    <td><a onclick="refreshstatus({u})">{st}</a></td>
-                    </tr>""".format(s=streamer.site, r=streamer.running,
-                                    st=streamer.status(), u=streamer.username)
-            output += "</table>"
-            return output
+            sites = Bot.loaded_sites
+            return render_template('index.html.jinja', streamers=self.streamers, sites=sites, resultStatus="hide", resultMessage="")
 
         @app.route('/recordings')
         @login_required
         def recordings():
-            output = header()
             streamer = self.getStreamer(request.args.get("user"), request.args.get("site"))
-            output += "<p>Recordings of {u} [{s}]</p>".format(u=streamer.username, s=streamer.siteslug)
+            videos = []
             try:
-                temp = "<p>"
                 for elem in os.listdir("./downloads/{u} [{s}]".format(u=streamer.username, s=streamer.siteslug)):
-                    temp += elem + "<br>"
-                if temp == "<p>":
-                    output = "<p>No recordings</p>"
-                else:
-                    output += temp + "</p>"
-            except:
-                output += "<p>No recordings</p>"
-            return output
+                    videos.append(elem)
+            except Exception as e:
+                self.logger.warning(e)
+            return render_template('recordings.html.jinja', streamer=streamer, videos=sorted(videos, reverse=True))
+        
+        @app.route('/videos/get/<user>/<site>/<path:filename>')
+        def get_video(user, site, filename):
+            streamer = self.getStreamer(user, site)
+            return send_from_directory(
+                "../../downloads/{u} [{s}]".format(u=streamer.username, s=streamer.siteslug),
+                filename
+            )
+        
+        @app.route('/videos/watch/<user>/<site>/<path:filename>')
+        def watch_video(user, site, filename):
+            extension = filename.rsplit('.', 1)[-1]
+            return render_template('video.html.jinja', user=user, site=site, filename=filename, extension=extension)
 
-        app.run(host=WEBSERVER_HOST, port=WEBSERVER_PORT)
+        @app.route('/videos/delete/<user>/<site>/<path:filename>', methods=['DELETE'])
+        def delete_video(user, site, filename):
+            streamer = None
+            videos = []
+            videoListError = False
+            videoListErrorMessage = None
+            try:
+                streamer = self.getStreamer(user, site)
+                for elem in os.listdir("./downloads/{u} [{s}]".format(u=streamer.username, s=streamer.siteslug)):
+                    if(elem == filename):
+                        path = os.path.abspath("./downloads/{u} [{s}]/{file}".format(u=streamer.username, s=streamer.siteslug, file=filename))
+                        os.remove(path)
+                    else:
+                        videos.append(elem)
+            except Exception as e:
+                videoListError = True
+                videoListErrorMessage = repr(e)
+                self.logger.warning(e)
+                
+            return render_template('video_list.html.jinja', streamer=streamer, videos=sorted(videos, reverse=True), videoListError=videoListError, videoListErrorMessage=videoListErrorMessage)
+        
+        @app.route("/add", methods=['POST'])
+        def add():
+            user = request.form["username"]
+            site = request.form["site"]
+            resultStatus = "success"
+            statusCode = 200
+            streamer = self.getStreamer(user, site)
+            res = self.do_add(streamer, user, site)
+            if(res == 'Streamer already exists' or res == "Missing value(s)" or res == "Failed to add"):
+                resultStatus = "error"
+                statusCode = 500
+            return render_template('streamers_result.html.jinja', streamers=self.streamers, resultStatus=resultStatus, resultMessage=res), statusCode
+        
+        @app.route("/status/<user>/<site>")
+        def get_status(user, site):
+            streamer = self.getStreamer(user, site)
+            res = None
+            statusCode = 200
+            if(streamer is None):
+                statusCode = 500
+                res = "Unknown"
+            else:
+                res = streamer.status()
+            return res,statusCode
+        
+        @app.route("/remove/<user>/<site>", methods=['DELETE'])
+        def remove_streamer(user, site):
+            streamer = self.getStreamer(user, site)
+            res = self.do_remove(streamer, user, site)
+            statusCode = 204
+            removeStreamerHasError = False
+            if(res == "Failed to remove streamer" or res == "Streamer not found"):
+                statusCode = 404
+                removeStreamerHasError = True
+                return render_template('streamer_record_error.html.jinja', removeStreamerHasError=removeStreamerHasError, removeStreamerResultMessage=res),statusCode
+            return '',statusCode
+        
+        @app.route("/toggle/<user>/<site>", methods=['PATCH'])
+        def toggle_streamer(user, site):
+            streamer = self.getStreamer(user, site)
+            statusCode = 500
+            res = "Streamer not found"
+            hasError = True
+            if(streamer is None):
+                statusCode = 500
+            elif(streamer.running):
+                res = self.do_stop(streamer, user, site)
+            else:
+                res = self.do_start(streamer, user, site)
+            if(res == "OK"):
+                hasError = False
+                statusCode = 200
+            return render_template('streamer_running.html.jinja', streamer=streamer, toggleStreamerResultMessage=res, toggleStreamerHasError=hasError), statusCode
+        
+        @app.route("/start/all", methods=['PATCH'])
+        def start_all_streamers():
+            statusCode = 500
+            resultStatus = "error"
+            try:
+                res = self.do_start(None, '*', None)
+                if(res == "Started all"):
+                    statusCode = 200
+                    resultStatus = "success"
+            except Exception as e:
+                self.logger.warning(e)
+                res = str(e)
+            return render_template('streamers_result.html.jinja', streamers=self.streamers, resultStatus=resultStatus, resultMessage=res), statusCode
+        
+        @app.route("/stop/all", methods=['PATCH'])
+        def stop_all_streamers():
+            statusCode = 500
+            resultStatus = "error"
+            try:
+                res = self.do_stop(None, '*', None)
+                if(res == "Stopped all"):
+                    statusCode = 200
+                    resultStatus = "success"
+            except Exception as e:
+                self.logger.warning(e)
+                res = str(e)
+            return render_template('streamers_result.html.jinja', streamers=self.streamers, resultStatus=resultStatus, resultMessage=res), statusCode
+
+        app.run(host='0.0.0.0', port=5000)

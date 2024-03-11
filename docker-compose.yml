@@ -2,11 +2,16 @@ version: "3.7"
 
 services:
   streamonitor:
+    restart: unless-stopped
     build: ./
     image: streamonitor:latest
     volumes:
       - ./downloads:/app/downloads
       - ./config.json:/app/config.json
       - ./parameters.py:/app/parameters.py
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     ports:
       - '6969:6969'
+      - '5000:5000'
+

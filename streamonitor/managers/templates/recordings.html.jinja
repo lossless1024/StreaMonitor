@@ -1,0 +1,34 @@
+{% extends "layout.html.jinja" %}
+{% block title %}StreaMonitor - {{ streamer.username }}{% endblock %}
+{% block head %}
+    {{ super() }}
+    <style type="text/css">
+        .important { color: #336699; }
+    </style>
+    <script>
+        htmx.on('htmx:beforeSwap', function(evt) {
+            evt.detail.shouldSwap = true;
+        });
+    </script>
+{% endblock %}
+{% block nav %}
+<div class="nav">
+    <a class="home-link" href="/"><i class="icon feather icon-home"></i></a>
+    <h1>{{ streamer.username }}</h1>
+</div>
+{% endblock %}
+{% block content %}
+    <p class="full-width center">Recordings of {{ streamer.username }} [{{ streamer.siteslug }}]</p>
+    <div id="video-area">
+        {% if videos is not none and videos|length > 1 %}
+            {% set filename = videos[1] %}
+            {% set extension = filename.rsplit('.', 1)[-1] %}
+            {% set user = streamer.username %}
+            {% set site = streamer.site %}
+            {% include 'video.html.jinja' with context %}
+        {% endif %}
+    </div>
+    {% set videoListError = False %}
+    {% set videoListErrorMessage = None %}
+    {% include 'video_list.html.jinja' ignore missing with context %}
+{% endblock %}

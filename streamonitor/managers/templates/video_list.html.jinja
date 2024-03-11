@@ -1,0 +1,28 @@
+<div id="video-list" class="video-list">
+    {% for video in videos %}
+        <div>
+            <a href="/videos/watch/{{ streamer.username }}/{{ streamer.site }}/{{ video }}"
+            hx-get="/videos/watch/{{ streamer.username }}/{{ streamer.site }}/{{ video }}"
+            hx-trigger="click"
+            hx-target="#video-area"
+            hx-swap="innerHTML">watch {{ video }}</a>
+            <button hx-delete="/videos/delete/{{ streamer.username }}/{{ streamer.site }}/{{ video }}"
+                hx-trigger="click"
+                hx-target="#video-list"
+                hx-swap="outerHTML"
+                hx-disabled-elt="this"
+                class="modify-streamers delete-streamer">
+                <i class="icon feather icon-trash-2"></i>
+            </button>
+        </div>
+    {% endfor %}
+    {% if videos is none or videos|length == 0 %}
+        <p class="full-width center">No recordings</p>
+    {% endif %}
+</div>
+{% if videoListError %}
+    <div class="error-modal">
+        <span>{{ videoListErrorMessage }}</span>
+        <button hx-on:click="dismissErrorModal()">dismiss</button>
+    </div>
+{% endif %}
