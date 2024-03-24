@@ -11,8 +11,12 @@ class MyFreeCams(Bot):
     def __init__(self, username):
         super().__init__(username)
         self.attrs = {}
+        self.videoUrl = None
 
-    def getVideoUrl(self):
+    def getVideoUrl(self, refresh=False):
+        if not refresh:
+            return self.videoUrl
+
         if 'data-cam-preview-model-id-value' not in self.attrs:
             return None
 
@@ -41,7 +45,8 @@ class MyFreeCams(Bot):
         params = doc.find(class_='campreview-link')
         if params:
             self.attrs = params.attrs
-            if self.getVideoUrl():
+            self.videoUrl = self.getVideoUrl(refresh=True)
+            if self.videoUrl:
                 return Bot.Status.PUBLIC
             else:
                 return Bot.Status.PRIVATE

@@ -6,20 +6,28 @@ class StripChat(Bot):
     site = 'StripChat'
     siteslug = 'SC'
 
+    def __init__(self, username):
+        super().__init__(username)
+        self.vr = False
+
     def getVideoUrl(self):
         return self.getWantedResolutionPlaylist(None)
 
     def getPlaylistVariants(self, url):
-        def formatUrl(auto):
-            return "https://edge-hls.{host}/hls/{id}/master/{id}{auto}.m3u8".format(
+        def formatUrl(master, auto):
+            return "https://edge-hls.{host}/hls/{id}{vr}/{master}/{id}{vr}{auto}.m3u8".format(
             server=self.lastInfo["cam"]["viewServers"]["flashphoner-hls"],
             host='doppiocdn.com',
             id=self.lastInfo["cam"]["streamName"],
-            auto='_auto' if auto else '')
+            master='master' if master else '',
+            auto='_auto' if auto else '',
+            vr='_vr' if self.vr else '')
 
         variants = []
-        variants.extend(super().getPlaylistVariants(formatUrl(False)))
-        variants.extend(super().getPlaylistVariants(formatUrl(True)))
+        variants.extend(super().getPlaylistVariants(formatUrl(True, False)))
+        variants.extend(super().getPlaylistVariants(formatUrl(True, True)))
+        variants.extend(super().getPlaylistVariants(formatUrl(False, True)))
+        variants.extend(super().getPlaylistVariants(formatUrl(False, False)))
         return variants
 
     def getStatus(self):
