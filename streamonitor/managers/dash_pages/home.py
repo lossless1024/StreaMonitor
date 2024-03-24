@@ -18,6 +18,7 @@ layout = html.Div([
     html.Div(
         [
             html.H1(lex['title']),
+            # TODO: new buttons: delete all downloads, delete all videos
             html.Div(
                 [
                     html.Button(
