@@ -45,6 +45,17 @@ The application has the following interfaces:
 * External console via ZeroMQ (sort of working)
 * Web interface (only status)
 
+Here the `config.json` file structure:
+``` json
+[
+    {
+        "site": "StripChat",
+        "username": "name",
+        "running": true
+    },
+]
+```
+
 #### Starting
 Start the downloader with the following command.
 Automatically imports all streamers from the config file.
