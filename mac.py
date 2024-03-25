@@ -49,6 +49,7 @@ ERROR:{col.Style.RESET_ALL} Keyboard interrupt')
     threads = []
     for f in tqdm(files, desc=f'{col.Style.RESET_ALL}[MAC]: Starting threads')\
             if tqdm_opt else files:
+        # TODO: limit thread count to a CPU count
         t = th.Thread(target=call_function, args=(f,))
         threads.append(t)
         t.start()
