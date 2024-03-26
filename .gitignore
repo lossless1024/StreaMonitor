@@ -102,5 +102,6 @@ ENV/
 
 # CUSTOM
 .idea/
+videos/*
+downloads/*
 config.json
-

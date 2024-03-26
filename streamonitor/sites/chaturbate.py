@@ -15,11 +15,16 @@ class Chaturbate(Bot):
         return self.getWantedResolutionPlaylist(self.lastInfo['url'])
 
     def getStatus(self):
-        headers = {"X-Requested-With": "XMLHttpRequest"}
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/53'
+            '7.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36',
+            "X-Requested-With": "XMLHttpRequest"
+        }
         data = {"room_slug": self.username, "bandwidth": "high"}
 
         try:
-            r = requests.post("https://chaturbate.com/get_edge_hls_url_ajax/", headers=headers, data=data)
+            r = requests.post("https://chaturbate.com/get_edge_hls_url_ajax/",
+                              headers=headers, data=data)
             self.lastInfo = r.json()
 
             if self.lastInfo["room_status"] == "public":
