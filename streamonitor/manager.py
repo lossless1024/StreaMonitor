@@ -119,6 +119,12 @@ class Manager(Thread):
                 self.logger.error(e)
                 return "Failed to stop"
 
+    def do_restart(self, streamer, username, site):
+        if not streamer:
+            return "Streamer not found"
+        self.do_stop(streamer, username, site)
+        return self.do_start(streamer, username, site)
+        
     def do_status(self, streamer, username, site):
         output = [["Username", "Site", "Started", "Status"]]
 
