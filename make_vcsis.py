@@ -5,8 +5,7 @@ import vcsi
 
 
 def main(filename: str = 'videos', overwrite: bool = False):
-    # TODO: reduce the grid size to 5x5 (?)
-    args = ["vcsi", "-t", "-w 7680", "-g 8x8"]
+    args = ["vcsi", "-t", "-w 7680", "-g 5x5"]
     if not overwrite:
         args.append("--no-overwrite")
     args.append(filename)
