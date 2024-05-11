@@ -11,7 +11,7 @@ from parameters import DEBUG
 def getVideoNativeHLS(self, url, filename):
     self.stopDownloadFlag = False
     error = False
-    tmpfilename = filename[:-len('.mp4')] + '.tmp.ts'
+    tmpfilename = filename[:-len('.mkv')] + '.tmp.ts'
 
     def debug_(message):
         self.debug(message, filename + '.log')
