@@ -27,6 +27,7 @@ def getVideoFfmpeg(self, url, filename):
         '-i', url,
         '-c:a', 'copy',
         '-c:v', 'copy',
+        '-fs', '2061584302',
         filename
     ])
 
