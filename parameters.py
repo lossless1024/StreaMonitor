@@ -5,7 +5,7 @@ DEBUG = False
 # You can enter a number to select a specific height.
 # Use a huge number here and closest match to get the highest resolution variant
 # Eg: 240, 360, 480, 720, 1080, 1440, 99999
-WANTED_RESOLUTION = 2160
+WANTED_RESOLUTION = 1440
 
 # Specify match type when specified height
 # Possible values: exact, exact_or_least_higher, exact_or_highest_lower, closest
