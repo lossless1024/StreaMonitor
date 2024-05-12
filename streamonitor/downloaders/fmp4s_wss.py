@@ -12,7 +12,7 @@ def getVideoWSSVR(self, url, filename):
     self.stopDownloadFlag = False
     error = False
     url = url.replace('fmp4s://', 'wss://')
-    tmpfilename = filename[:-len('.mkv')] + '.tmp.mp4'
+    tmpfilename = filename[:-len('.mkv')] + '.tmp.mkv'
 
     def debug_(message):
         self.debug(message, filename + '.log')
