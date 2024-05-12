@@ -271,7 +271,7 @@ class Bot(Thread):
         if create_dir:
             os.makedirs(folder, exist_ok=True)
         now = datetime.now()
-        filename = os.path.join(folder, self.username + '-' + str(now.strftime("%Y%m%d-%H%M%S")) + '.mp4')
+        filename = os.path.join(folder, self.username + '-' + str(now.strftime("%Y%m%d-%H%M%S")) + '.mkv')
         return filename
 
     def export(self):
