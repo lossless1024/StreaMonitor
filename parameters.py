@@ -11,3 +11,7 @@ WANTED_RESOLUTION = 1080
 # Possible values: exact, exact_or_least_higher, exact_or_highest_lower, closest
 # Beware of the exact policy. Nothing gets downloaded if the wanted resolution is not available
 WANTED_RESOLUTION_PREFERENCE = 'closest'
+
+# Specify output container here
+# Suggested values are 'mkv' or 'mp4'
+CONTAINER = 'mp4'

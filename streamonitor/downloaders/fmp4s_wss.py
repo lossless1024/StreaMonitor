@@ -5,14 +5,14 @@ from threading import Thread
 from websocket import create_connection, WebSocketConnectionClosedException, WebSocketException
 from contextlib import closing
 from ffmpy import FFmpeg, FFRuntimeError
-from parameters import DEBUG
+from parameters import DEBUG, CONTAINER
 
 
 def getVideoWSSVR(self, url, filename):
     self.stopDownloadFlag = False
     error = False
     url = url.replace('fmp4s://', 'wss://')
-    tmpfilename = filename[:-len('.mp4')] + '.tmp.mp4'
+    tmpfilename = filename[:-len('.' + CONTAINER)] + '.tmp.mp4'
 
     def debug_(message):
         self.debug(message, filename + '.log')

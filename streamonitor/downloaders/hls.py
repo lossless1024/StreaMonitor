@@ -5,13 +5,13 @@ import subprocess
 from threading import Thread
 from ffmpy import FFmpeg, FFRuntimeError
 from time import sleep
-from parameters import DEBUG
+from parameters import DEBUG, CONTAINER
 
 
 def getVideoNativeHLS(self, url, filename):
     self.stopDownloadFlag = False
     error = False
-    tmpfilename = filename[:-len('.mp4')] + '.tmp.ts'
+    tmpfilename = filename[:-len('.' + CONTAINER)] + '.tmp.ts'
 
     def debug_(message):
         self.debug(message, filename + '.log')
