@@ -30,11 +30,13 @@ def getVideoFfmpeg(self, url, filename):
     ])
 
     if SEGMENT_TIME is not None:
+        username = filename.rsplit('-', maxsplit=2)[0]
         cmd.extend([
             '-f', 'segment',
             '-reset_timestamps', '1',
             '-segment_time', str(SEGMENT_TIME),
-            filename[:-len('.' + CONTAINER)] + '_%03d.' + filename[-len(CONTAINER):]
+            '-strftime', '1',
+            f'{username}-%Y%m%d-%H%M%S.{CONTAINER}'
         ])
     else:
         cmd.extend([
