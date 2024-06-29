@@ -3,7 +3,7 @@ from streamonitor.bot import Bot
 
 
 class CherryTV(Bot):
-    site = 'CherryTV'
+    site = 'Cherry.tv'
     siteslug = 'CHTV'
 
     def getVideoUrl(self):
