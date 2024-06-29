@@ -18,6 +18,7 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 | StreaMate     | `SM`         | PornHubLive, PepperCams,... |                        | Yes                   |
 | StripChat     | `SC`         | XHamsterLive,...            |                        | Yes                   |
 | StripChat VR  | `SCVR`       |                             | for VR videos          | No                    |
+| XLoveCam      | `XLC`        |                             |                        | No                    |
 
 Currently not supported:
 * Amateur.TV (They use Widevine now)
