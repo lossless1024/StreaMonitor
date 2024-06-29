@@ -11,7 +11,12 @@ class StreaMate(Bot):
         sources = []
         # formats: mp4-rtmp, mp4-hls, mp4-ws
         for source in self.lastInfo['formats']['mp4-hls']['encodings']:
-            sources.append(( source['location'], (source['videoWidth'], source['videoHeight']) ))
+            sources.append({
+                'url': source['location'],
+                'resolution': (source['videoWidth'], source['videoHeight']),
+                'frame_rate': None,
+                'bandwidth': None
+            })
         return sources
 
     def getVideoUrl(self):

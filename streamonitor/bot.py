@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 import os
+import traceback
+
 import m3u8
 from enum import Enum
 from time import sleep
@@ -159,7 +161,7 @@ class Bot(Thread):
                                 self.log(self.status())
                                 self._sleep(self.sleep_on_error)
                                 continue
-                            self.log('Show ended')
+                            self.log('Recording ended')
                 except Exception as e:
                     self.logger.exception(e)
                     self.log(self.status())
@@ -255,6 +257,7 @@ class Bot(Thread):
                 return '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + selected_source_url
         except BaseException as e:
             self.logger.error("Can't get playlist, got some error: " + str(e))
+            traceback.print_tb(e.__traceback__)
             return None
 
     def getVideoUrl(self):

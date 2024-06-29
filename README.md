@@ -6,16 +6,13 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 ## Supported sites
 | Site name     | Abbreviation | Aliases                     | Quirks                 | Selectable resolution |
 |---------------|--------------|-----------------------------|------------------------|-----------------------|
-| Amateur.TV    | `ATV`        |                             |                        | Yes                   |
 | Bongacams     | `BC`         |                             |                        | Yes                   |
 | Cam4          | `C4`         |                             |                        | Yes                   |
 | Cams.com      | `CC`         |                             |                        | Currently only 360p   |
 | CamSoda       | `CS`         |                             |                        | Yes                   |
 | Chaturbate    | `CB`         |                             |                        | Yes                   |
-| Cherry.tv     | `CHTV`       |                             |                        | Yes                   |
 | Dreamcam VR   | `DCVR`       |                             |                        | No                    |
 | Flirt4Free    | `F4F`        |                             |                        | Yes                   |
-| ManyVids Live | `MV`         |                             |                        | Yes                   |
 | MyFreeCams    | `MFC`        |                             |                        | Yes                   |
 | SexChat.hu    | `SCHU`       |                             | use the id as username | No                    |
 | StreaMate     | `SM`         | PornHubLive, PepperCams,... |                        | Yes                   |
@@ -23,8 +20,11 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 | StripChat VR  | `SCVR`       |                             | for VR videos          | No                    |
 
 Currently not supported:
+* Amateur.TV (They use Widevine now)
+* Cherry.tv (They switched to Agora)
 * ImLive (Too strict captcha protection for scraping)
 * LiveJasmin (No nudity in free streams)
+* ManyVids Live (They switched to Agora)
 
 There are hundreds of clones of the sites above, you can read about them on [this site](https://adultwebcam.site/clone-sites-by-platform/).
 
