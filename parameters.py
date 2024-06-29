@@ -17,7 +17,6 @@ WANTED_RESOLUTION_PREFERENCE = 'closest'
 CONTAINER = 'mp4'
 
 # Specify the segment time in seconds
-# Currently only supported by the ffmpeg downloader
 # If None, the video will be downloaded as a single file
 # Example:
 # 5 minutes
