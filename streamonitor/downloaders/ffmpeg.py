@@ -4,7 +4,7 @@ import sys
 
 import requests.cookies
 from threading import Thread
-from parameters import DEBUG
+from parameters import DEBUG, SEGMENT_TIME, CONTAINER
 
 
 def getVideoFfmpeg(self, url, filename):
@@ -27,8 +27,19 @@ def getVideoFfmpeg(self, url, filename):
         '-i', url,
         '-c:a', 'copy',
         '-c:v', 'copy',
-        filename
     ])
+
+    if SEGMENT_TIME is not None:
+        cmd.extend([
+            '-f', 'segment',
+            '-reset_timestamps', '1',
+            '-segment_time', str(SEGMENT_TIME),
+            filename[:-len('.' + CONTAINER)] + '_%03d.' + filename[-len(CONTAINER):]
+        ])
+    else:
+        cmd.extend([
+            filename
+        ])
 
     class _Stopper:
         def __init__(self):
