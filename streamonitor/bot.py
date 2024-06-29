@@ -22,7 +22,8 @@ class Bot(Thread):
     aliases = []
     ratelimit = False
 
-    sleep_on_offline = 2
+    sleep_on_private = 5
+    sleep_on_offline = 5
     sleep_on_long_offline = 300
     sleep_on_error = 20
     sleep_on_ratelimit = 180
@@ -158,6 +159,7 @@ class Bot(Thread):
                                 self.log(self.status())
                                 self._sleep(self.sleep_on_error)
                                 continue
+                            self.log('Show ended')
                 except Exception as e:
                     self.logger.exception(e)
                     self.log(self.status())
@@ -170,6 +172,8 @@ class Bot(Thread):
                     self._sleep(self.sleep_on_ratelimit)
                 elif offline_time > self.long_offline_timeout:
                     self._sleep(self.sleep_on_long_offline)
+                elif self.sc == self.Status.PRIVATE:
+                    self._sleep(self.sleep_on_private)
                 else:
                     self._sleep(self.sleep_on_offline)
 
