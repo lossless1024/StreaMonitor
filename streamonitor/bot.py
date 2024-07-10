@@ -47,6 +47,7 @@ class Bot(Thread):
         RATELIMIT = 429
 
     status_messages = {
+        Status.UNKNOWN: "Unknown error",
         Status.PUBLIC: "Channel online",
         Status.OFFLINE: "No stream",
         Status.LONG_OFFLINE: "No stream for a while",
@@ -103,7 +104,7 @@ class Bot(Thread):
                 debugfile.write(message + '\n')
 
     def status(self):
-        message = self.status_messages.get(self.sc) or "Unknown error"
+        message = self.status_messages.get(self.sc) or self.status_messages.get(self.Status.UNKNOWN)
         if self.sc == self.Status.NOTEXIST:
             self.running = False
         return message
