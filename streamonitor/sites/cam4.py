@@ -20,7 +20,9 @@ class Cam4(Bot):
 
         if self.sc == self.Status.NOTRUNNING:
             r = requests.get(f'https://hu.cam4.com/rest/v1.0/profile/{self.username}/info', headers=headers)
-            if r.status_code != 200:
+            if r.status_code == 403:
+                return Bot.Status.RESTRICTED
+            elif r.status_code != 200:
                 return Bot.Status.NOTEXIST
 
             r = r.json()

@@ -39,6 +39,7 @@ class Bot(Thread):
         UNKNOWN = 1
         NOTRUNNING = 2
         ERROR = 3
+        RESTRICTED = 1403
         PUBLIC = 200
         NOTEXIST = 400
         PRIVATE = 403
@@ -55,7 +56,8 @@ class Bot(Thread):
         Status.RATELIMIT: "Rate limited",
         Status.NOTEXIST: "Nonexistent user",
         Status.NOTRUNNING: "Not running",
-        Status.ERROR: "Error on downloading"
+        Status.ERROR: "Error on downloading",
+        Status.RESTRICTED: "Model is restricted, maybe geo-block"
     }
 
     def __init__(self, username):
@@ -281,8 +283,8 @@ class Bot(Thread):
         folder = self.outputFolder
         if create_dir:
             os.makedirs(folder, exist_ok=True)
-        now = datetime.now()
-        filename = os.path.join(folder, f'{self.username}-{str(now.strftime("%Y%m%d-%H%M%S"))}.{CONTAINER}')
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        filename = os.path.join(folder, f'{self.username}-{timestamp}.{CONTAINER}')
         return filename
 
     def export(self):
