@@ -31,8 +31,10 @@ class MyFreeCams(Bot):
 
     def getStatus(self):
         r = requests.get(f'https://share.myfreecams.com/{self.username}')
+        if r.status_code == 404:
+            return Bot.Status.NOTEXIST
         if r.status_code != 200:
-            return False
+            return Bot.Status.UNKNOWN
         doc = r.content
         startpos = doc.find(b'https://www.myfreecams.com/php/tracking.php?')
         endpos = doc.find(b'"', startpos)
