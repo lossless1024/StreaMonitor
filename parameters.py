@@ -30,3 +30,14 @@ CONTAINER = 'mp4'
 # 1 hour
 # SEGMENT_TIME = '1:00:00'
 SEGMENT_TIME = None
+
+# HTTP Manager configuration
+
+# Bind address for the web server
+# 0.0.0.0 for remote access from all host
+WEBSERVER_HOST = "127.0.0.1"
+WEBSERVER_PORT = 5000
+
+# Password for the web server
+# If empty no auth required, else username admin and choosen password
+WEBSERVER_PASSWORD = "admin"

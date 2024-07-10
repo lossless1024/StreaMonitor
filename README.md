@@ -39,7 +39,7 @@ There are hundreds of clones of the sites above, you can read about them on [thi
 The application has the following interfaces:
 * Console
 * External console via ZeroMQ (sort of working)
-* Web interface (only status)
+* Web interface
 
 #### Starting and console
 Start the downloader (it does not fork yet)\
@@ -85,10 +85,8 @@ python3 Controller.py status
 #### Web interface
 
 You can access the web interface on port 5000. 
-It just prints the same information as the status command. 
-You can also get a list of the recorded streams.
-
-Further improvements can be expected.
+If set password in parameters.py username is admin, password admin, empty password is also allowed.
+When you set the WEBSERVER_HOST it is also accesible to from other computers in the network
 
 ## Docker support
 
