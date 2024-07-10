@@ -12,7 +12,7 @@ import requests
 import requests.cookies
 
 import streamonitor.log as log
-from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, CONTAINER
+from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, CONTAINER, HTTP_USER_AGENT
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 
 
@@ -32,7 +32,7 @@ class Bot(Thread):
     long_offline_timeout = 600
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:75.0) Gecko/20100101 Firefox/75.0"
+        "User-Agent": HTTP_USER_AGENT
     }
 
     class Status(Enum):
