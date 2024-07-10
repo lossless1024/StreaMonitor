@@ -232,6 +232,7 @@ function updateOrCreateStreamers(streamers) {
 		streamerNode.classList.add("site_" + streamer.site);
 		qs(".streamer_name", streamerNode).innerText = streamer.username;
 		qs(".streamer_site", streamerNode).innerText = streamer.site;
+		let website = qs(".streamer_url", streamerNode);
 		if (streamer.url != "") {
 			website.href = streamer.url;
 		}

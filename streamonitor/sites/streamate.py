@@ -7,6 +7,9 @@ class StreaMate(Bot):
     siteslug = 'SM'
     aliases = ['pornhublive']
 
+    def getWebsiteURL(self):
+        return "https://streamate.com/cam/" + self.username
+
     def getPlaylistVariants(self, url):
         sources = []
         # formats: mp4-rtmp, mp4-hls, mp4-ws

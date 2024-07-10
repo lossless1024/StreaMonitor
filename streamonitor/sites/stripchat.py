@@ -10,6 +10,9 @@ class StripChat(Bot):
         super().__init__(username)
         self.vr = False
 
+    def getWebsiteURL(self):
+        return "https://stripchat.com/" + self.username
+
     def getVideoUrl(self):
         return self.getWantedResolutionPlaylist(None)
 

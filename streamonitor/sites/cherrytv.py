@@ -6,6 +6,9 @@ class CherryTV(Bot):
     site = 'Cherry.tv'
     siteslug = 'CHTV'
 
+    def getWebsiteURL(self):
+        return "https://www.cherry.tv/" + self.username
+
     def getVideoUrl(self):
         return self.getWantedResolutionPlaylist(self.lastInfo['broadcast']['pullUrl'])
 

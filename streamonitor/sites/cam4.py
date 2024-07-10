@@ -6,6 +6,9 @@ class Cam4(Bot):
     site = 'Cam4'
     siteslug = 'C4'
 
+    def getWebsiteURL(self):
+        return "https://hu.cam4.com/" + self.username
+    
     def getVideoUrl(self):
         return self.getWantedResolutionPlaylist(self.lastInfo['cdnURL'])
 

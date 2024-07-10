@@ -11,6 +11,9 @@ class StripChatVR(StripChat):
         self.stopDownloadFlag = False
         self.vr = True
 
+    def getWebsiteURL(self):
+        return "https://vr.stripchat.com/cam/" + self.username
+
     def getStatus(self):
         status = super(StripChatVR, self).getStatus()
         if status == Bot.Status.PUBLIC:

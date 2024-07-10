@@ -80,6 +80,9 @@ class Bot(Thread):
     def restart(self):
         self.running = True
 
+    def getWebsiteURL(self):
+        return ""
+
     def stop(self, a, b, thread_too=False):
         if self.running:
             self.log("Stopping...")

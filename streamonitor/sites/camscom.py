@@ -6,6 +6,9 @@ class CamsCom(Bot):
     site = 'CamsCom'
     siteslug = 'CC'
 
+    def getWebsiteURL(self):
+        return "https://cams.com/" + self.username
+
     def getVideoUrl(self):
         return f'https://camscdn.cams.com/camscdn/cdn-{self.username.lower()}.m3u8'
 

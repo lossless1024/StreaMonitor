@@ -13,6 +13,9 @@ class MyFreeCams(Bot):
         self.attrs = {}
         self.videoUrl = None
 
+    def getWebsiteURL(self):
+        return "https://www.myfreecams.com/#" + self.username
+
     def getVideoUrl(self, refresh=False):
         if not refresh:
             return self.videoUrl
