@@ -8,13 +8,14 @@ import streamonitor.config as config
 import streamonitor.log as log
 from streamonitor.bot import Bot
 from streamonitor.managers.outofspace_detector import OOSDetector
-
+import operator
 
 class Manager(Thread):
     def __init__(self, streamers):
         super().__init__()
         self.daemon = True
         self.streamers = streamers
+        self.streamers = sorted(self.streamers, key=lambda x: x.username.lower())
         self.logger = log.Logger("manager")
 
     def execCmd(self, line):
@@ -57,6 +58,7 @@ class Manager(Thread):
             try:
                 streamer = Bot.createInstance(username, site)
                 self.streamers.append(streamer)
+                self.streamers = sorted(self.streamers, key=lambda x: x.username.lower())
                 streamer.start()
                 streamer.restart()
                 self.saveConfig()
@@ -133,6 +135,23 @@ class Manager(Thread):
         else:
             for streamer in self.streamers:
                 line()
+        return "Status:\n" + f'Free space: {str(round(OOSDetector.free_space(), 3))}%\n\n' + AsciiTable(output).table
+    
+    def do_status3(self, streamer, username, site):
+        output = [["Username", "Site", "Started", "Status"]]
+
+        def line():
+            output.append([streamer.username,
+                           streamer.site,
+                           streamer.running,
+                           streamer.status()])
+
+        if streamer:
+            line()
+        else:
+            for streamer in self.streamers:
+                if streamer.status() == "Channel online":
+                    line()
         return "Status:\n" + f'Free space: {str(round(OOSDetector.free_space(), 3))}%\n\n' + AsciiTable(output).table
 
     def do_status2(self, streamer, username, site):

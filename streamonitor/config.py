@@ -1,6 +1,7 @@
 import json
 import sys
 import time
+import operator
 
 from streamonitor.bot import Bot
 
@@ -46,4 +47,5 @@ def loadStreamers():
         if streamer["running"]:
             streamer_bot.restart()
             time.sleep(0.1)
+    streamers = sorted(streamers, key=operator.attrgetter('username'))
     return streamers
