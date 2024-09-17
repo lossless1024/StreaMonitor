@@ -5,14 +5,14 @@ from threading import Thread
 from websocket import create_connection, WebSocketConnectionClosedException, WebSocketException
 from contextlib import closing
 from ffmpy import FFmpeg, FFRuntimeError
-from parameters import DEBUG
+from parameters import DEBUG, CONTAINER, SEGMENT_TIME
 
 
 def getVideoWSSVR(self, url, filename):
     self.stopDownloadFlag = False
     error = False
     url = url.replace('fmp4s://', 'wss://')
-    tmpfilename = filename[:-len('.mp4')] + '.tmp.mp4'
+    tmpfilename = filename[:-len('.' + CONTAINER)] + '.tmp.mp4'
 
     def debug_(message):
         self.debug(message, filename + '.log')
@@ -70,12 +70,16 @@ def getVideoWSSVR(self, url, filename):
     try:
         stdout = open(filename + '.postprocess_stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
         stderr = open(filename + '.postprocess_stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
-        ff = FFmpeg(inputs={tmpfilename: '-ignore_editlist 1'}, outputs={filename: '-codec copy'})
+        output_str = '-c:a copy -c:v copy'
+        if SEGMENT_TIME is not None:
+            output_str += f' -f segment -reset_timestamps 1 -segment_time {str(SEGMENT_TIME)}'
+            filename = filename[:-len('.' + CONTAINER)] + '_%03d.' + CONTAINER
+        ff = FFmpeg(inputs={tmpfilename: '-ignore_editlist 1'}, outputs={filename: output_str})
         ff.run(stdout=stdout, stderr=stderr)
+        os.remove(tmpfilename)
     except FFRuntimeError as e:
         if e.exit_code and e.exit_code != 255:
             return False
 
-    os.remove(tmpfilename)
 
     return True

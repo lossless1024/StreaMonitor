@@ -10,7 +10,12 @@ class AmateurTV(Bot):
         sources = []
         for resolution in self.lastInfo['qualities']:
             width, height = resolution.split('x')
-            sources.append(( f"{self.lastInfo['videoTechnologies']['fmp4']}&variant={height}", (int(width), int(height)) ))
+            sources.append({
+                'url': f"{self.lastInfo['videoTechnologies']['fmp4']}&variant={height}",
+                'resolution': (int(width), int(height)),
+                'frame_rate': None,
+                'bandwidth': None
+            })
         return sources
 
     def getVideoUrl(self):

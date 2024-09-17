@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 import os
+import traceback
+
 import m3u8
 from enum import Enum
 from time import sleep
@@ -10,7 +12,7 @@ import requests
 import requests.cookies
 
 import streamonitor.log as log
-from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE
+from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, CONTAINER, HTTP_USER_AGENT
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 
 
@@ -22,20 +24,22 @@ class Bot(Thread):
     aliases = []
     ratelimit = False
 
-    sleep_on_offline = 2
+    sleep_on_private = 5
+    sleep_on_offline = 5
     sleep_on_long_offline = 300
     sleep_on_error = 20
     sleep_on_ratelimit = 180
     long_offline_timeout = 600
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:75.0) Gecko/20100101 Firefox/75.0"
+        "User-Agent": HTTP_USER_AGENT
     }
 
     class Status(Enum):
         UNKNOWN = 1
         NOTRUNNING = 2
         ERROR = 3
+        RESTRICTED = 1403
         PUBLIC = 200
         NOTEXIST = 400
         PRIVATE = 403
@@ -44,6 +48,7 @@ class Bot(Thread):
         RATELIMIT = 429
 
     status_messages = {
+        Status.UNKNOWN: "Unknown error",
         Status.PUBLIC: "Channel online",
         Status.OFFLINE: "No stream",
         Status.LONG_OFFLINE: "No stream for a while",
@@ -51,7 +56,8 @@ class Bot(Thread):
         Status.RATELIMIT: "Rate limited",
         Status.NOTEXIST: "Nonexistent user",
         Status.NOTRUNNING: "Not running",
-        Status.ERROR: "Error on downloading"
+        Status.ERROR: "Error on downloading",
+        Status.RESTRICTED: "Model is restricted, maybe geo-block"
     }
 
     def __init__(self, username):
@@ -77,6 +83,9 @@ class Bot(Thread):
     def restart(self):
         self.running = True
 
+    def getWebsiteURL(self):
+        return ""
+
     def stop(self, a, b, thread_too=False):
         if self.running:
             self.log("Stopping...")
@@ -101,7 +110,7 @@ class Bot(Thread):
                 debugfile.write(message + '\n')
 
     def status(self):
-        message = self.status_messages.get(self.sc) or "Unknown error"
+        message = self.status_messages.get(self.sc) or self.status_messages.get(self.Status.UNKNOWN)
         if self.sc == self.Status.NOTEXIST:
             self.running = False
         return message
@@ -159,6 +168,7 @@ class Bot(Thread):
                                 self.log(self.status())
                                 self._sleep(self.sleep_on_error)
                                 continue
+                            self.log('Recording ended')
                 except Exception as e:
                     self.logger.exception(e)
                     self.log(self.status())
@@ -171,6 +181,8 @@ class Bot(Thread):
                     self._sleep(self.sleep_on_ratelimit)
                 elif offline_time > self.long_offline_timeout:
                     self._sleep(self.sleep_on_long_offline)
+                elif self.sc == self.Status.PRIVATE:
+                    self._sleep(self.sleep_on_private)
                 else:
                     self._sleep(self.sleep_on_offline)
 
@@ -183,8 +195,14 @@ class Bot(Thread):
         m3u8_doc = result.content.decode("utf-8")
         variant_m3u8 = m3u8.loads(m3u8_doc)
         for playlist in variant_m3u8.playlists:
-            resolution = playlist.stream_info.resolution if type(playlist.stream_info.resolution) is tuple else (0, 0)
-            sources.append(( playlist.uri, resolution ))
+            stream_info = playlist.stream_info
+            resolution = stream_info.resolution if type(stream_info.resolution) is tuple else (0, 0)
+            sources.append({
+                'url': playlist.uri,
+                'resolution': resolution,
+                'frame_rate': stream_info.frame_rate,
+                'bandwidth': stream_info.bandwidth
+            })
 
         if not variant_m3u8.is_variant and len(sources) >= 1:
             self.logger.warn("Not variant playlist, can't select resolution")
@@ -201,32 +219,29 @@ class Bot(Thread):
                 self.logger.error("No available sources")
                 return None
 
-            sources2 = []
             for source in sources:
-                width, height = source[1]
+                width, height = source['resolution']
                 if width < height:
-                    source += (width - WANTED_RESOLUTION,)
+                    source['resolution_diff'] = width - WANTED_RESOLUTION
                 else:
-                    source += (height - WANTED_RESOLUTION,)
-                sources2.append(source)
-            sources = sources2
+                    source['resolution_diff'] = height - WANTED_RESOLUTION
 
-            sources.sort(key=lambda a: abs(a[2]))
+            sources.sort(key=lambda a: abs(a['resolution_diff']))
             selected_source = None
 
             if WANTED_RESOLUTION_PREFERENCE == 'exact':
-                if sources[0][2] == 0:
+                if sources[0]['resolution_diff'] == 0:
                     selected_source = sources[0]
             elif WANTED_RESOLUTION_PREFERENCE == 'closest' or len(sources) == 1:
                 selected_source = sources[0]
             elif WANTED_RESOLUTION_PREFERENCE == 'exact_or_least_higher':
                 for source in sources:
-                    if source[2] >= 0:
+                    if source['resolution_diff'] >= 0:
                         selected_source = source
                         break
             elif WANTED_RESOLUTION_PREFERENCE == 'exact_or_highest_lower':
                 for source in sources:
-                    if source[2] <= 0:
+                    if source['resolution_diff'] <= 0:
                         selected_source = source
                         break
             else:
@@ -237,15 +252,19 @@ class Bot(Thread):
                 self.logger.error("Couldn't select a resolution")
                 return None
 
-            if selected_source[1][1] != 0:
-                self.logger.info(f'Selected {selected_source[1][0]}x{selected_source[1][1]} resolution')
-            selected_source_url = selected_source[0]
+            if selected_source['resolution'][1] != 0:
+                frame_rate = ''
+                if selected_source['frame_rate'] is not None and selected_source['frame_rate'] != 0:
+                    frame_rate = f" {selected_source['frame_rate']}fps"
+                self.logger.info(f"Selected {selected_source['resolution'][0]}x{selected_source['resolution'][1]}{frame_rate} resolution")
+            selected_source_url = selected_source['url']
             if selected_source_url.startswith("https://"):
                 return selected_source_url
             else:
                 return '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + selected_source_url
         except BaseException as e:
             self.logger.error("Can't get playlist, got some error: " + str(e))
+            traceback.print_tb(e.__traceback__)
             return None
 
     def getVideoUrl(self):
@@ -266,6 +285,7 @@ class Bot(Thread):
         folder = self.outputFolder
         if create_dir:
             os.makedirs(folder, exist_ok=True)
+        
         now = datetime.now()
         filename = os.path.join(folder, self.username + '_' + str(now.strftime("%Y-%m-%d_%H-%M-%S")) + '.mp4')
         return filename

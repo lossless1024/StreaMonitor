@@ -18,12 +18,18 @@ class OOSDetector(Thread):
 
     @staticmethod
     def free_space():
+        usage = OOSDetector.space_usage()
+        free_percent = usage.free / usage.total * 100
+        return free_percent
+        
+
+    @staticmethod
+    def space_usage():
         if os.path.exists(DOWNLOADS_DIR):
             usage = shutil.disk_usage(DOWNLOADS_DIR)
         else:
             usage = shutil.disk_usage('.')
-        free_percent = usage.free / usage.total * 100
-        return free_percent
+        return usage
 
     @staticmethod
     def disk_space_good():

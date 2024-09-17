@@ -7,11 +7,19 @@ class StreaMate(Bot):
     siteslug = 'SM'
     aliases = ['pornhublive']
 
+    def getWebsiteURL(self):
+        return "https://streamate.com/cam/" + self.username
+
     def getPlaylistVariants(self, url):
         sources = []
         # formats: mp4-rtmp, mp4-hls, mp4-ws
         for source in self.lastInfo['formats']['mp4-hls']['encodings']:
-            sources.append(( source['location'], (source['videoWidth'], source['videoHeight']) ))
+            sources.append({
+                'url': source['location'],
+                'resolution': (source['videoWidth'], source['videoHeight']),
+                'frame_rate': None,
+                'bandwidth': None
+            })
         return sources
 
     def getVideoUrl(self):

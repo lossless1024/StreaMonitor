@@ -4,27 +4,28 @@ A Python3 application for monitoring and saving (mostly adult) live streams from
 Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 
 ## Supported sites
-| Site name      | Abbreviation | Aliases                     | Quirks                 | Selectable resolution |
-|----------------|--------------|-----------------------------|------------------------|-----------------------|
-| Amateur.TV     | `ATV`        |                             |                        | Yes                   |
-| Bongacams      | `BC`         |                             |                        | Yes                   |
-| Cam4           | `C4`         |                             |                        | Yes                   |
-| Cams.com       | `CC`         |                             |                        | Currently only 360p   |
-| CamSoda        | `CS`         |                             |                        | Yes                   |
-| Chaturbate     | `CB`         |                             |                        | Yes                   |
-| Cherry.TV      | `CHTV`       |                             |                        | Yes                   |
-| Dreamcam VR    | `DCVR`       |                             |                        | No                    |
-| Flirt4Free     | `F4F`        |                             |                        | Yes                   |
-| ManyVids Live  | `MV`         |                             |                        | Yes                   |
-| MyFreeCams     | `MFC`        |                             |                        | Yes                   |
-| SexChat.hu     | `SCHU`       |                             | use the id as username | No                    |
-| StreaMate      | `SM`         | PornHubLive, PepperCams,... |                        | Yes                   |
-| StripChat      | `SC`         | XHamsterLive,...            |                        | Yes                   |
-| StripChat VR   | `SCVR`       |                             | for VR videos          | No                    |
+| Site name     | Abbreviation | Aliases                     | Quirks                 | Selectable resolution |
+|---------------|--------------|-----------------------------|------------------------|-----------------------|
+| Bongacams     | `BC`         |                             |                        | Yes                   |
+| Cam4          | `C4`         |                             |                        | Yes                   |
+| Cams.com      | `CC`         |                             |                        | Currently only 360p   |
+| CamSoda       | `CS`         |                             |                        | Yes                   |
+| Chaturbate    | `CB`         |                             |                        | Yes                   |
+| Dreamcam VR   | `DCVR`       |                             |                        | No                    |
+| Flirt4Free    | `F4F`        |                             |                        | Yes                   |
+| MyFreeCams    | `MFC`        |                             |                        | Yes                   |
+| SexChat.hu    | `SCHU`       |                             | use the id as username | No                    |
+| StreaMate     | `SM`         | PornHubLive, PepperCams,... |                        | Yes                   |
+| StripChat     | `SC`         | XHamsterLive,...            |                        | Yes                   |
+| StripChat VR  | `SCVR`       |                             | for VR videos          | No                    |
+| XLoveCam      | `XLC`        |                             |                        | No                    |
 
 Currently not supported:
+* Amateur.TV (They use Widevine now)
+* Cherry.tv (They switched to Agora)
 * ImLive (Too strict captcha protection for scraping)
 * LiveJasmin (No nudity in free streams)
+* ManyVids Live (They switched to Agora)
 
 There are hundreds of clones of the sites above, you can read about them on [this site](https://adultwebcam.site/clone-sites-by-platform/).
 
@@ -38,7 +39,7 @@ There are hundreds of clones of the sites above, you can read about them on [thi
 The application has the following interfaces:
 * Console
 * External console via ZeroMQ (sort of working)
-* Web interface (only status)
+* Web interface
 
 #### Starting and console
 Start the downloader (it does not fork yet)\
@@ -84,10 +85,8 @@ python3 Controller.py status
 #### Web interface
 
 You can access the web interface on port 5000. 
-It just prints the same information as the status command. 
-You can also get a list of the recorded streams.
-
-Further improvements can be expected.
+If set password in parameters.py username is admin, password admin, empty password is also allowed.
+When you set the WEBSERVER_HOST it is also accesible to from other computers in the network
 
 ## Docker support
 

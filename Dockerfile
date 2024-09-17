@@ -1,12 +1,9 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.10-slim-buster
+FROM python:3.12-alpine3.19
 
-RUN \
- # Install additional dependencies
-  apt update && \
-  apt install -y ffmpeg && \
-  rm -rf /var/cache/apt/lists ;
+# Install dependencies
+RUN apk add --no-cache ffmpeg
 
 WORKDIR /app
 

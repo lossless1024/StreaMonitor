@@ -1,8 +1,10 @@
 import errno
 import subprocess
+import sys
+
 import requests.cookies
 from threading import Thread
-from parameters import DEBUG
+from parameters import DEBUG, SEGMENT_TIME, CONTAINER
 
 
 def getVideoFfmpeg(self, url, filename):
@@ -25,8 +27,21 @@ def getVideoFfmpeg(self, url, filename):
         '-i', url,
         '-c:a', 'copy',
         '-c:v', 'copy',
-        filename
     ])
+
+    if SEGMENT_TIME is not None:
+        username = filename.rsplit('-', maxsplit=2)[0]
+        cmd.extend([
+            '-f', 'segment',
+            '-reset_timestamps', '1',
+            '-segment_time', str(SEGMENT_TIME),
+            '-strftime', '1',
+            f'{username}-%Y%m%d-%H%M%S.{CONTAINER}'
+        ])
+    else:
+        cmd.extend([
+            filename
+        ])
 
     class _Stopper:
         def __init__(self):
@@ -43,7 +58,12 @@ def getVideoFfmpeg(self, url, filename):
         try:
             stdout = open(filename + '.stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
             stderr = open(filename + '.stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
-            process = subprocess.Popen(args=cmd, stdin=subprocess.PIPE, stderr=stderr, stdout=stdout)
+            startupinfo = None
+            if sys.platform == "win32":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            process = subprocess.Popen(
+                args=cmd, stdin=subprocess.PIPE, stderr=stderr, stdout=stdout, startupinfo=startupinfo)
         except OSError as e:
             if e.errno == errno.ENOENT:
                 self.logger.error('FFMpeg executable not found!')

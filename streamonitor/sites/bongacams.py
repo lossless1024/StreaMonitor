@@ -6,6 +6,9 @@ class BongaCams(Bot):
     site = 'BongaCams'
     siteslug = 'BC'
 
+    def getWebsiteURL(self):
+        return "https://bongacams.com/" + self.username
+    
     def getPlaylistUrl(self):
         return "https:" + self.lastInfo['localData']['videoServerUrl'] + "/hls/stream_" + self.username + "/playlist.m3u8"
 

@@ -1,6 +1,5 @@
 from streamonitor.sites.stripchat import StripChat
 from streamonitor.bot import Bot
-from streamonitor.downloaders.fmp4s_wss import getVideoWSSVR
 
 
 class StripChatVR(StripChat):
@@ -9,15 +8,11 @@ class StripChatVR(StripChat):
 
     def __init__(self, username):
         super().__init__(username)
-        self.getVideo = getVideoWSSVR
         self.stopDownloadFlag = False
+        self.vr = True
 
-    def getVideoUrl(self):
-        return "wss://s-{server}.{host}/{id}_vr_webxr?".format(
-            server=self.lastInfo["broadcastSettings"]["vrBroadcastServer"],
-            host='stripcdn.com',
-            id=self.lastInfo["cam"]["streamName"]
-        ) + '&'.join([k + '=' + v for k, v in self.lastInfo['broadcastSettings']['vrCameraSettings'].items()])
+    def getWebsiteURL(self):
+        return "https://vr.stripchat.com/cam/" + self.username
 
     def getStatus(self):
         status = super(StripChatVR, self).getStatus()
