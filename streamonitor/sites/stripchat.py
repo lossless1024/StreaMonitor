@@ -19,7 +19,6 @@ class StripChat(Bot):
     def getPlaylistVariants(self, url):
         def formatUrl(master, auto):
             return "https://edge-hls.{host}/hls/{id}{vr}/{master}/{id}{vr}{auto}.m3u8".format(
-            server=self.lastInfo["cam"]["viewServers"]["flashphoner-hls"],
             host='doppiocdn.com',
             id=self.lastInfo["cam"]["streamName"],
             master='master' if master else '',
