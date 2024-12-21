@@ -1,6 +1,8 @@
 DOWNLOADS_DIR = 'downloads'
 MIN_FREE_DISK_PERCENT = 1.0  # in %
 DEBUG = False
+
+# The camsoda bot ignores this setting in favor of a chrome useragent generated with the fake-useragent library
 HTTP_USER_AGENT = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:75.0) Gecko/20100101 Firefox/75.0"
 
 # You can enter a number to select a specific height.
