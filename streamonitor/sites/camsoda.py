@@ -14,8 +14,9 @@ class CamSoda(Bot):
         return "https://www.camsoda.com/" + self.username
 
     def getVideoUrl(self):
-        v = "https://" + self.lastInfo['edge_servers'][0] + "/" + self.lastInfo['stream_name'] + \
-            "_v1/index.m3u8?token=" + self.lastInfo['token']
+        audio_params = "multitrack=true&filter=tracks:v4v3v2v1a1a2"
+        v = "https://" + self.lastInfo["edge_servers"][0] + "/" + self.lastInfo["stream_name"] + \
+            "_v1/index.ll.m3u8?" + audio_params + "&token=" + self.lastInfo["token"]
         return self.getWantedResolutionPlaylist(v)
 
     def getStatus(self):
