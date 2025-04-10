@@ -3,6 +3,9 @@ MIN_FREE_DISK_PERCENT = 1.0  # in %
 DEBUG = False
 HTTP_USER_AGENT = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:75.0) Gecko/20100101 Firefox/75.0"
 
+# Specify the full path to the ffmpeg binary. By default, ffmpeg found on PATH is used.
+FFMPEG_PATH = 'ffmpeg'
+
 # You can enter a number to select a specific height.
 # Use a huge number here and closest match to get the highest resolution variant
 # Eg: 240, 360, 480, 720, 1080, 1440, 99999

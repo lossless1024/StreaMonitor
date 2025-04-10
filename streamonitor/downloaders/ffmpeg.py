@@ -4,12 +4,12 @@ import sys
 
 import requests.cookies
 from threading import Thread
-from parameters import DEBUG, SEGMENT_TIME, CONTAINER
+from parameters import DEBUG, SEGMENT_TIME, CONTAINER, FFMPEG_PATH
 
 
 def getVideoFfmpeg(self, url, filename):
     cmd = [
-        'ffmpeg',
+        FFMPEG_PATH,
         '-user_agent', self.headers['User-Agent']
     ]
 
