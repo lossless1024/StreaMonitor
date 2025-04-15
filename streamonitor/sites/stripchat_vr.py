@@ -1,3 +1,5 @@
+import os
+
 from streamonitor.sites.stripchat import StripChat
 from streamonitor.bot import Bot
 
@@ -5,6 +7,11 @@ from streamonitor.bot import Bot
 class StripChatVR(StripChat):
     site = 'StripChatVR'
     siteslug = 'SCVR'
+
+    frame_format_map = {
+        'FISHEYE': 'F',
+    #     TODO add other formats
+    }
 
     def __init__(self, username):
         super().__init__(username)
@@ -22,5 +29,13 @@ class StripChatVR(StripChat):
             return Bot.Status.OFFLINE
         return status
 
+    def genOutFilename(self, create_dir=True):
+        default_filename = super().genOutFilename(create_dir)
+        name, ext = os.path.splitext(default_filename)
+        return f"{name}{self.vrSuffix()}{ext}"
+
+    def vrSuffix(self):
+        vr_cam_settings = self.lastInfo['broadcastSettings']['vrCameraSettings']
+        return f"_{vr_cam_settings["stereoPacking"]}_{self.frame_format_map[vr_cam_settings["frameFormat"]]}{vr_cam_settings["horizontalAngle"]}"
 
 Bot.loaded_sites.add(StripChatVR)

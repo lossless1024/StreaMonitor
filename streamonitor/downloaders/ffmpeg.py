@@ -29,6 +29,17 @@ def getVideoFfmpeg(self, url, filename):
         '-c:v', 'copy',
     ])
 
+    frame_format_map = {
+        'FISHEYE': 'F',
+        'PANORAMIC': 'P',
+        'CIRCULAR': 'C',
+    }
+    
+    vr_suffix = ""
+    vr_cam_settings = self.lastInfo['broadcastSettings']['vrCameraSettings']
+    if vr_cam_settings is not None:
+        vr_suffix = f"_{vr_cam_settings["stereoPacking"]}_{vr_cam_settings["frameFormat"]}{vr_cam_settings["horizontalAngle"]}"
+
     if SEGMENT_TIME is not None:
         username = filename.rsplit('-', maxsplit=2)[0]
         cmd.extend([
@@ -36,13 +47,14 @@ def getVideoFfmpeg(self, url, filename):
             '-reset_timestamps', '1',
             '-segment_time', str(SEGMENT_TIME),
             '-strftime', '1',
-            f'{username}-%Y%m%d-%H%M%S.{CONTAINER}'
+            f'{username}-%Y%m%d-%H%M%S{vr_suffix}.{CONTAINER}'
         ])
     else:
         cmd.extend([
             filename
         ])
 
+    print(cmd)
     class _Stopper:
         def __init__(self):
             self.stop = False
