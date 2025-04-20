@@ -4,16 +4,12 @@ import json
 import logging
 
 from functools import wraps
-from flask import Flask, request
 from streamonitor.bot import Bot
 import streamonitor.log as log
 from streamonitor.manager import Manager
 from streamonitor.managers.outofspace_detector import OOSDetector
 from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD
 from secrets import compare_digest
-from streamonitor.sites.camsoda import CamSoda
-from streamonitor.sites.chaturbate import Chaturbate
-from streamonitor.sites.stripchat import StripChat
 
 
 class HTTPManager(Manager):
@@ -44,14 +40,8 @@ class HTTPManager(Manager):
 
         @app.template_filter('tostreamerurl')
         def streamer_url(streamer):
-            if (streamer.site == Chaturbate.site):
-                return f"https://chaturbate.com/{streamer.username}"
-            elif(streamer.site == CamSoda.site):
-                return f"https://www.camsoda.com/{streamer.username}"
-            elif(streamer.site == StripChat.site):
-                return f"https://stripchat.com/{streamer.username}"
-            else:
-                return "javascript:void(0)"
+            return streamer.getWebsiteURL()
+        
 
         def humanReadbleSize(num, suffix="B"):
             for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
@@ -60,7 +50,7 @@ class HTTPManager(Manager):
                 num /= 1024.0
             return f"{num:.1f}Yi{suffix}"
 
-        @app.route('/')
+        @app.route('/new')
         @login_required
         def mainSite():
             return app.send_static_file('index.html')
@@ -106,7 +96,7 @@ class HTTPManager(Manager):
         def execApiCommand():
             return self.execCmd(request.args.get("command"))
     
-        @app.route('/old')
+        @app.route('/')
         @login_required
         def status():
             sites = Bot.loaded_sites
