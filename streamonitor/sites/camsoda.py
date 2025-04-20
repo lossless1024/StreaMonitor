@@ -8,6 +8,7 @@ class CamSoda(Bot):
 
     def __init__(self, username):
         super(CamSoda, self).__init__(username)
+        self.url = self.getWebsiteURL()
 
     def getWebsiteURL(self):
         return "https://www.camsoda.com/" + self.username

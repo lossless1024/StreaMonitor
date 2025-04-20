@@ -10,6 +10,7 @@ class StripChatVR(StripChat):
         super().__init__(username)
         self.stopDownloadFlag = False
         self.vr = True
+        self.url = self.getWebsiteURL()
 
     def getWebsiteURL(self):
         return "https://vr.stripchat.com/cam/" + self.username

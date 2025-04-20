@@ -23,6 +23,7 @@ class Bot(Thread):
     siteslug = None
     aliases = []
     ratelimit = False
+    url = "javascript:void(0)"
 
     sleep_on_private = 5
     sleep_on_offline = 5
@@ -84,7 +85,7 @@ class Bot(Thread):
         self.running = True
 
     def getWebsiteURL(self):
-        return ""
+        return "javascript:void(0)"
 
     def stop(self, a, b, thread_too=False):
         if self.running:

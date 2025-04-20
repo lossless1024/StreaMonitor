@@ -21,6 +21,7 @@ class SexChatHU(Bot):
             username = self.lastInfo.get('screenName')
             self.lastInfo = {}
         super().__init__(username)
+        self.url = self.getWebsiteURL()
 
     def getWebsiteURL(self):
         return "https://sexchat.hu/mypage/" + self.room_id + "/" + self.username + "/chat"

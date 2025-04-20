@@ -12,6 +12,7 @@ class MyFreeCams(Bot):
         super().__init__(username)
         self.attrs = {}
         self.videoUrl = None
+        self.url = self.getWebsiteURL()
 
     def getWebsiteURL(self):
         return "https://www.myfreecams.com/#" + self.username

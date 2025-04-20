@@ -6,6 +6,10 @@ class BongaCams(Bot):
     site = 'BongaCams'
     siteslug = 'BC'
 
+    def __init__(self, username):
+        super().__init__(username)
+        self.url = self.getWebsiteURL()
+
     def getWebsiteURL(self):
         return "https://bongacams.com/" + self.username
     

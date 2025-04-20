@@ -7,6 +7,10 @@ class StreaMate(Bot):
     siteslug = 'SM'
     aliases = ['pornhublive']
 
+    def __init__(self, username):
+        super().__init__(username)
+        self.url = self.getWebsiteURL()
+
     def getWebsiteURL(self):
         return "https://streamate.com/cam/" + self.username
 
