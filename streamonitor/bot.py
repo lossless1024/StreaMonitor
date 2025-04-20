@@ -30,6 +30,7 @@ class Bot(Thread):
     sleep_on_error = 20
     sleep_on_ratelimit = 180
     long_offline_timeout = 600
+    previous_status = None
 
     headers = {
         "User-Agent": HTTP_USER_AGENT
@@ -132,7 +133,10 @@ class Bot(Thread):
             while self.running:
                 try:
                     self.sc = self.getStatus()
-                    self.log(self.status())
+                    # Check if the status has changed and log the update if it's different from the previous status
+                    if self.sc != self.previous_status:
+                        self.log(self.status())
+                        self.previous_status = self.sc
                     if self.sc == self.Status.ERROR:
                         self._sleep(self.sleep_on_error)
                     if self.sc == self.Status.OFFLINE:
