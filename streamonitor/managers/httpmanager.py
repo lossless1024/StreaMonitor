@@ -230,4 +230,4 @@ class HTTPManager(Manager):
                 res = str(e)
             return render_template('streamers_result.html.jinja', streamers=self.streamers, resultStatus=resultStatus, resultMessage=res), statusCode
 
-        app.run(host='0.0.0.0', port=5000)
+        app.run(host=WEBSERVER_HOST, port=WEBSERVER_PORT)
