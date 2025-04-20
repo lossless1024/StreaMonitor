@@ -35,7 +35,9 @@ a {
     background-color: #090A0C;
     width: 100%;
     display: grid;
-    grid-template-columns: 50px 1fr 50px;
+    grid-template-columns: 70px 1fr 70px;
+    position: fixed;
+    top: 0;
 }
 
 .nav h1 {
@@ -51,6 +53,17 @@ a {
     justify-content: center;
     align-items: center;
     text-decoration: none;
+}
+
+.nav span.sort {
+    font-size: 2rem;
+    color: #A0B2CB;
+}
+
+@media screen and (max-width: 600px) {
+    .nav span.sort {
+        display: none;
+    }
 }
 
 .nav a.home-link i {
@@ -211,6 +224,18 @@ td.streamer-will-record {
     margin-inline: auto;
 }
 
+.video-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+@media screen and (max-width: 600px) {
+    .video-link .size {
+        display: none;
+    }
+}
+
 #video-list div {
     display: flex;
     gap: 1rem;
@@ -221,7 +246,7 @@ td.streamer-will-record {
 #video-area {
     text-align: center;
     aspect-ratio: 16/8;
-    max-height: 760px;
+    max-height: 896px;
     margin-left: auto;
     margin-right: auto;
 }
@@ -239,7 +264,42 @@ td.streamer-will-record {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
     aspect-ratio: 16/9;
+    max-height: 824px;
+    /* display: grid;
+    justify-items: center;
+    align-items: center;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 9fr 1fr;
+
+    & .video-player {
+        grid-column: 1 / 3;
+        grid-row: 1 / 3;
+    }
+    & .rewind {
+        grid-column: 1 / 2;
+        grid-row: 1 / 2;
+    }
+    & .fastforward {
+        grid-column: 2 / 3;
+        grid-row: 1 / 2;
+    }
+    & .pause {
+        grid-column: 1 / 3;
+        grid-row: 1 / 3;
+        width: 124px;
+        height: 124px;
+        opacity: 0.5;
+        background-color: red;
+        border-radius: 50%;
+        justify-self: center;
+        align-self: center;
+    } */
 }
+/* @media screen and (max-width: 600px) {
+    #video-area .video-playback {
+        grid-template-rows: 4fr 1fr;
+    }
+} */
 
 .full-width {
     width: 100%;
