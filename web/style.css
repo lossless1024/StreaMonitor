@@ -156,9 +156,18 @@ a {
     background-color: #090A0C;
     width: 100%;
     display: grid;
-    grid-template-columns: 4.5rem 1fr 4.5rem;
+    grid-template-columns: 4.5rem minmax(calc(100vw - 9rem), 1fr) 4.5rem;
     position: fixed;
     top: 0;
+
+    @media screen and (max-width: 500px) {
+        & {
+            grid-template-columns: 4.5rem minmax(calc(100vw - 4.5rem), 1fr) 0rem;
+        }
+        div.streamer-info {
+            justify-content: start;
+        }
+    }
 
     .streamer-info {
         display: flex;
@@ -236,7 +245,8 @@ a {
         margin-top: 0.25rem;
         margin-bottom: 0.25rem;
         color: #BDBDBD;
-        justify-self: center;
+        text-overflow: ellipsis;
+        overflow: hidden;
     }
 
     a.home-link {
@@ -513,6 +523,7 @@ a {
 
     &:not(:has(video))  {
         height: 20vh;
+        max-height: calc(50vw - 2rem);
     }
 
     .playing-video {
