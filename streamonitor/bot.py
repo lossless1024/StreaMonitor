@@ -24,6 +24,7 @@ class Bot(Thread):
     aliases = []
     ratelimit = False
     url = "javascript:void(0)"
+    recording = False
 
     sleep_on_private = 5
     sleep_on_offline = 5
@@ -62,6 +63,19 @@ class Bot(Thread):
         Status.RESTRICTED: "Model is restricted, maybe geo-block"
     }
 
+    status_icons = {
+        Status.UNKNOWN: "help-circle",
+        Status.PUBLIC: "eye",
+        Status.OFFLINE: "video-off",
+        Status.LONG_OFFLINE: "video-off",
+        Status.PRIVATE: "eye-off",
+        Status.RATELIMIT: "alert-octagon",
+        Status.NOTEXIST: "minus-circle",
+        Status.NOTRUNNING: "bell-off",
+        Status.ERROR: "alert-triangle",
+        Status.RESTRICTED: "x-octagon"
+    }
+
     def __init__(self, username):
         super().__init__()
         self.username = username
@@ -77,6 +91,7 @@ class Bot(Thread):
         self.sc = self.Status.NOTRUNNING  # Status code
         self.getVideo = getVideoFfmpeg
         self.stopDownload = None
+        self.recording = False
 
     def getLogger(self):
         return log.Logger("[" + self.siteslug + "] " + self.username).get_logger()
@@ -115,6 +130,14 @@ class Bot(Thread):
         if self.sc == self.Status.NOTEXIST:
             self.running = False
         return message
+    
+    @property
+    def status_icon(self):
+        if(self.recording):
+            message = 'arrow-down-circle'
+        else:
+            message = self.status_icons.get(self.sc) or self.status_icons.get(self.Status.UNKNOWN)
+        return message
 
     def _sleep(self, time):
         while time > 0:
@@ -133,6 +156,7 @@ class Bot(Thread):
             offline_time = self.long_offline_timeout + 1  # Don't start polling when streamer was offline at start
             while self.running:
                 try:
+                    self.recording = False
                     self.sc = self.getStatus()
                     # Check if the status has changed and log the update if it's different from the previous status
                     if self.sc != self.previous_status:
@@ -166,12 +190,15 @@ class Bot(Thread):
                                 self._sleep(self.sleep_on_error)
                                 continue
                             self.log('Started downloading show')
-                            ret = self.getVideo(self, video_url, self.genOutFilename())
+                            self.recording = True
+                            file = self.genOutFilename()
+                            ret = self.getVideo(self, video_url, file)
                             if not ret:
                                 self.sc = self.Status.ERROR
                                 self.log(self.status())
                                 self._sleep(self.sleep_on_error)
                                 continue
+                            self.recording = False
                             self.log('Recording ended')
                 except Exception as e:
                     self.logger.exception(e)
