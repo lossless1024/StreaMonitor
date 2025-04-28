@@ -1,51 +1,27 @@
-<div id="streamers">
-    <div class="streamers-results {{ resultStatus }}">
-        {{ resultMessage }}
-    </div>
-    <table class="streamers-list" style="border:1px solid">
+{% set refresh_interval = 'hx-swap="outerHTML" hx-get="/refresh/streamers" hx-trigger="every {interval}s"'.format(interval=refresh_freq) %}
+<div id="streamers" {{ refresh_interval if refresh_freq and refresh_freq > 0}}>
+    <table class="streamers-list">
         <thead><tr>
-            <th>Site</th>
-            <th>Username</th>
-            <th>Watching</th>
-            <th>Status</th>
-            <th>Remove</th>
+            <th class="header-site left-align">Site</th>
+            <th class="header-streamer-name left-align">Username</th>
+            <th class="header-watching">Watching</th>
+            <th class="header-status">Status</th>
+            <th class="header-remove">Remove</th>
+            {# <th>Size</th> #}
         </tr></thead>
         <tbody>
         {% for streamer in streamers %}
-            <tr class="streamer">
-                <td>
-                    <a target="_blank" href="{{ streamer | tostreamerurl }}">
-                        {{ streamer.site }}
-                    </a>
-                </td>
-                <td><a href="/recordings?user={{ streamer.username }}&site={{ streamer.site }}">{{ streamer.username }}</a></td>
-                <td class="streamer-will-record">
-                    {% set toggleStreamerHasError = False %}
-                    {% set toggleStreamerResultMessage = '' %}
-                    {% include 'streamer_running.html.jinja' ignore missing with context %}
-                </td>
-                <td class="streamer-status">
-                    <span class="streamer-status-text">{{ streamer.status() }}</span>
-                    <button hx-get="/status/{{ streamer.username }}/{{ streamer.site }}"
-                        hx-trigger="click"
-                        hx-target="previous .streamer-status-text"
-                        hx-swap="innerHTML"
-                        hx-disabled-elt="this">
-                        <i class="icon feather icon-refresh-cw"></i>
-                    </button>
-                </td>
-                <td class="streamer-remove">
-                    <button hx-delete="/remove/{{ streamer.username }}/{{ streamer.site }}"
-                        hx-trigger="click"
-                        hx-target="closest .streamer"
-                        hx-swap="outerHTML"
-                        hx-disabled-elt="this"
-                        class="modify-streamers delete-streamer">
-                        <i class="icon feather icon-trash-2"></i>
-                    </button>
-                </td>
-            </tr>
+            {% set streamerHasError = False %}
+            {% set streamerErrorMessage = '' %}
+            {% include 'streamer_record.html.jinja' ignore missing with context %}
         {% endfor %}
         </tbody>
     </table>
 </div>
+{% if resultStatus != "hide" %}
+<div id="toast-notifications" hx-swap-oob="true">
+    <div class="toast {{ resultStatus }}">
+        {{ resultMessage }}
+    </div>
+</div>
+{% endif %}

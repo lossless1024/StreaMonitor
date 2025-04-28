@@ -2,57 +2,78 @@
 {% block title %}StreaMonitor - List{% endblock %}
 {% block head %}
     {{ super() }}
+    <meta name="htmx-config" content='{"useTemplateFragments":"true"}'>
     <style type="text/css">
         .important { color: #336699; }
     </style>
     <script>
         htmx.on('htmx:beforeSwap', function(evt) {
             if(evt.detail.elt.classList.contains('delete-streamer') && !detail.shouldSwap) {
-                evt.detail.target = htmx.find("#delete-error");
+                evt.detail.target = htmx.find("#error-container");
             }
             evt.detail.shouldSwap = true;
         });
     </script>
 {% endblock %}
 {% block content %}
-    <h1>CG-DL Status</h1>
+    <div class="title-container">
+        <h1>StreaMonitor</h1>
+        <div class="disk-usage">
+            <span class="du-label">
+                <span class="du-label-free">Free:</span>
+                <span class="du-label-free">Total:</span>
+            </span>
+            <span class="du-space">
+                <span class="du-space-free">{{free_space}}</span>
+                <span class="du-space-total">{{total_space}}</span>
+            </span>
+            <span class="du-percent-free">{{percentage_free}}%</span>
+        </div>
+    </div>
     <div>
         <form hx-post="/add"
             hx-trigger="submit"
             hx-target="#streamers"
-            hx-swap="innerHTML"
+            hx-swap="outerHTML settle:3s"
             hx-disabled-elt=".modify-streamers"
             id="add-streamer-form">
-            <label>
-                <span>Streamer's username: </span>
-                <input type="text" name="username" minlength="3" required="required">
+            <label class="add-streamer-label username-field">
+                <span class="add-streamer-label-text">username:</span>
+                <input class="input-username" type="text" name="username" minlength="3" required="required">
             </label>
-            <label>
-                <span>site:  </span>
+            <label class="add-streamer-label site-field">
+                <span class="add-streamer-label-text">site:</span>
                 <select name="site" id="site" required="required">
+                    {% set default_site = streamers[-1].site if streamers|length > 0 else '' %}
                     {% for site in sites %}
-                        <option value="{{ site.site }}" {% if site.site == 'Chaturbate' %}selected="selected"{% endif %}>{{ site.site }}</option>
+                        <option value="{{ site.site }}" {% if site.site == default_site %}selected="selected"{% endif %}>{{ site.site }}</option>
                     {% endfor %}
                 </select>
             </label>
-            <button type="submit" class="modify-streamers add-streamer">Add</button>
+            <div class="submit-form-container">
+                <button type="submit" class="modify-streamers add-streamer">Add</button>
+            </div>
         </form>
     </div>
     <div class="all-streamers-actions">
         <button hx-patch="/stop/all"
             hx-trigger="click"
             hx-target="#streamers"
-            hx-swap="innerHTML"
+            hx-swap="outerHTML settle:3s"
             hx-disabled-elt=".modify-streamers" 
             class="modify-streamers stop-streamers">Stop All</button>
         <button hx-patch="/start/all"
             hx-trigger="click"
             hx-target="#streamers"
-            hx-swap="innerHTML"
+            hx-swap="outerHTML settle:3s"
             hx-disabled-elt=".modify-streamers" 
             class="modify-streamers start-streamers">Start All</button>
     </div>
-    <div id="delete-error">
+    <div id="error-container">
     </div>
+    {% set resultStatus = 'hide' %}
+    {% set resultMessage = '' %}
     {% include 'streamers_result.html.jinja' ignore missing with context %}
+    <div id="toast-notifications">
+    </div>
 {% endblock %}

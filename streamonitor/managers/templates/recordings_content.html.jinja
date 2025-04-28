@@ -1,0 +1,10 @@
+<div id="video-area">
+    {% if play_video is not none %}
+        {% set user = streamer.username %}
+        {% set site = streamer.site %}
+        {% include 'video.html.jinja' with context %}
+    {% endif %}
+</div>
+{% set videoListError = False %}
+{% set videoListErrorMessage = None %}
+{% include 'video_list.html.jinja' ignore missing with context %}

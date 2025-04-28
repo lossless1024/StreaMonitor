@@ -159,6 +159,10 @@ a {
     grid-template-columns: 4.5rem minmax(calc(100vw - 9rem), 1fr) 4.5rem;
     position: fixed;
     top: 0;
+    
+    &.has-error {
+        background-color: red;
+    }
 
     @media screen and (max-width: 500px) {
         & {
@@ -263,6 +267,34 @@ a {
 }
 
 /* index styling */
+
+.title-container {
+    display: flex;
+    justify-content: space-between;
+
+    .disk-usage {
+        font-size: 0.8rem;
+        display: flex;
+        gap: 0.5rem;
+        position: absolute;
+        right: 1rem;
+    }
+
+    .du-percent-free {
+        font-size: 1.7rem;
+    }
+
+    .du-label,
+    .du-space {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .du-label-free,
+    .du-label-total {
+        text-align: end;
+    }
+}
 
 #add-streamer-form {
     display: flex;

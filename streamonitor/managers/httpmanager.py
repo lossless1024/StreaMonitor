@@ -1,14 +1,19 @@
-from flask import Flask, render_template, request, send_from_directory
+import mimetypes
+import re
+from typing import cast
+from flask import Flask, make_response, render_template, request, send_from_directory
 import os
 import json
 import logging
+import math
 
 from functools import wraps
 from streamonitor.bot import Bot
 import streamonitor.log as log
 from streamonitor.manager import Manager
 from streamonitor.managers.outofspace_detector import OOSDetector
-from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD
+from streamonitor.models.invalid_streamer import InvalidStreamer
+from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD, WEB_LIST_FREQUENCY, WEB_STATUS_FREQUENCY
 from secrets import compare_digest
 
 
@@ -37,11 +42,38 @@ class HTTPManager(Manager):
                 return f(**kwargs)
 
             return wrapped_view
-
-        @app.template_filter('tostreamerurl')
-        def streamer_url(streamer):
-            return streamer.getWebsiteURL()
         
+        @app.template_filter('shortname')
+        def short_name(filename, username):
+            match = re.match(rf"{username}-(?P<shortname>\d{{8}}-\d*)\.", filename,  re.IGNORECASE)
+            if(match):
+                return match.group('shortname')
+            else:
+                return filename
+            
+
+        @app.template_filter('tohumanfilesize')
+        def human_file_size(size):
+            units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB"]
+            size = abs(size)
+            exponent = math.floor(math.log(size, 1024))
+            if(exponent > len(units) - 1):
+                return f"{size:.1f}YiB"
+            humansize = size / (1024 ** exponent)
+            if(humansize >= 1000):
+                return f"{humansize:.4g}{units[exponent]}"
+            else:
+                return f"{humansize:.3g}{units[exponent]}"
+            
+        @app.template_filter('toqueryparams')
+        def to_recording_query_params(sort_by_size, current_video):
+            params = []
+            if(sort_by_size):
+                params.append("sorted=True")
+            if(current_video is not None):
+                params.append(f"play_video={current_video}")
+            query_param = f"?{'&'.join(params)}" if len(params) > 0 else ""
+            return query_param
 
         def humanReadbleSize(num, suffix="B"):
             for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
@@ -50,7 +82,7 @@ class HTTPManager(Manager):
                 num /= 1024.0
             return f"{num:.1f}Yi{suffix}"
 
-        @app.route('/new')
+        @app.route('/simple')
         @login_required
         def mainSite():
             return app.send_static_file('index.html')
@@ -96,138 +128,305 @@ class HTTPManager(Manager):
         def execApiCommand():
             return self.execCmd(request.args.get("command"))
     
-        @app.route('/')
+        @app.route('/', methods=['GET'])
         @login_required
         def status():
-            sites = Bot.loaded_sites
-            return render_template('index.html.jinja', streamers=self.streamers, sites=sites, resultStatus="hide", resultMessage="")
+            usage = OOSDetector.space_usage()
+            context = {
+                'streamers': self.streamers,
+                'sites': Bot.loaded_sites,
+                'free_space': human_file_size(usage.free),
+                'total_space': human_file_size(usage.total),
+                'percentage_free': round(usage.free / usage.total * 100, 3),
+                'refresh_freq': WEB_LIST_FREQUENCY,
+            }
+            return render_template('index.html.jinja', **context)
 
-        @app.route('/recordings')
+        @app.route('/refresh/streamers', methods=['GET'])
         @login_required
-        def recordings():
-            streamer = self.getStreamer(request.args.get("user"), request.args.get("site"))
-            videos = []
+        def refresh_streamers():
+            context = {
+                'streamers': self.streamers,
+                'sites': Bot.loaded_sites,
+                'refresh_freq': WEB_LIST_FREQUENCY,
+                'resultStatus': "hide",
+                'resultMessage': "",
+            }
+            return render_template('streamers_result.html.jinja', **context)
+
+        @app.route('/recordings/<user>/<site>', methods=['GET'])
+        @login_required
+        def recordings(user, site):
+            video = request.args.get("play_video")
+            sort_by_size = bool(request.args.get("sorted", False))
+            streamer = cast(Bot | None, self.getStreamer(user, site))
+            videos = {}
             try:
-                for elem in os.listdir("./downloads/{u} [{s}]".format(u=streamer.username, s=streamer.siteslug)):
-                    videos.append(elem)
+                for elem in os.scandir(streamer.outputFolder):
+                    if(elem.is_dir()):
+                        continue
+                    videos[elem.name] = elem.stat().st_size
             except Exception as e:
                 self.logger.warning(e)
-            return render_template('recordings.html.jinja', streamer=streamer, videos=sorted(videos, reverse=True))
+            play_video = None
+            mimetype = None
+            sorted_videos = videos
+            if(sort_by_size):
+                sorted_videos = dict(sorted(videos.items(), key=lambda item: item[1], reverse=True))
+            else:
+                sorted_videos = dict(sorted(videos.items(), reverse=True))
+            video_keys = iter(sorted_videos.keys())
+            if (video in sorted_videos.keys()):
+                play_video = video
+            elif (video is None and streamer.recording and len(sorted_videos) > 1):
+                # It might not always be safe to grab the biggest file if sorting by size, but good enough for now
+                first = next(video_keys)
+                play_video = first if sort_by_size else next(video_keys)
+            elif (video is None and len(sorted_videos) > 0 and not streamer.recording):
+                play_video = next(video_keys)
+            # if we lie about this, chrome will play it
+            # need to look at alternatives for firefox
+            if(play_video is not None and play_video.lower().endswith('.mkv')):
+                mimetype = 'video/mp4'
+            elif(play_video is not None):
+                try:
+                    mimetype = mimetypes.guess_type(os.path.join(streamer.outputFolder, play_video))[0]
+                except Exception as e:
+                    self.logger.warning(e)
+            return render_template('recordings.html.jinja', streamer=streamer, videos=sorted_videos, play_video=play_video, mimetype=mimetype, sort_by_size=sort_by_size, refresh_freq=WEB_STATUS_FREQUENCY,)
         
-        @app.route('/videos/get/<user>/<site>/<path:filename>')
+        @app.route('/videos/<user>/<site>/<path:filename>', methods=['GET'])
         def get_video(user, site, filename):
-            streamer = self.getStreamer(user, site)
+            streamer = cast(Bot | None, self.getStreamer(user, site))
             return send_from_directory(
-                "../../downloads/{u} [{s}]".format(u=streamer.username, s=streamer.siteslug),
+                os.path.abspath(streamer.outputFolder),
                 filename
             )
         
-        @app.route('/videos/watch/<user>/<site>/<path:filename>')
-        def watch_video(user, site, filename):
-            extension = filename.rsplit('.', 1)[-1]
-            return render_template('video.html.jinja', user=user, site=site, filename=filename, extension=extension)
-
-        @app.route('/videos/delete/<user>/<site>/<path:filename>', methods=['DELETE'])
-        def delete_video(user, site, filename):
+        @app.route('/videos/watch/<user>/<site>/<path:play_video>', methods=['GET'])
+        @login_required
+        def watch_video(user, site, play_video):
+            mimetype = 'video/mp4'
+            sort_by_size = bool(request.args.get("sorted", False))
+            streamer = cast(Bot | None, self.getStreamer(user, site))
+            videos = {}
+            try:
+                for elem in os.scandir(streamer.outputFolder):
+                    if(elem.is_dir()):
+                        continue
+                    videos[elem.name] = elem.stat().st_size
+                if(not play_video.lower().endswith('.mkv')):
+                    mimetype = mimetypes.guess_type(os.path.join(streamer.outputFolder, play_video))[0]
+            except Exception as e:
+                self.logger.warning(e)
+            sorted_videos = videos
+            if(sort_by_size):
+                sorted_videos = dict(sorted(videos.items(), key=lambda item: item[1], reverse=True))
+            else:
+                sorted_videos = dict(sorted(videos.items(), reverse=True))
+            response = make_response(render_template('recordings_content.html.jinja', streamer=streamer, videos=sorted_videos, play_video=play_video, mimetype=mimetype, sort_by_size=sort_by_size))
+            query_param = to_recording_query_params(sort_by_size, play_video)
+            response.headers['HX-Replace-Url'] = f"/recordings/{user}/{site}{query_param}"
+            return response
+        
+        @app.route('/videos/<user>/<site>', methods=['GET'])
+        @login_required
+        def sort_videos(user, site):
             streamer = None
-            videos = []
+            sort_by_size = bool(request.args.get("sorted", False))
+            play_video = request.args.get("play_video", None)
+            videos = {}
             videoListError = False
             videoListErrorMessage = None
             try:
-                streamer = self.getStreamer(user, site)
-                for elem in os.listdir("./downloads/{u} [{s}]".format(u=streamer.username, s=streamer.siteslug)):
-                    if(elem == filename):
-                        path = os.path.abspath("./downloads/{u} [{s}]/{file}".format(u=streamer.username, s=streamer.siteslug, file=filename))
-                        os.remove(path)
-                    else:
-                        videos.append(elem)
+                streamer = cast(Bot | None, self.getStreamer(user, site))
+                for elem in os.scandir(streamer.outputFolder):
+                    if(elem.is_dir()):
+                        continue
+                    videos[elem.name] = elem.stat().st_size
             except Exception as e:
                 videoListError = True
                 videoListErrorMessage = repr(e)
                 self.logger.warning(e)
-                
-            return render_template('video_list.html.jinja', streamer=streamer, videos=sorted(videos, reverse=True), videoListError=videoListError, videoListErrorMessage=videoListErrorMessage)
+            sorted_videos = videos
+            if(sort_by_size):
+                sorted_videos = dict(sorted(videos.items(), key=lambda item: item[1], reverse=True))
+            else:
+                sorted_videos = dict(sorted(videos.items(), reverse=True))
+            response = make_response(render_template('video_list.html.jinja', streamer=streamer, videos=sorted_videos, play_video=play_video, sort_by_size=sort_by_size, videoListError=videoListError, videoListErrorMessage=videoListErrorMessage))
+            query_param = to_recording_query_params(sort_by_size, play_video)
+            response.headers['HX-Replace-Url'] = f"/recordings/{user}/{site}{query_param}"
+            return response
+            
+        @app.route('/videos/<user>/<site>/<path:filename>', methods=['DELETE'])
+        @login_required
+        def delete_video(user, site, filename):
+            streamer = None
+            sort_by_size = bool(request.args.get("sorted", False))
+            play_video = request.args.get("play_video", None)
+            videos = {}
+            videoListError = False
+            videoListErrorMessage = None
+            try:
+                streamer = cast(Bot | None, self.getStreamer(user, site))
+                for elem in os.scandir(streamer.outputFolder):
+                    if(elem.is_dir()):
+                        continue
+                    elif(elem.name == filename):
+                        os.remove(os.path.abspath(elem.path))
+                    else:
+                        videos[elem.name] = elem.stat().st_size
+            except Exception as e:
+                videoListError = True
+                videoListErrorMessage = repr(e)
+                self.logger.warning(e)
+            sorted_videos = videos
+            if(sort_by_size):
+                sorted_videos = dict(sorted(videos.items(), key=lambda item: item[1], reverse=True))
+            else:
+                sorted_videos = dict(sorted(videos.items(), reverse=True))
+            response = make_response(render_template('video_list.html.jinja', streamer=streamer, videos=sorted_videos, sort_by_size=sort_by_size, play_video=play_video, videoListError=videoListError, videoListErrorMessage=videoListErrorMessage))
+            query_param = to_recording_query_params(sort_by_size, play_video)
+            response.headers['HX-Replace-Url'] = f"/recordings/{user}/{site}{query_param}"
+            return response
         
         @app.route("/add", methods=['POST'])
+        @login_required
         def add():
             user = request.form["username"]
             site = request.form["site"]
             resultStatus = "success"
-            statusCode = 200
+            status_code = 200
             streamer = self.getStreamer(user, site)
             res = self.do_add(streamer, user, site)
             if(res == 'Streamer already exists' or res == "Missing value(s)" or res == "Failed to add"):
                 resultStatus = "error"
-                statusCode = 500
-            return render_template('streamers_result.html.jinja', streamers=self.streamers, resultStatus=resultStatus, resultMessage=res), statusCode
+                status_code = 500
+            context = {
+                'streamers': self.streamers,
+                'refresh_freq': WEB_LIST_FREQUENCY,
+                'resultStatus': resultStatus,
+                'resultMessage': res,
+            }
+            return render_template('streamers_result.html.jinja', **context), status_code
         
-        @app.route("/status/<user>/<site>")
-        def get_status(user, site):
+        @app.route("/recording/nav/<user>/<site>")
+        @login_required
+        def get_streamer_navbar(user, site):
             streamer = self.getStreamer(user, site)
             res = None
-            statusCode = 200
+            status_code = 200
+            has_error = False
             if(streamer is None):
-                statusCode = 500
-                res = "Unknown"
-            else:
-                res = streamer.status()
-            return res,statusCode
+                status_code = 500
+                streamer = InvalidStreamer(user, site)
+                has_error = True
+            context = {
+                'streamer': streamer,
+                'has_error': has_error,
+                'refresh_freq': WEB_STATUS_FREQUENCY,
+            }
+            return render_template('streamer_nav_bar.html.jinja', **context), status_code
+        
+        @app.route("/streamer-info/<user>/<site>")
+        @login_required
+        def get_streamer_info(user, site):
+            streamer = self.getStreamer(user, site)
+            res = None
+            status_code = 200
+            hasError = False
+            if(streamer is None):
+                status_code = 500
+                res = f"Could not get info for {user} on site {site}"
+                hasError = True
+            context = {
+                'streamer': streamer,
+                'streamerHasError': hasError,
+                'streamerErrorMessage': res,
+            }
+            return render_template('streamer_record.html.jinja', **context), status_code
         
         @app.route("/remove/<user>/<site>", methods=['DELETE'])
+        @login_required
         def remove_streamer(user, site):
             streamer = self.getStreamer(user, site)
             res = self.do_remove(streamer, user, site)
-            statusCode = 204
+            status_code = 204
             removeStreamerHasError = False
             if(res == "Failed to remove streamer" or res == "Streamer not found"):
-                statusCode = 404
+                status_code = 404
                 removeStreamerHasError = True
-                return render_template('streamer_record_error.html.jinja', removeStreamerHasError=removeStreamerHasError, removeStreamerResultMessage=res),statusCode
-            return '',statusCode
+                context = {
+                    'removeStreamerHasError': removeStreamerHasError,
+                    'removeStreamerResultMessage': res,
+                }
+                return render_template('streamer_record_error.html.jinja', **context),status_code
+            return '',status_code
         
         @app.route("/toggle/<user>/<site>", methods=['PATCH'])
+        @login_required
         def toggle_streamer(user, site):
             streamer = self.getStreamer(user, site)
-            statusCode = 500
+            status_code = 500
             res = "Streamer not found"
             hasError = True
             if(streamer is None):
-                statusCode = 500
+                status_code = 500
             elif(streamer.running):
                 res = self.do_stop(streamer, user, site)
             else:
                 res = self.do_start(streamer, user, site)
             if(res == "OK"):
                 hasError = False
-                statusCode = 200
-            return render_template('streamer_running.html.jinja', streamer=streamer, toggleStreamerResultMessage=res, toggleStreamerHasError=hasError), statusCode
+                status_code = 200
+            context = {
+                'streamer': streamer,
+                'streamerHasError': hasError,
+                'streamerErrorMessage': res,
+            }
+            return render_template('streamer_record.html.jinja', **context), status_code
         
         @app.route("/start/all", methods=['PATCH'])
+        @login_required
         def start_all_streamers():
-            statusCode = 500
+            status_code = 500
             resultStatus = "error"
             try:
                 res = self.do_start(None, '*', None)
                 if(res == "Started all"):
-                    statusCode = 200
+                    status_code = 200
                     resultStatus = "success"
             except Exception as e:
                 self.logger.warning(e)
                 res = str(e)
-            return render_template('streamers_result.html.jinja', streamers=self.streamers, resultStatus=resultStatus, resultMessage=res), statusCode
+            context = {
+                'streamers': self.streamers,
+                'refresh_freq': WEB_LIST_FREQUENCY,
+                'resultStatus': resultStatus,
+                'resultMessage': res,
+            }
+            return render_template('streamers_result.html.jinja', **context), status_code
         
         @app.route("/stop/all", methods=['PATCH'])
+        @login_required
         def stop_all_streamers():
-            statusCode = 500
+            status_code = 500
             resultStatus = "error"
             try:
                 res = self.do_stop(None, '*', None)
                 if(res == "Stopped all"):
-                    statusCode = 200
+                    status_code = 200
                     resultStatus = "success"
             except Exception as e:
                 self.logger.warning(e)
                 res = str(e)
-            return render_template('streamers_result.html.jinja', streamers=self.streamers, resultStatus=resultStatus, resultMessage=res), statusCode
+
+            context = {
+                'streamers': self.streamers,
+                'refresh_freq': WEB_LIST_FREQUENCY,
+                'resultStatus': resultStatus,
+                'resultMessage': res,
+            }
+            return render_template('streamers_result.html.jinja', **context), status_code
 
         app.run(host=WEBSERVER_HOST, port=WEBSERVER_PORT)

@@ -12,23 +12,9 @@
     </script>
 {% endblock %}
 {% block nav %}
-<div class="nav">
-    <a class="home-link" href="/"><i class="icon feather icon-home"></i></a>
-    <h1>{{ streamer.username }}</h1>
-</div>
+    {% set has_error = False %}
+    {% include 'streamer_nav_bar.html.jinja' ignore missing with context %}
 {% endblock %}
 {% block content %}
-    <p class="full-width center">Recordings of {{ streamer.username }} [{{ streamer.siteslug }}]</p>
-    <div id="video-area">
-        {% if videos is not none and videos|length > 1 %}
-            {% set filename = videos[1] %}
-            {% set extension = filename.rsplit('.', 1)[-1] %}
-            {% set user = streamer.username %}
-            {% set site = streamer.site %}
-            {% include 'video.html.jinja' with context %}
-        {% endif %}
-    </div>
-    {% set videoListError = False %}
-    {% set videoListErrorMessage = None %}
-    {% include 'video_list.html.jinja' ignore missing with context %}
+    {% include 'recordings_content.html.jinja' ignore missing with context %}
 {% endblock %}

@@ -1,23 +1,44 @@
-<div id="video-list" class="video-list">
-    {% for video in videos %}
-        <div>
-            <a href="/videos/watch/{{ streamer.username }}/{{ streamer.site }}/{{ video }}"
-            hx-get="/videos/watch/{{ streamer.username }}/{{ streamer.site }}/{{ video }}"
-            hx-trigger="click"
-            hx-target="#video-area"
-            hx-swap="innerHTML">watch {{ video }}</a>
-            <button hx-delete="/videos/delete/{{ streamer.username }}/{{ streamer.site }}/{{ video }}"
+<div id="video-list">
+    {% if videos is none or videos|length == 0 %}
+        <p class="full-width center">No recordings</p>
+    {% else %}
+        <div class="files-container-header">
+            <h3 class="title">Files</h3>
+            <button class="sort-action"
+                hx-get="/videos/{{ streamer.username }}/{{ streamer.site }}{{ (not sort_by_size)|toqueryparams(play_video)}}"
                 hx-trigger="click"
                 hx-target="#video-list"
                 hx-swap="outerHTML"
-                hx-disabled-elt="this"
-                class="modify-streamers delete-streamer">
-                <i class="icon feather icon-trash-2"></i>
-            </button>
+                title="Sort by {{'timestamp' if sort_by_size else 'file size'}}"
+                hx-disabled-elt="this"><i class="icon feather {{'icon-clock' if sort_by_size else 'icon-bar-chart'}}"></i>Sort</button>
         </div>
-    {% endfor %}
-    {% if videos is none or videos|length == 0 %}
-        <p class="full-width center">No recordings</p>
+        <div class="files-container total-size">
+            <span>Total Space: {{ videos.values() | sum | tohumanfilesize }}</span>
+        </div>
+        <div class="files-container video-list">
+        {% for video in videos %}
+            {% set disable_delete = video == play_video and videos|length > 1 %}
+            <div class="video-ref" data-filesize="{{ videos[video] }}">
+                <a href="/videos/watch/{{ streamer.username }}/{{ streamer.site }}/{{ video }}"
+                class="video-link link-fill"
+                hx-get="/videos/watch/{{ streamer.username }}/{{ streamer.site }}/{{ video }}{{ '?sorted=True' if sort_by_size }}"
+                hx-trigger="click"
+                hx-on::after-on-load="onPlayVideo(this)"
+                hx-target="#content"
+                hx-swap="innerHTML"><span class="filename">{{ video | shortname(streamer.username) }}</span><span class="size">{{videos[video] | tohumanfilesize}}</span></a>
+                <button hx-delete="/videos/{{ streamer.username }}/{{ streamer.site }}/{{ video }}{{ sort_by_size|toqueryparams(play_video)}}"
+                    hx-trigger="click"
+                    hx-target="#video-list"
+                    hx-swap="outerHTML"
+                    hx-disabled-elt="this"
+                    {{ "disabled" if disable_delete }}
+                    title="{{ 'you cannot remove a video currently loaded' if disable_delete else 'remove video' }}"
+                    class="remove-video {{ 'currently-playing' if disable_delete }}">
+                    <i class="icon feather icon-trash-2"></i>
+                </button>
+            </div>
+        {% endfor %}
+        </div>
     {% endif %}
 </div>
 {% if videoListError %}
