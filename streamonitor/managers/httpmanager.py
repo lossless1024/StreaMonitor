@@ -144,7 +144,7 @@ class HTTPManager(Manager):
             sort_by_size = bool(request.args.get("sorted", False))
             streamer = cast(Bot | None, self.getStreamer(user, site))
             context = get_streamer_context(streamer, sort_by_size, video)
-            status_code = 500 if context['videoListError'] else 200
+            status_code = 500 if context['has_error'] else 200
             if (video is None and streamer.recording and len(context['videos']) > 1):
                 # It might not always be safe to grab the biggest file if sorting by size, but good enough for now
                 video_index = 0 if sort_by_size else 1
@@ -167,7 +167,7 @@ class HTTPManager(Manager):
             sort_by_size = bool(request.args.get("sorted", False))
             streamer = cast(Bot | None, self.getStreamer(user, site))
             context = get_streamer_context(streamer, sort_by_size, play_video)
-            status_code = 500 if context['video_to_play'] is None or context['videoListError'] else 200
+            status_code = 500 if context['video_to_play'] is None or context['has_error'] else 200
             response = make_response(render_template('recordings_content.html.jinja', **context), status_code)
             query_param = get_recording_query_params(sort_by_size, play_video)
             response.headers['HX-Replace-Url'] = f"/recordings/{user}/{site}{query_param}"
@@ -180,7 +180,7 @@ class HTTPManager(Manager):
             sort_by_size = bool(request.args.get("sorted", False))
             play_video = request.args.get("play_video", None)
             context = get_streamer_context(streamer, sort_by_size, play_video)
-            status_code = 500 if context['videoListError'] else 200
+            status_code = 500 if context['has_error'] else 200
             response = make_response(render_template('video_list.html.jinja', **context), status_code)
             query_param = get_recording_query_params(sort_by_size, play_video)
             response.headers['HX-Replace-Url'] = f"/recordings/{user}/{site}{query_param}"
@@ -203,13 +203,13 @@ class HTTPManager(Manager):
                         context['video_to_play'] = None
                 except Exception as e:
                     status_code = 500
-                    context['videoListError'] = True
-                    context['videoListErrorMessage'] = repr(e)
+                    context['has_error'] = True
+                    context['recordings_error_message'] = repr(e)
                     self.logger.error(e)
             else:
                 status_code = 404
-                context['videoListError'] = True
-                context['videoListErrorMessage'] = f'Could not find {filename}, so no file removed'
+                context['has_error'] = True
+                context['recordings_error_message'] = f'Could not find {filename}, so no file removed'
             response = make_response(render_template('video_list.html.jinja', **context ), status_code)
             query_param = get_recording_query_params(sort_by_size, play_video)
             response.headers['HX-Replace-Url'] = f"/recordings/{user}/{site}{query_param}"

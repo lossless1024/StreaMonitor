@@ -15,5 +15,5 @@ class StreamerContext(TypedDict):
     refresh_freq: int | None
     videos: Dict[str, VideoData]
     total_size: int
-    videoListError: bool
-    videoListErrorMessage: str | None
+    has_error: bool
+    recordings_error_message: str | None

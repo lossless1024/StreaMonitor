@@ -50,9 +50,9 @@
         </div>
     {% endif %}
 </div>
-{% if videoListError %}
+{% if has_error %}
     <div class="error-modal">
-        <span>{{ videoListErrorMessage }}</span>
+        <span>{{ recordings_error_message }}</span>
         <button hx-on:click="dismissErrorModal()">dismiss</button>
     </div>
 {% endif %}

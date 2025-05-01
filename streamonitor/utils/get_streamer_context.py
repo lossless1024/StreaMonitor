@@ -19,8 +19,8 @@ def get_streamer_context(streamer: Bot, sort_by_size: bool, play_video: str) -> 
     from streamonitor.models.video_data import VideoData
     #videos = []
     videos: Dict[str, VideoData] = {}
-    videoListError = False
-    videoListErrorMessage = None
+    has_error = False
+    recordings_error_message = None
     total_size = 0
     video_to_play: VideoData | None = None
     try:
@@ -36,8 +36,8 @@ def get_streamer_context(streamer: Bot, sort_by_size: bool, play_video: str) -> 
                 total_size += video.filesize
                 videos[video.filename] = video
     except Exception as e:
-        videoListError = True
-        videoListErrorMessage = repr(e)
+        has_error = True
+        recordings_error_message = repr(e)
         _logger.warning(e)
     if(sort_by_size):
         videos = dict(sorted(videos.items(), key=lambda item: item[1].filesize, reverse=True))
@@ -54,7 +54,7 @@ def get_streamer_context(streamer: Bot, sort_by_size: bool, play_video: str) -> 
         'refresh_freq': WEB_STATUS_FREQUENCY,
         'videos': videos,
         'total_size': total_size,
-        'videoListError': videoListError,
-        'videoListErrorMessage': videoListErrorMessage,
+        'has_error': has_error,
+        'recordings_error_message': recordings_error_message,
     }
     return context
