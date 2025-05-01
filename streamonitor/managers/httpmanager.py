@@ -1,3 +1,4 @@
+from itertools import islice
 import mimetypes
 import re
 from typing import cast
@@ -12,10 +13,11 @@ from streamonitor.bot import Bot
 import streamonitor.log as log
 from streamonitor.manager import Manager
 from streamonitor.managers.outofspace_detector import OOSDetector
-from streamonitor.models.invalid_streamer import InvalidStreamer
+from streamonitor.models import InvalidStreamer
 from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD, WEB_LIST_FREQUENCY, WEB_STATUS_FREQUENCY
 from secrets import compare_digest
 
+from streamonitor.utils import get_recording_query_params, get_streamer_context
 
 class HTTPManager(Manager):
     def __init__(self, streamers):
@@ -42,15 +44,6 @@ class HTTPManager(Manager):
                 return f(**kwargs)
 
             return wrapped_view
-        
-        @app.template_filter('shortname')
-        def short_name(filename, username):
-            match = re.match(rf"{username}-(?P<shortname>\d{{8}}-\d*)\.", filename,  re.IGNORECASE)
-            if(match):
-                return match.group('shortname')
-            else:
-                return filename
-            
 
         @app.template_filter('tohumanfilesize')
         def human_file_size(size):
@@ -64,16 +57,6 @@ class HTTPManager(Manager):
                 return f"{humansize:.4g}{units[exponent]}"
             else:
                 return f"{humansize:.3g}{units[exponent]}"
-            
-        @app.template_filter('toqueryparams')
-        def to_recording_query_params(sort_by_size, current_video):
-            params = []
-            if(sort_by_size):
-                params.append("sorted=True")
-            if(current_video is not None):
-                params.append(f"play_video={current_video}")
-            query_param = f"?{'&'.join(params)}" if len(params) > 0 else ""
-            return query_param
 
         def humanReadbleSize(num, suffix="B"):
             for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
@@ -160,42 +143,17 @@ class HTTPManager(Manager):
             video = request.args.get("play_video")
             sort_by_size = bool(request.args.get("sorted", False))
             streamer = cast(Bot | None, self.getStreamer(user, site))
-            videos = {}
-            try:
-                for elem in os.scandir(streamer.outputFolder):
-                    if(elem.is_dir()):
-                        continue
-                    videos[elem.name] = elem.stat().st_size
-            except Exception as e:
-                self.logger.warning(e)
-            play_video = None
-            mimetype = None
-            sorted_videos = videos
-            if(sort_by_size):
-                sorted_videos = dict(sorted(videos.items(), key=lambda item: item[1], reverse=True))
-            else:
-                sorted_videos = dict(sorted(videos.items(), reverse=True))
-            video_keys = iter(sorted_videos.keys())
-            if (video in sorted_videos.keys()):
-                play_video = video
-            elif (video is None and streamer.recording and len(sorted_videos) > 1):
+            context = get_streamer_context(streamer, sort_by_size, video)
+            status_code = 500 if context['videoListError'] else 200
+            if (video is None and streamer.recording and len(context['videos']) > 1):
                 # It might not always be safe to grab the biggest file if sorting by size, but good enough for now
-                first = next(video_keys)
-                play_video = first if sort_by_size else next(video_keys)
-            elif (video is None and len(sorted_videos) > 0 and not streamer.recording):
-                play_video = next(video_keys)
-            # if we lie about this, chrome will play it
-            # need to look at alternatives for firefox
-            if(play_video is not None and play_video.lower().endswith('.mkv')):
-                mimetype = 'video/mp4'
-            elif(play_video is not None):
-                try:
-                    mimetype = mimetypes.guess_type(os.path.join(streamer.outputFolder, play_video))[0]
-                except Exception as e:
-                    self.logger.warning(e)
-            return render_template('recordings.html.jinja', streamer=streamer, videos=sorted_videos, play_video=play_video, mimetype=mimetype, sort_by_size=sort_by_size, refresh_freq=WEB_STATUS_FREQUENCY,)
+                video_index = 0 if sort_by_size else 1
+                context['video_to_play'] = next(islice(context['videos'].values(), video_index, video_index + 1))
+            elif (video is None and len(context['videos']) > 0 and not streamer.recording):
+                context['video_to_play'] = next(islice(context['videos'].values(), 0, 1))
+            return render_template('recordings.html.jinja', **context), status_code
         
-        @app.route('/videos/<user>/<site>/<path:filename>', methods=['GET'])
+        @app.route('/video/<user>/<site>/<path:filename>', methods=['GET'])
         def get_video(user, site, filename):
             streamer = cast(Bot | None, self.getStreamer(user, site))
             return send_from_directory(
@@ -206,87 +164,54 @@ class HTTPManager(Manager):
         @app.route('/videos/watch/<user>/<site>/<path:play_video>', methods=['GET'])
         @login_required
         def watch_video(user, site, play_video):
-            mimetype = 'video/mp4'
             sort_by_size = bool(request.args.get("sorted", False))
             streamer = cast(Bot | None, self.getStreamer(user, site))
-            videos = {}
-            try:
-                for elem in os.scandir(streamer.outputFolder):
-                    if(elem.is_dir()):
-                        continue
-                    videos[elem.name] = elem.stat().st_size
-                if(not play_video.lower().endswith('.mkv')):
-                    mimetype = mimetypes.guess_type(os.path.join(streamer.outputFolder, play_video))[0]
-            except Exception as e:
-                self.logger.warning(e)
-            sorted_videos = videos
-            if(sort_by_size):
-                sorted_videos = dict(sorted(videos.items(), key=lambda item: item[1], reverse=True))
-            else:
-                sorted_videos = dict(sorted(videos.items(), reverse=True))
-            response = make_response(render_template('recordings_content.html.jinja', streamer=streamer, videos=sorted_videos, play_video=play_video, mimetype=mimetype, sort_by_size=sort_by_size))
-            query_param = to_recording_query_params(sort_by_size, play_video)
+            context = get_streamer_context(streamer, sort_by_size, play_video)
+            status_code = 500 if context['video_to_play'] is None or context['videoListError'] else 200
+            response = make_response(render_template('recordings_content.html.jinja', **context), status_code)
+            query_param = get_recording_query_params(sort_by_size, play_video)
             response.headers['HX-Replace-Url'] = f"/recordings/{user}/{site}{query_param}"
             return response
         
         @app.route('/videos/<user>/<site>', methods=['GET'])
         @login_required
         def sort_videos(user, site):
-            streamer = None
+            streamer = cast(Bot | None, self.getStreamer(user, site))
             sort_by_size = bool(request.args.get("sorted", False))
             play_video = request.args.get("play_video", None)
-            videos = {}
-            videoListError = False
-            videoListErrorMessage = None
-            try:
-                streamer = cast(Bot | None, self.getStreamer(user, site))
-                for elem in os.scandir(streamer.outputFolder):
-                    if(elem.is_dir()):
-                        continue
-                    videos[elem.name] = elem.stat().st_size
-            except Exception as e:
-                videoListError = True
-                videoListErrorMessage = repr(e)
-                self.logger.warning(e)
-            sorted_videos = videos
-            if(sort_by_size):
-                sorted_videos = dict(sorted(videos.items(), key=lambda item: item[1], reverse=True))
-            else:
-                sorted_videos = dict(sorted(videos.items(), reverse=True))
-            response = make_response(render_template('video_list.html.jinja', streamer=streamer, videos=sorted_videos, play_video=play_video, sort_by_size=sort_by_size, videoListError=videoListError, videoListErrorMessage=videoListErrorMessage))
-            query_param = to_recording_query_params(sort_by_size, play_video)
+            context = get_streamer_context(streamer, sort_by_size, play_video)
+            status_code = 500 if context['videoListError'] else 200
+            response = make_response(render_template('video_list.html.jinja', **context), status_code)
+            query_param = get_recording_query_params(sort_by_size, play_video)
             response.headers['HX-Replace-Url'] = f"/recordings/{user}/{site}{query_param}"
             return response
-            
+
         @app.route('/videos/<user>/<site>/<path:filename>', methods=['DELETE'])
         @login_required
         def delete_video(user, site, filename):
-            streamer = None
+            streamer = cast(Bot | None, self.getStreamer(user, site))
             sort_by_size = bool(request.args.get("sorted", False))
             play_video = request.args.get("play_video", None)
-            videos = {}
-            videoListError = False
-            videoListErrorMessage = None
-            try:
-                streamer = cast(Bot | None, self.getStreamer(user, site))
-                for elem in os.scandir(streamer.outputFolder):
-                    if(elem.is_dir()):
-                        continue
-                    elif(elem.name == filename):
-                        os.remove(os.path.abspath(elem.path))
-                    else:
-                        videos[elem.name] = elem.stat().st_size
-            except Exception as e:
-                videoListError = True
-                videoListErrorMessage = repr(e)
-                self.logger.warning(e)
-            sorted_videos = videos
-            if(sort_by_size):
-                sorted_videos = dict(sorted(videos.items(), key=lambda item: item[1], reverse=True))
+            context = get_streamer_context(streamer, sort_by_size, play_video)
+            status_code = 200
+            match = context['videos'].pop(filename, None)
+            if(match is not None):
+                try:
+                    os.remove(match.abs_path)
+                    context['total_size'] = context['total_size'] - match.filesize
+                    if(context['video_to_play'] is not None and play_video == context['video_to_play'].filename):
+                        context['video_to_play'] = None
+                except Exception as e:
+                    status_code = 500
+                    context['videoListError'] = True
+                    context['videoListErrorMessage'] = repr(e)
+                    self.logger.error(e)
             else:
-                sorted_videos = dict(sorted(videos.items(), reverse=True))
-            response = make_response(render_template('video_list.html.jinja', streamer=streamer, videos=sorted_videos, sort_by_size=sort_by_size, play_video=play_video, videoListError=videoListError, videoListErrorMessage=videoListErrorMessage))
-            query_param = to_recording_query_params(sort_by_size, play_video)
+                status_code = 404
+                context['videoListError'] = True
+                context['videoListErrorMessage'] = f'Could not find {filename}, so no file removed'
+            response = make_response(render_template('video_list.html.jinja', **context ), status_code)
+            query_param = get_recording_query_params(sort_by_size, play_video)
             response.headers['HX-Replace-Url'] = f"/recordings/{user}/{site}{query_param}"
             return response
         
@@ -334,14 +259,14 @@ class HTTPManager(Manager):
             streamer = self.getStreamer(user, site)
             res = None
             status_code = 200
-            hasError = False
+            has_error = False
             if(streamer is None):
                 status_code = 500
                 res = f"Could not get info for {user} on site {site}"
-                hasError = True
+                has_error = True
             context = {
                 'streamer': streamer,
-                'streamerHasError': hasError,
+                'streamerHasError': has_error,
                 'streamerErrorMessage': res,
             }
             return render_template('streamer_record.html.jinja', **context), status_code
@@ -369,7 +294,7 @@ class HTTPManager(Manager):
             streamer = self.getStreamer(user, site)
             status_code = 500
             res = "Streamer not found"
-            hasError = True
+            has_error = True
             if(streamer is None):
                 status_code = 500
             elif(streamer.running):
@@ -377,11 +302,11 @@ class HTTPManager(Manager):
             else:
                 res = self.do_start(streamer, user, site)
             if(res == "OK"):
-                hasError = False
+                has_error = False
                 status_code = 200
             context = {
                 'streamer': streamer,
-                'streamerHasError': hasError,
+                'streamerHasError': has_error,
                 'streamerErrorMessage': res,
             }
             return render_template('streamer_record.html.jinja', **context), status_code
@@ -429,4 +354,4 @@ class HTTPManager(Manager):
             }
             return render_template('streamers_result.html.jinja', **context), status_code
 
-        app.run(host=WEBSERVER_HOST, port=WEBSERVER_PORT)
+        app.run(host=WEBSERVER_HOST, port=WEBSERVER_PORT, debug=True, use_reloader=False)

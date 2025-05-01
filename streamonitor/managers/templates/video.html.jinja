@@ -1,5 +1,6 @@
-<h4 class="playing-video">Playing {{ play_video | shortname(user) }}</h4>
-    <video preload="auto" controls="controls">
-        <source src="/videos/{{ user }}/{{ site }}/{{ play_video }}" type="{{ mimetype }}" />
-    </video>
-<a href="/videos/{{ user }}/{{ site }}/{{ play_video }}" download>Download <i class="icon feather icon-download"></i></a>
+<h4 class="playing-video">Playing {{ video_to_play.shortname }}</h4>
+<video preload="auto" controls="controls">
+    <source src="/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}" type="{{ video_to_play.mimetype }}" />
+</video>
+<a href="/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}" download>Download <i class="icon feather icon-download"></i></a>
+<input type="hidden" name="play_video" id="play_video" class="streamer-context" value="{{ video_to_play.filename }}">
