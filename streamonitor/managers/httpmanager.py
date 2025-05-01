@@ -17,7 +17,7 @@ from streamonitor.models import InvalidStreamer
 from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD, WEB_LIST_FREQUENCY, WEB_STATUS_FREQUENCY
 from secrets import compare_digest
 
-from streamonitor.utils import get_recording_query_params, get_streamer_context
+from streamonitor.utils import get_recording_query_params, get_streamer_context, human_file_size
 
 class HTTPManager(Manager):
     def __init__(self, streamers):
@@ -28,6 +28,8 @@ class HTTPManager(Manager):
         app = Flask(__name__, "", "../../web")
         werkzeug_logger = logging.getLogger('werkzeug')
         werkzeug_logger.disabled = True
+
+        app.add_template_filter(human_file_size, name='tohumanfilesize')
 
         def check_auth(username, password):
             return WEBSERVER_PASSWORD == "" or (username == 'admin' and compare_digest(password, WEBSERVER_PASSWORD))
@@ -44,19 +46,6 @@ class HTTPManager(Manager):
                 return f(**kwargs)
 
             return wrapped_view
-
-        @app.template_filter('tohumanfilesize')
-        def human_file_size(size):
-            units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB"]
-            size = abs(size)
-            exponent = math.floor(math.log(size, 1024))
-            if(exponent > len(units) - 1):
-                return f"{size:.1f}YiB"
-            humansize = size / (1024 ** exponent)
-            if(humansize >= 1000):
-                return f"{humansize:.4g}{units[exponent]}"
-            else:
-                return f"{humansize:.3g}{units[exponent]}"
 
         def humanReadbleSize(num, suffix="B"):
             for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
@@ -354,4 +343,4 @@ class HTTPManager(Manager):
             }
             return render_template('streamers_result.html.jinja', **context), status_code
 
-        app.run(host=WEBSERVER_HOST, port=WEBSERVER_PORT, debug=True, use_reloader=False)
+        app.run(host=WEBSERVER_HOST, port=WEBSERVER_PORT)
