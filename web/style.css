@@ -44,7 +44,7 @@ html, body {
 /* global styling */
 body {
     width: 100%;
-    min-width: 275px;
+    min-width: 310px;
     margin: 0;
     background-color: #232323;
     font-family: "PT Sans", sans-serif;
@@ -102,6 +102,14 @@ input[type=text] {
     line-height: 1.5;
     padding-left: 0.5rem;
     font-size: 1.1rem;
+}
+
+.drop-down {
+    font-size: 1.1rem;
+    height: 1.9rem;
+    border-radius: 3px;
+    border: none;
+    background-color: #D9D9D9;
 }
 
 .fake-btn,
@@ -402,14 +410,6 @@ a {
         margin-right: 0.125rem;
     }
 
-    #site {
-        font-size: 1.1rem;
-        height: 1.9rem;
-        border-radius: 3px;
-        border: none;
-        background-color: #D9D9D9;
-    }
-
     @media screen and (max-width: 650px) {
         & {
             align-items: end;
@@ -466,10 +466,8 @@ a {
     top: 0;
     left: 0;
 
-    @media screen and (max-width: 300px) {
-        .fake-btn:has(i.icon-chevron-up) {
-            padding-right: 0.125rem;
-        }
+    .fake-btn {
+        display: inline-block;
     }
 
     .hidden-checkbox {
@@ -487,28 +485,48 @@ a {
         }
 
         & ~ .filter-streamers-options {
-            display: none;
-            height: 0px;
-            overflow: clip;
-            transition-property: height, display;
+            display: grid;
+            grid-template-rows: 0fr;
+            transition-property: grid-template-rows;
             transition-duration: 0.5s;
             transition-timing-function: ease-in-out;
-            transition-behavior: allow-discrete;
         }
 
         &:checked ~ .filter-streamers-options {
-            display: block;
-            height: 100px;
+            grid-template-rows: 1fr;
     
             @starting-style {
-                height: 0px;
+                grid-template-rows: 0fr;
             }
+        }
+    }
+
+    .middle-filter-container {
+        overflow: hidden;
+
+        .inner-filter-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-block: 1.5rem;
+            align-items: end;
+            overflow: clip;
+        }
+    }
+
+    .filter-flex-group {
+        flex: 0;
+
+        &.multi-item-container {
+            display: flex;
+            align-items: end;
+            gap: 0.75rem;
         }
     }
 
     .all-streamers-actions {
         position: absolute;
-        top: -1px;
+        top: 0px;
         right: 0px;
         display: flex;
         gap: 1rem;

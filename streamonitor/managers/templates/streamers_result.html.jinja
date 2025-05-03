@@ -1,3 +1,4 @@
+{% if streamers|length > 0 %}
 <table class="streamers-list">
     <thead><tr>
         <th class="header-site left-align">Site</th>
@@ -15,6 +16,9 @@
     {% endfor %}
     </tbody>
 </table>
+{% else %}
+    <p class="full-width center">No Streamers Found</p>
+{% endif %}
 {% if resultStatus != "hide" %}
 <div id="toast-notifications" hx-swap-oob="true">
     <div class="toast {{ resultStatus }}">

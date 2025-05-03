@@ -321,11 +321,26 @@ class HTTPManager(Manager):
             site_filter = request.args.get("filter-site", None)
             status_filter = request.args.get("filter-status", None)
             streamers = streamer_list(self.streamers, username_filter, site_filter, status_filter)
+            res = ""
             try:
-                res = self.do_start(None, '*', None)
-                if(res == "Started all"):
-                    status_code = 200
-                    resultStatus = "success"
+                if(len(streamers) == len(self.streamers)):
+                    res = self.do_start(None, '*', None)
+                    if(res == "Started all"):
+                        status_code = 200
+                        resultStatus = "success"
+                else:
+                    error = []
+                    for streamer in streamers:
+                        partial_res = self.do_start(streamer, None, None)
+                        if(partial_res != "OK"):
+                            error.append(streamer.username)
+                    else:
+                        error.append('no matching streamers')
+                    if(len(error) > 0):
+                        res = f"Failed to start: {','.join(error)}"
+                    else:
+                        status_code = 200
+                        resultStatus = "success"
             except Exception as e:
                 self.logger.warning(e)
                 res = str(e)
@@ -359,6 +374,8 @@ class HTTPManager(Manager):
                         partial_res = self.do_stop(streamer, None, None)
                         if(partial_res != "OK"):
                             error.append(streamer.username)
+                    else:
+                        error.append('no matching streamers')
                     if(len(error) > 0):
                         res = f"Failed to stop: {','.join(error)}"
                     else:
