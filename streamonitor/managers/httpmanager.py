@@ -1,7 +1,7 @@
 from itertools import islice
 import mimetypes
 import re
-from typing import cast
+from typing import List, cast
 from flask import Flask, make_response, render_template, request, send_from_directory
 import os
 import json
@@ -10,6 +10,7 @@ import math
 
 from functools import wraps
 from streamonitor.bot import Bot
+from streamonitor.enums import Status
 import streamonitor.log as log
 from streamonitor.manager import Manager
 from streamonitor.managers.outofspace_detector import OOSDetector
@@ -17,7 +18,8 @@ from streamonitor.models import InvalidStreamer
 from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD, WEB_LIST_FREQUENCY, WEB_STATUS_FREQUENCY
 from secrets import compare_digest
 
-from streamonitor.utils import get_recording_query_params, get_streamer_context, human_file_size
+from streamonitor.utils import streamer_list, get_recording_query_params, get_streamer_context, human_file_size
+from streamonitor.mappers import web_status_lookup
 
 class HTTPManager(Manager):
     def __init__(self, streamers):
@@ -66,7 +68,7 @@ class HTTPManager(Manager):
             for site in Bot.loaded_sites:
                 jsonSites[site.siteslug] = site.site
             jsonStatus = {}
-            for status in Bot.Status:
+            for status in Status:
                 jsonStatus[status.value] = Bot.status_messages[status]
             return json.dumps({
                     "sites": jsonSites,
@@ -107,6 +109,8 @@ class HTTPManager(Manager):
             context = {
                 'streamers': self.streamers,
                 'sites': Bot.loaded_sites,
+                'unique_sites': set(map(lambda x: x.site, self.streamers)),
+                'streamer_statuses': web_status_lookup,
                 'free_space': human_file_size(usage.free),
                 'total_space': human_file_size(usage.total),
                 'percentage_free': round(usage.free / usage.total * 100, 3),
@@ -117,8 +121,12 @@ class HTTPManager(Manager):
         @app.route('/refresh/streamers', methods=['GET'])
         @login_required
         def refresh_streamers():
+            username_filter = request.args.get("filter-username", None)
+            site_filter = request.args.get("filter-site", None)
+            status_filter = request.args.get("filter-status", None)
+            streamers = streamer_list(self.streamers, username_filter, site_filter, status_filter)
             context = {
-                'streamers': self.streamers,
+                'streamers': streamers,
                 'sites': Bot.loaded_sites,
                 'refresh_freq': WEB_LIST_FREQUENCY,
                 'resultStatus': "hide",
@@ -209,6 +217,10 @@ class HTTPManager(Manager):
         def add():
             user = request.form["username"]
             site = request.form["site"]
+            username_filter = request.form.get("filter-username", None)
+            site_filter = request.form.get("filter-site", None)
+            status_filter = request.form.get("filter-status", None)
+            streamers = streamer_list(self.streamers, username_filter, site_filter, status_filter)
             resultStatus = "success"
             status_code = 200
             streamer = self.getStreamer(user, site)
@@ -217,7 +229,7 @@ class HTTPManager(Manager):
                 resultStatus = "error"
                 status_code = 500
             context = {
-                'streamers': self.streamers,
+                'streamers': streamers,
                 'refresh_freq': WEB_LIST_FREQUENCY,
                 'resultStatus': resultStatus,
                 'resultMessage': res,
@@ -300,11 +312,15 @@ class HTTPManager(Manager):
             }
             return render_template('streamer_record.html.jinja', **context), status_code
         
-        @app.route("/start/all", methods=['PATCH'])
+        @app.route("/start/streamers", methods=['PATCH'])
         @login_required
         def start_all_streamers():
             status_code = 500
             resultStatus = "error"
+            username_filter = request.args.get("filter-username", None)
+            site_filter = request.args.get("filter-site", None)
+            status_filter = request.args.get("filter-status", None)
+            streamers = streamer_list(self.streamers, username_filter, site_filter, status_filter)
             try:
                 res = self.do_start(None, '*', None)
                 if(res == "Started all"):
@@ -314,29 +330,46 @@ class HTTPManager(Manager):
                 self.logger.warning(e)
                 res = str(e)
             context = {
-                'streamers': self.streamers,
+                'streamers': streamers,
                 'refresh_freq': WEB_LIST_FREQUENCY,
                 'resultStatus': resultStatus,
                 'resultMessage': res,
             }
             return render_template('streamers_result.html.jinja', **context), status_code
         
-        @app.route("/stop/all", methods=['PATCH'])
+        @app.route("/stop/streamers", methods=['PATCH'])
         @login_required
         def stop_all_streamers():
             status_code = 500
             resultStatus = "error"
+            username_filter = request.args.get("filter-username", None)
+            site_filter = request.args.get("filter-site", None)
+            status_filter = request.args.get("filter-status", None)
+            streamers = streamer_list(self.streamers, username_filter, site_filter, status_filter)
+            res = ""
             try:
-                res = self.do_stop(None, '*', None)
-                if(res == "Stopped all"):
-                    status_code = 200
-                    resultStatus = "success"
+                if(len(streamers) == len(self.streamers)):
+                    res = self.do_stop(None, '*', None)
+                    if(res == "Stopped all"):
+                        status_code = 200
+                        resultStatus = "success"
+                else:
+                    error = []
+                    for streamer in streamers:
+                        partial_res = self.do_stop(streamer, None, None)
+                        if(partial_res != "OK"):
+                            error.append(streamer.username)
+                    if(len(error) > 0):
+                        res = f"Failed to stop: {','.join(error)}"
+                    else:
+                        status_code = 200
+                        resultStatus = "success"
             except Exception as e:
                 self.logger.warning(e)
                 res = str(e)
 
             context = {
-                'streamers': self.streamers,
+                'streamers': streamers,
                 'refresh_freq': WEB_LIST_FREQUENCY,
                 'resultStatus': resultStatus,
                 'resultMessage': res,

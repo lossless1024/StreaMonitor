@@ -9,6 +9,8 @@ import streamonitor.log as log
 from streamonitor.bot import Bot
 from streamonitor.managers.outofspace_detector import OOSDetector
 
+from streamonitor.enums import Status
+
 
 class Manager(Thread):
     def __init__(self, streamers):
@@ -158,9 +160,9 @@ class Manager(Thread):
                     output += '!'
                     status_color = None
                     status = streamer.sc
-                    if status == Bot.Status.PUBLIC: status_color = 'green'
-                    if status == Bot.Status.PRIVATE: status_color = 'magenta'
-                    if status == Bot.Status.ERROR: status_color = 'red'
+                    if status == Status.PUBLIC: status_color = 'green'
+                    if status == Status.PRIVATE: status_color = 'magenta'
+                    if status == Status.ERROR: status_color = 'red'
                     if not streamer.running: status_color = 'grey'
                     output += colored(' ' + streamer.username + ' '*(maxlen-len(streamer.username)) + ' ', status_color)
                     i += 1

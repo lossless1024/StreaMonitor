@@ -1,23 +1,20 @@
-{% set refresh_interval = 'hx-swap="outerHTML" hx-get="/refresh/streamers" hx-trigger="every {interval}s"'.format(interval=refresh_freq) %}
-<div id="streamers" {{ refresh_interval if refresh_freq and refresh_freq > 0}}>
-    <table class="streamers-list">
-        <thead><tr>
-            <th class="header-site left-align">Site</th>
-            <th class="header-streamer-name left-align">Username</th>
-            <th class="header-watching">Watching</th>
-            <th class="header-status">Status</th>
-            <th class="header-remove">Remove</th>
-            {# <th>Size</th> #}
-        </tr></thead>
-        <tbody>
-        {% for streamer in streamers %}
-            {% set streamerHasError = False %}
-            {% set streamerErrorMessage = '' %}
-            {% include 'streamer_record.html.jinja' ignore missing with context %}
-        {% endfor %}
-        </tbody>
-    </table>
-</div>
+<table class="streamers-list">
+    <thead><tr>
+        <th class="header-site left-align">Site</th>
+        <th class="header-streamer-name left-align">Username</th>
+        <th class="header-watching">Watching</th>
+        <th class="header-status">Status</th>
+        <th class="header-remove">Remove</th>
+        {# too slow: <th>Size</th> #}
+    </tr></thead>
+    <tbody>
+    {% for streamer in streamers %}
+        {% set streamerHasError = False %}
+        {% set streamerErrorMessage = '' %}
+        {% include 'streamer_record.html.jinja' ignore missing with context %}
+    {% endfor %}
+    </tbody>
+</table>
 {% if resultStatus != "hide" %}
 <div id="toast-notifications" hx-swap-oob="true">
     <div class="toast {{ resultStatus }}">

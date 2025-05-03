@@ -1,5 +1,6 @@
 import requests
 from streamonitor.bot import Bot
+from streamonitor.enums import Status
 
 
 class CamSoda(Bot):
@@ -25,19 +26,19 @@ class CamSoda(Bot):
 
         r = requests.get('https://www.camsoda.com/api/v1/video/vtoken/' + self.username, headers=headers)
         if r.status_code != 200:
-            return Bot.Status.UNKNOWN
+            return Status.UNKNOWN
 
         self.lastInfo = r.json()
 
         if "message" in self.lastInfo and self.lastInfo["message"] == "No broadcaster found":
-            return Bot.Status.NOTEXIST
+            return Status.NOTEXIST
         elif "edge_servers" in self.lastInfo and len(self.lastInfo["edge_servers"]) > 0:
-            return Bot.Status.PUBLIC
+            return Status.PUBLIC
         elif "private_servers" in self.lastInfo and len(self.lastInfo["private_servers"]) > 0:
-            return Bot.Status.PRIVATE
+            return Status.PRIVATE
         elif "token" in self.lastInfo:
-            return Bot.Status.OFFLINE
-        return Bot.Status.UNKNOWN
+            return Status.OFFLINE
+        return Status.UNKNOWN
 
 
 Bot.loaded_sites.add(CamSoda)

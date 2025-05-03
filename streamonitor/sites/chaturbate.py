@@ -1,5 +1,6 @@
 import requests
 from streamonitor.bot import Bot
+from streamonitor.enums import Status
 
 
 class Chaturbate(Bot):
@@ -27,15 +28,15 @@ class Chaturbate(Bot):
             self.lastInfo = r.json()
 
             if self.lastInfo["room_status"] == "public":
-                status = self.Status.PUBLIC
+                status = Status.PUBLIC
             elif self.lastInfo["room_status"] in ["private", "hidden"]:
-                status = self.Status.PRIVATE
+                status = Status.PRIVATE
             else:
-                status = self.Status.OFFLINE
+                status = Status.OFFLINE
         except:
-            status = self.Status.RATELIMIT
+            status = Status.RATELIMIT
 
-        self.ratelimit = status == self.Status.RATELIMIT
+        self.ratelimit = status == Status.RATELIMIT
         return status
 
 

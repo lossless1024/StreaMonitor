@@ -1,5 +1,6 @@
 import requests
 from streamonitor.bot import Bot
+from streamonitor.enums import Status
 
 
 class StreaMate(Bot):
@@ -39,7 +40,7 @@ class StreaMate(Bot):
 
         if r.status_code == 200:
             self.lastInfo = r.json()
-        return Bot.Status(r.status_code)
+        return Status(r.status_code)
 
 
 Bot.loaded_sites.add(StreaMate)

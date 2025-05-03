@@ -2,7 +2,7 @@
 {% block title %}StreaMonitor - List{% endblock %}
 {% block head %}
     {{ super() }}
-    <meta name="htmx-config" content='{"useTemplateFragments":"true"}'>
+    <meta name="htmx-config" content='{"useTemplateFragments":"true", "methodsThatUseUrlParams": ["get", "delete", "patch"]}'>
     <style type="text/css">
         .important { color: #336699; }
     </style>
@@ -34,7 +34,8 @@
         <form hx-post="/add"
             hx-trigger="submit"
             hx-target="#streamers"
-            hx-swap="outerHTML settle:3s"
+            hx-swap="innerHTML settle:3s"
+            hx-sync="#streamers:replace"
             hx-disabled-elt=".modify-streamers"
             id="add-streamer-form">
             <label class="add-streamer-label username-field">
@@ -55,25 +56,42 @@
             </div>
         </form>
     </div>
-    <div class="all-streamers-actions">
-        <button hx-patch="/stop/all"
-            hx-trigger="click"
-            hx-target="#streamers"
-            hx-swap="outerHTML settle:3s"
-            hx-disabled-elt=".modify-streamers" 
-            class="modify-streamers stop-streamers">Stop All</button>
-        <button hx-patch="/start/all"
-            hx-trigger="click"
-            hx-target="#streamers"
-            hx-swap="outerHTML settle:3s"
-            hx-disabled-elt=".modify-streamers" 
-            class="modify-streamers start-streamers">Start All</button>
+    <div class="streamers-list-actions">
+        <div class="filter-streamers">
+            <input class="hidden-checkbox" hx-on:keyup="if(event.key=='Enter'){this.checked=!this.checked}" id="show-filters" type="checkbox">
+            <label class="fake-btn" for="show-filters">
+                Filters<i class="icon feather icon-chevron-up"></i>
+            </label>
+            <div hx-sync="#streamers:queue last" class="filter-streamers-options">
+            </div>
+        </div>
+        <div class="all-streamers-actions">
+            <button hx-patch="/stop/streamers"
+                hx-target="#streamers"
+                hx-trigger="click"
+                hx-include=".filter-streamers-state:valid"
+                hx-swap="innerHTML settle:3s"
+                hx-sync="#streamers:queue first"
+                hx-disabled-elt=".modify-streamers" 
+                class="modify-streamers stop-streamers">Stop All</button>
+            <button hx-patch="/start/streamers"
+                hx-trigger="click"
+                hx-target="#streamers"
+                hx-include=".filter-streamers-state:valid"
+                hx-swap="innerHTML settle:3s"
+                hx-sync="#streamers:queue first"
+                hx-disabled-elt=".modify-streamers" 
+                class="modify-streamers start-streamers">Start All</button>
+        </div>
     </div>
     <div id="error-container">
     </div>
     {% set resultStatus = 'hide' %}
     {% set resultMessage = '' %}
-    {% include 'streamers_result.html.jinja' ignore missing with context %}
+    {% set refresh_interval = 'hx-swap="innerHTML" hx-get="/refresh/streamers" hx-sync="#streamers:abort" hx-include=".filter-streamers-state:valid" hx-trigger="every {interval}s"'.format(interval=refresh_freq) %}
+    <div id="streamers" {{ refresh_interval if refresh_freq and refresh_freq > 0}}>
+        {% include 'streamers_result.html.jinja' ignore missing with context %}
+    </div>
     <div id="toast-notifications">
     </div>
 {% endblock %}

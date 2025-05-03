@@ -1,14 +1,99 @@
-/* global styling */
-* {
+/* reset styling */
+*,
+::before,
+::after {
     box-sizing: border-box;
 }
 
+* {
+    margin: 0;
+    padding: 0;
+    font: inherit;
+}
+
+img, picture, video, canvas, svg {
+    display: block;
+    max-width: 100%;
+}
+
+input, button, textarea, select {
+    font: inherit;
+}
+
+button,
+input[type='button'],
+input[type='reset'],
+input[type='submit'] {
+    border-radius: 3px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+}
+
+html, body {
+    height: 100%;
+    -moz-text-size-adjust: none;
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+}
+
+/* global styling */
 body {
     width: 100%;
     min-width: 275px;
     margin: 0;
     background-color: #232323;
     font-family: "PT Sans", sans-serif;
+}
+
+:focus-visible {
+    outline: none;
+    box-shadow:
+    0 0 0 2px #3DAEE9,
+    0 0 0 3px white;
+}
+
+input, textarea, select {
+    font-weight: 400;
+}
+
+input,
+select {
+    padding-block: 1px;
+    padding-inline: 0.25rem;
+}
+
+option {
+    padding-block: 0.125rem;
+    padding-inline: 0.25rem;
+}
+
+.fake-btn,
+input, button, textarea, select {
+    font-family: "Noto Sans", sans-serif;
+}
+
+.hidden-checkbox {
+    pointer-events: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    position: absolute;
+    opacity: 0;
+}
+
+.fake-btn {
+    user-select: none;
+}
+
+.hidden-checkbox:focus-visible + .fake-btn {
+    box-shadow:
+    0 0 0 2px #3DAEE9,
+    0 0 0 3px white;
 }
 
 input[type=text] {
@@ -19,20 +104,24 @@ input[type=text] {
     font-size: 1.1rem;
 }
 
+.fake-btn,
 button {
     background-color: #CCCCCC;
     border: none;
     border-radius: 3px;
-    padding-inline: 10px;
-    padding-block: 6px;
+    padding-inline: 0.625rem;
+    padding-block: 0.375rem;
     font-weight: 700;
     cursor: pointer;
+    color: #000000;
+    font-size: 0.875rem;
 
     &:not(:disabled):hover {
         background-color: #BFBFBF;
     }
 
     &:disabled {
+        color: #6D6D6D;
         cursor: wait;
 
         i.icon-refresh-cw {
@@ -131,7 +220,7 @@ a {
         padding: 1rem;
         text-align: center;
         color: #F7F7F7;
-        box-shadow: #7F7F7F 0 0 10px;
+        box-shadow: #7F7F7F 0 0 0.625;
     
         &.error {
             background-color: #801818;
@@ -251,6 +340,7 @@ a {
         color: #BDBDBD;
         text-overflow: ellipsis;
         overflow: hidden;
+        font-weight: 700;
     }
 
     a.home-link {
@@ -271,6 +361,12 @@ a {
 .title-container {
     display: flex;
     justify-content: space-between;
+
+    h1 {
+        margin-block: 1.65rem;
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
 
     .disk-usage {
         font-size: 0.8rem;
@@ -303,7 +399,7 @@ a {
     flex-wrap: wrap;
 
     .add-streamer-label-text {
-        margin-right: 2px;
+        margin-right: 0.125rem;
     }
 
     #site {
@@ -324,7 +420,7 @@ a {
         .add-streamer-label {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 0.125rem;
         }
     }
 
@@ -338,10 +434,10 @@ a {
             gap: 0.25rem;
         }
         .site-field {
-            margin-left: 50px;
+            margin-left: 3.125rem;
         }
         .submit-form-container {
-            margin-left: 30px;
+            margin-left: 1.875rem;
         }
     }
 
@@ -355,7 +451,7 @@ a {
         .add-streamer-label {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 0.125rem;
         }
         .submit-form-container {
             margin-left: 0;
@@ -365,11 +461,62 @@ a {
     }
 }
 
-.all-streamers-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: end;
+.streamers-list-actions {
+    position: relative;
+    top: 0;
+    left: 0;
+
+    @media screen and (max-width: 300px) {
+        .fake-btn:has(i.icon-chevron-up) {
+            padding-right: 0.125rem;
+        }
+    }
+
+    .hidden-checkbox {
+        & + .fake-btn .icon-chevron-up {
+            position: relative;
+            top: 0.125rem;
+            rotate: 0deg;
+            display: inline-block;
+            transition: all 0.5s ease-in-out;
+        }
+
+        &:checked + .fake-btn .icon-chevron-up {
+            top: 0.25rem;
+            rotate: 180deg;
+        }
+
+        & ~ .filter-streamers-options {
+            display: none;
+            height: 0px;
+            overflow: clip;
+            transition-property: height, display;
+            transition-duration: 0.5s;
+            transition-timing-function: ease-in-out;
+            transition-behavior: allow-discrete;
+        }
+
+        &:checked ~ .filter-streamers-options {
+            display: block;
+            height: 100px;
+    
+            @starting-style {
+                height: 0px;
+            }
+        }
+    }
+
+    .all-streamers-actions {
+        position: absolute;
+        top: -1px;
+        right: 0px;
+        display: flex;
+        gap: 1rem;
+        justify-content: end;
+        width: fit-content;
+    }
 }
+
 
 .streamers-list {
     width: 100%;
@@ -418,7 +565,7 @@ a {
     }
 
     .pause-btn {
-        margin-left: 6px;
+        margin-left: 0.375rem;
         
         span {
             margin-left: 0.4rem;

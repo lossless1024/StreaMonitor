@@ -11,9 +11,11 @@ from threading import Thread
 import requests
 import requests.cookies
 
+from streamonitor.enums import Status
 import streamonitor.log as log
 from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, CONTAINER, HTTP_USER_AGENT
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
+from streamonitor.mappers import web_status_lookup, status_icons_lookup
 
 
 class Bot(Thread):
@@ -38,18 +40,6 @@ class Bot(Thread):
         "User-Agent": HTTP_USER_AGENT
     }
 
-    class Status(Enum):
-        UNKNOWN = 1
-        NOTRUNNING = 2
-        ERROR = 3
-        RESTRICTED = 1403
-        PUBLIC = 200
-        NOTEXIST = 400
-        PRIVATE = 403
-        OFFLINE = 404
-        LONG_OFFLINE = 410
-        RATELIMIT = 429
-
     status_messages = {
         Status.UNKNOWN: "Unknown error",
         Status.PUBLIC: "Channel online",
@@ -61,19 +51,6 @@ class Bot(Thread):
         Status.NOTRUNNING: "Not running",
         Status.ERROR: "Error on downloading",
         Status.RESTRICTED: "Model is restricted, maybe geo-block"
-    }
-
-    status_icons = {
-        Status.UNKNOWN: "help-circle",
-        Status.PUBLIC: "eye",
-        Status.OFFLINE: "video-off",
-        Status.LONG_OFFLINE: "video-off",
-        Status.PRIVATE: "eye-off",
-        Status.RATELIMIT: "alert-octagon",
-        Status.NOTEXIST: "minus-circle",
-        Status.NOTRUNNING: "bell-off",
-        Status.ERROR: "alert-triangle",
-        Status.RESTRICTED: "x-octagon"
     }
 
     def __init__(self, username):
@@ -88,7 +65,7 @@ class Bot(Thread):
         self.lastInfo = {}  # This dict will hold information about stream after getStatus is called. One can use this in getVideoUrl
         self.running = False
         self.quitting = False
-        self.sc = self.Status.NOTRUNNING  # Status code
+        self.sc: Status = Status.NOTRUNNING  # Status code
         self.getVideo = getVideoFfmpeg
         self.stopDownload = None
         self.recording = False
@@ -112,7 +89,7 @@ class Bot(Thread):
             self.quitting = True
 
     def getStatus(self):
-        return self.Status.UNKNOWN
+        return Status.UNKNOWN
 
     def log(self, message):
         self.logger.info(message)
@@ -126,17 +103,24 @@ class Bot(Thread):
                 debugfile.write(message + '\n')
 
     def status(self):
-        message = self.status_messages.get(self.sc) or self.status_messages.get(self.Status.UNKNOWN)
-        if self.sc == self.Status.NOTEXIST:
+        message = self.status_messages.get(self.sc) or self.status_messages.get(Status.UNKNOWN)
+        if self.sc == Status.NOTEXIST:
             self.running = False
         return message
     
+    @property
+    def web_status(self):
+        if(self.sc):
+            return web_status_lookup.get(self.sc, web_status_lookup[Status.OFFLINE])
+        else:
+            return web_status_lookup.get(Status.UNKNOWN)
+
     @property
     def status_icon(self):
         if(self.recording):
             message = 'arrow-down-circle'
         else:
-            message = self.status_icons.get(self.sc) or self.status_icons.get(self.Status.UNKNOWN)
+            message = status_icons_lookup.get(self.sc) or status_icons_lookup.get(Status.UNKNOWN)
         return message
 
     def _sleep(self, time):
@@ -162,18 +146,18 @@ class Bot(Thread):
                     if self.sc != self.previous_status:
                         self.log(self.status())
                         self.previous_status = self.sc
-                    if self.sc == self.Status.ERROR:
+                    if self.sc == Status.ERROR:
                         self._sleep(self.sleep_on_error)
-                    if self.sc == self.Status.OFFLINE:
+                    if self.sc == Status.OFFLINE:
                         offline_time += self.sleep_on_offline
                         if offline_time > self.long_offline_timeout:
-                            self.sc = self.Status.LONG_OFFLINE
-                    elif self.sc == self.Status.PUBLIC or self.sc == self.Status.PRIVATE:
+                            self.sc = Status.LONG_OFFLINE
+                    elif self.sc == Status.PUBLIC or self.sc == Status.PRIVATE:
                         offline_time = 0
-                        if self.sc == self.Status.PUBLIC:
+                        if self.sc == Status.PUBLIC:
                             if self.cookie_update_interval > 0 and self.cookieUpdater is not None:
                                 def update_cookie():
-                                    while self.sc == self.Status.PUBLIC and not self.quitting and self.running:
+                                    while self.sc == Status.PUBLIC and not self.quitting and self.running:
                                         self._sleep(self.cookie_update_interval)
                                         ret = self.cookieUpdater()
                                         if ret:
@@ -185,7 +169,7 @@ class Bot(Thread):
 
                             video_url = self.getVideoUrl()
                             if video_url is None:
-                                self.sc = self.Status.ERROR
+                                self.sc = Status.ERROR
                                 self.logger.error(self.status())
                                 self._sleep(self.sleep_on_error)
                                 continue
@@ -194,7 +178,7 @@ class Bot(Thread):
                             file = self.genOutFilename()
                             ret = self.getVideo(self, video_url, file)
                             if not ret:
-                                self.sc = self.Status.ERROR
+                                self.sc = Status.ERROR
                                 self.log(self.status())
                                 self._sleep(self.sleep_on_error)
                                 continue
@@ -212,12 +196,12 @@ class Bot(Thread):
                     self._sleep(self.sleep_on_ratelimit)
                 elif offline_time > self.long_offline_timeout:
                     self._sleep(self.sleep_on_long_offline)
-                elif self.sc == self.Status.PRIVATE:
+                elif self.sc == Status.PRIVATE:
                     self._sleep(self.sleep_on_private)
                 else:
                     self._sleep(self.sleep_on_offline)
 
-            self.sc = self.Status.NOTRUNNING
+            self.sc = Status.NOTRUNNING
             self.log("Stopped")
 
     def getPlaylistVariants(self, url):

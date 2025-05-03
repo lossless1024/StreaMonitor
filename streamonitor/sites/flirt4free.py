@@ -2,6 +2,7 @@ import json
 
 import requests
 from streamonitor.bot import Bot
+from streamonitor.enums import Status
 
 
 # Site of Hungarian group AdultPerformerNetwork
@@ -27,7 +28,7 @@ class Flirt4Free(Bot):
         start = b'window.__homePageData__ = '
 
         if r.content.find(start) == -1:
-            return Bot.Status.OFFLINE
+            return Status.OFFLINE
 
         j = r.content[r.content.find(start) + len(start):]
         j = j[j.find(b'['):j.find(b'],\n') + 1]
@@ -56,19 +57,19 @@ class Flirt4Free(Bot):
         r = requests.get(f'https://www.flirt4free.com/ws/chat/get-stream-urls.php?model_id={self.room_id}').json()
         self.lastInfo = r
         if r['code'] == 44:
-            return Bot.Status.NOTEXIST
+            return Status.NOTEXIST
         if r['code'] == 0:
             s = requests.get(f'https://www.flirt4free.com/ws/rooms/chat-room-interface.php?a=login_room&model_id={self.room_id}').json()
             if 'config' not in s:
-                return Bot.Status.UNKNOWN
+                return Status.UNKNOWN
             if s['config']['room']['status'] == 'O':
-                return Bot.Status.PUBLIC
+                return Status.PUBLIC
             if s['config']['room']['status'] == 'P':
-                return Bot.Status.PRIVATE
+                return Status.PRIVATE
             if s['config']['room']['status'] == 'F':
-                return Bot.Status.OFFLINE
+                return Status.OFFLINE
 
-        return Bot.Status.UNKNOWN
+        return Status.UNKNOWN
 
 
 Bot.loaded_sites.add(Flirt4Free)

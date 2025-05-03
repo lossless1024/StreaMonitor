@@ -12,6 +12,7 @@
             hx-patch="/toggle/{{ streamer.username }}/{{ streamer.site }}"
             hx-trigger="click"
             hx-target="closest .streamer"
+            hx-sync="closest .streamer:replace"
             hx-swap="outerHTML"
             hx-disabled-elt="this">
             {% if streamer.running %}
@@ -24,10 +25,11 @@
         </button>
     </td>
     <td class="streamer-status">
-        <span class="streamer-status-text">{{ streamer.status() }}</span>
+        <span class="streamer-status-text">{{ streamer.web_status }}</span>
         <button hx-get="/streamer-info/{{ streamer.username }}/{{ streamer.site }}"
             hx-trigger="click"
             hx-target="closest .streamer"
+            hx-sync="closest .streamer:replace"
             hx-swap="outerHTML"
             hx-disabled-elt="this">
             <i class="icon feather icon-refresh-cw"></i>
@@ -37,13 +39,14 @@
         <button hx-delete="/remove/{{ streamer.username }}/{{ streamer.site }}"
             hx-trigger="click"
             hx-target="closest .streamer"
+            hx-sync="closest .streamer:replace"
             hx-swap="outerHTML"
             hx-disabled-elt="this"
             class="modify-streamers delete-streamer">
             <i class="icon feather icon-trash-2"></i>
         </button>
     </td>
-    {# <td class="streamer-disk-usage">
+    {# too slow: <td class="streamer-disk-usage">
         {{ streamer.disk_usage | tohumanfilesize }}
     </td> #}
 </tr>

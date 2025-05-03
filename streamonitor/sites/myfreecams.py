@@ -2,6 +2,7 @@ import urllib.parse
 import requests
 from bs4 import BeautifulSoup
 from streamonitor.bot import Bot
+from streamonitor.enums import Status
 
 
 class MyFreeCams(Bot):
@@ -36,16 +37,16 @@ class MyFreeCams(Bot):
     def getStatus(self):
         r = requests.get(f'https://share.myfreecams.com/{self.username}')
         if r.status_code == 404:
-            return Bot.Status.NOTEXIST
+            return Status.NOTEXIST
         if r.status_code != 200:
-            return Bot.Status.UNKNOWN
+            return Status.UNKNOWN
         doc = r.content
         startpos = doc.find(b'https://www.myfreecams.com/php/tracking.php?')
         endpos = doc.find(b'"', startpos)
         url = urllib.parse.urlparse(doc[startpos:endpos])
         qs = urllib.parse.parse_qs(url.query)
         if b'model_id' not in qs:
-            return Bot.Status.NOTEXIST
+            return Status.NOTEXIST
 
         doc = BeautifulSoup(doc, 'html.parser')
         params = doc.find(class_='campreview')
@@ -53,11 +54,11 @@ class MyFreeCams(Bot):
             self.attrs = params.attrs
             self.videoUrl = self.getVideoUrl(refresh=True)
             if self.videoUrl:
-                return Bot.Status.PUBLIC
+                return Status.PUBLIC
             else:
-                return Bot.Status.PRIVATE
+                return Status.PRIVATE
         else:
-            return Bot.Status.OFFLINE
+            return Status.OFFLINE
 
 
 Bot.loaded_sites.add(MyFreeCams)

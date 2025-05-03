@@ -4,7 +4,7 @@
     <div class="streamer-info">
         <h1>{{ streamer.username }}</h1>
         {% set icon = streamer.status_icon %}
-        <a href="{{ streamer.url }}" target="_blank"><div title="{{ streamer.status() }}" class="status-indicator {{icon}}"><i class="icon feather icon-{{icon}}"></i></div></a>
+        <a href="{{ streamer.url }}" target="_blank"><div title="{{ streamer.web_status }}" class="status-indicator {{icon}}"><i class="icon feather icon-{{icon}}"></i></div></a>
     </div>
     <span class="nav-spacer"></span>
 </nav>

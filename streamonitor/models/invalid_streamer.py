@@ -1,4 +1,6 @@
 from streamonitor.bot import Bot
+from streamonitor.enums import Status
+from streamonitor.mappers import status_icons_lookup
 
 
 class InvalidStreamer:
@@ -9,7 +11,7 @@ class InvalidStreamer:
     def __init__(self, username, site):
         self.username = username
         self.site = site
-        self.status_icon = Bot.status_icons.get(Bot.Status.NOTEXIST)
+        self.status_icon = status_icons_lookup.get(Status.NOTEXIST)
     
     def status(self):
-        return Bot.status_messages.get(Bot.Status.NOTEXIST)
+        return status_icons_lookup.get(Status.NOTEXIST)

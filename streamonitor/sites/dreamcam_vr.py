@@ -1,6 +1,7 @@
 import requests
 from streamonitor.bot import Bot
 from streamonitor.downloaders.fmp4s_wss import getVideoWSSVR
+from streamonitor.enums import Status
 
 
 class DreamCamVR(Bot):
@@ -18,18 +19,18 @@ class DreamCamVR(Bot):
     def getStatus(self):
         r = requests.get('https://bss.dreamcamtrue.com/api/clients/v1/broadcasts/models/' + self.username, headers=self.headers)
         if r.status_code != 200:
-            return Bot.Status.UNKNOWN
+            return Status.UNKNOWN
 
         self.lastInfo = r.json()
 
         if self.lastInfo["broadcastStatus"] in ["public"]:
-            return Bot.Status.PUBLIC
+            return Status.PUBLIC
         if self.lastInfo["broadcastStatus"] in ["private"]:
-            return Bot.Status.PRIVATE
+            return Status.PRIVATE
         if self.lastInfo["broadcastStatus"] in ["away", "offline"]:
-            return Bot.Status.OFFLINE
+            return Status.OFFLINE
         self.logger.warn(f'Got unknown status: {self.lastInfo["broadcastStatus"]}')
-        return Bot.Status.UNKNOWN
+        return Status.UNKNOWN
 
 
 Bot.loaded_sites.add(DreamCamVR)
