@@ -34,3 +34,8 @@
     </div>
 </div>
 {% endif %}
+{% if update_filter_site_options %}
+    <select hx-swap-oob="innerHTML:#filter-site">
+        {% include 'filter_site_options.html.jinja' ignore missing with context %}
+    </select>
+{% endif %}

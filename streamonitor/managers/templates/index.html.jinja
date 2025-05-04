@@ -22,6 +22,7 @@
         <form hx-post="/add"
             hx-trigger="submit"
             hx-target="#streamers"
+            hx-include=".filter-streamers-state:valid"
             hx-swap="innerHTML settle:3s"
             hx-sync="#streamers:replace"
             hx-disabled-elt=".modify-streamers"
@@ -59,11 +60,9 @@
                         </label>
                         <label for="filter-site" class="filter-label filter-flex-group">
                             <span class="filter-label-text">Site:</span>
+                            {% set site_filter = '' %}
                             <select name="filter-site" required class="filter-streamers-state drop-down" id="filter-site" hx-get="/refresh/streamers" hx-trigger="change changed delay:250ms">
-                                <option value="" selected="selected"></option>
-                                {% for site in unique_sites %}
-                                    <option value="{{ site }}">{{ site }}</option>
-                                {% endfor %}
+                                {% include 'filter_site_options.html.jinja' ignore missing with context %}
                             </select>
                         </label>
                         <span class="filter-flex-group multi-item-container">

@@ -220,6 +220,7 @@ class HTTPManager(Manager):
             username_filter = request.form.get("filter-username", None)
             site_filter = request.form.get("filter-site", None)
             status_filter = request.form.get("filter-status", None)
+            update_site_options = site not in map(lambda x: x.site, self.streamers)
             streamers = streamer_list(self.streamers, username_filter, site_filter, status_filter)
             toast_status = "success"
             status_code = 200
@@ -230,6 +231,9 @@ class HTTPManager(Manager):
                 status_code = 500
             context = {
                 'streamers': streamers,
+                'unique_sites': set(map(lambda x: x.site, self.streamers)),
+                'update_filter_site_options': update_site_options,
+                'site_filter': site_filter,
                 'refresh_freq': WEB_LIST_FREQUENCY,
                 'toast_status': toast_status,
                 'toast_message': res,
