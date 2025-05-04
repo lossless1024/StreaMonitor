@@ -196,7 +196,7 @@ class HTTPManager(Manager):
                 try:
                     os.remove(match.abs_path)
                     context['total_size'] = context['total_size'] - match.filesize
-                    if(context['video_to_play'] is not None and play_video == context['video_to_play'].filename):
+                    if(context['video_to_play'] is not None and filename == context['video_to_play'].filename):
                         context['video_to_play'] = None
                 except Exception as e:
                     status_code = 500
@@ -236,10 +236,17 @@ class HTTPManager(Manager):
             }
             return render_template('streamers_result.html.jinja', **context), status_code
         
-        @app.route("/recording/nav/<user>/<site>")
+        @app.route("/recording/nav/<user>/<site>", methods=['GET'])
         @login_required
         def get_streamer_navbar(user, site):
             streamer = self.getStreamer(user, site)
+            sort_by_size = bool(request.args.get("sorted", False))
+            play_video = request.args.get("play_video", None)
+            previous_state = request.args.get("prev_state", False)
+            streamer_context = {}
+            #need this from the UI perspective to know whether to update due to polling windows
+            if(previous_state != streamer.status_icon):
+                streamer_context = get_streamer_context(streamer, sort_by_size, play_video)
             status_code = 200
             has_error = False
             if(streamer is None):
@@ -247,13 +254,15 @@ class HTTPManager(Manager):
                 streamer = InvalidStreamer(user, site)
                 has_error = True
             context = {
+                **streamer_context,
+                'update_content': False if len(streamer_context) == 0 else True,
                 'streamer': streamer,
                 'has_error': has_error,
                 'refresh_freq': WEB_STATUS_FREQUENCY,
             }
             return render_template('streamer_nav_bar.html.jinja', **context), status_code
         
-        @app.route("/streamer-info/<user>/<site>")
+        @app.route("/streamer-info/<user>/<site>", methods=['GET'])
         @login_required
         def get_streamer_info(user, site):
             streamer = self.getStreamer(user, site)

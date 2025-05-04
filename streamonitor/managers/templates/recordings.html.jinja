@@ -5,6 +5,7 @@
 {% endblock %}
 {% block nav %}
     {% set has_error = False %}
+    {% set update_content = False %}
     {% include 'streamer_nav_bar.html.jinja' ignore missing with context %}
 {% endblock %}
 {% block content %}
