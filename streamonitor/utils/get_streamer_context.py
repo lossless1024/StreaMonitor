@@ -6,6 +6,7 @@ from typing import Dict, TYPE_CHECKING
 from parameters import WEB_STATUS_FREQUENCY, WEB_THEATER_MODE
 import streamonitor.log as log
 from .short_name import short_name
+from .confirm_deletes import confirm_deletes
 
 if(TYPE_CHECKING):
     from streamonitor.bot import Bot
@@ -15,7 +16,7 @@ if(TYPE_CHECKING):
 _logger = log.Logger("utils")
     
 
-def get_streamer_context(streamer: Bot, sort_by_size: bool, play_video: str) -> StreamerContext:
+def get_streamer_context(streamer: Bot, sort_by_size: bool, play_video: str, user_agent: str) -> StreamerContext:
     from streamonitor.models.video_data import VideoData
     #videos = []
     videos: Dict[str, VideoData] = {}
@@ -54,5 +55,6 @@ def get_streamer_context(streamer: Bot, sort_by_size: bool, play_video: str) -> 
         'has_error': has_error,
         'recordings_error_message': recordings_error_message,
         'theater_mode': WEB_THEATER_MODE,
+        'confirm_deletes': confirm_deletes(user_agent),
     }
     return context

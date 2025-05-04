@@ -434,6 +434,10 @@ a {
         margin-right: 0.125rem;
     }
 
+    .input-username {
+        width: 14.2rem;
+    }
+
     @media screen and (max-width: 650px) {
         & {
             align-items: end;
@@ -465,8 +469,11 @@ a {
         }
     }
 
-    @media screen and (max-width: 352px) {
+    @media screen and (max-width: 370px) {
         .username-field {
+            width: 100%;
+        }
+        .input-username {
             width: 100%;
         }
         .site-field {
@@ -853,6 +860,10 @@ a {
             display: flex;
             align-items: center;
             gap: 0.25rem;
+
+            &.pause-btn {
+                margin-left: 0.5rem;
+            }
         }
 
         i.feather {

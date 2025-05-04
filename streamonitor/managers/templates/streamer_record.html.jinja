@@ -41,6 +41,7 @@
             hx-target="closest .streamer"
             hx-sync="closest .streamer:replace"
             hx-swap="outerHTML"
+            {{ 'hx-confirm="Are you sure you want to remove {streamer}?"'.format(streamer=streamer.username) if confirm_deletes }}
             hx-disabled-elt="this"
             class="modify-streamers delete-streamer">
             <i class="icon feather icon-trash-2"></i>

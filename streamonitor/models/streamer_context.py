@@ -18,3 +18,4 @@ class StreamerContext(TypedDict):
     has_error: bool
     recordings_error_message: str | None
     theater_mode: bool
+    confirm_deletes: bool

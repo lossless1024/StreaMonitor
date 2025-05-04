@@ -18,7 +18,7 @@ from streamonitor.models import InvalidStreamer
 from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD, WEB_LIST_FREQUENCY, WEB_STATUS_FREQUENCY
 from secrets import compare_digest
 
-from streamonitor.utils import streamer_list, get_recording_query_params, get_streamer_context, human_file_size
+from streamonitor.utils import confirm_deletes, streamer_list, get_recording_query_params, get_streamer_context, human_file_size
 from streamonitor.mappers import web_status_lookup
 
 class HTTPManager(Manager):
@@ -115,6 +115,7 @@ class HTTPManager(Manager):
                 'total_space': human_file_size(usage.total),
                 'percentage_free': round(usage.free / usage.total * 100, 3),
                 'refresh_freq': WEB_LIST_FREQUENCY,
+                'confirm_deletes': confirm_deletes(request.headers.get('User-Agent')),
             }
             return render_template('index.html.jinja', **context)
 
@@ -131,6 +132,7 @@ class HTTPManager(Manager):
                 'refresh_freq': WEB_LIST_FREQUENCY,
                 'toast_status': "hide",
                 'toast_message': "",
+                'confirm_deletes': confirm_deletes(request.headers.get('User-Agent')),
             }
             return render_template('streamers_result.html.jinja', **context)
 
@@ -140,7 +142,7 @@ class HTTPManager(Manager):
             video = request.args.get("play_video")
             sort_by_size = bool(request.args.get("sorted", False))
             streamer = cast(Bot | None, self.getStreamer(user, site))
-            context = get_streamer_context(streamer, sort_by_size, video)
+            context = get_streamer_context(streamer, sort_by_size, video, request.headers.get('User-Agent'))
             status_code = 500 if context['has_error'] else 200
             if (video is None and streamer.recording and len(context['videos']) > 1):
                 # It might not always be safe to grab the biggest file if sorting by size, but good enough for now
@@ -163,7 +165,7 @@ class HTTPManager(Manager):
         def watch_video(user, site, play_video):
             sort_by_size = bool(request.args.get("sorted", False))
             streamer = cast(Bot | None, self.getStreamer(user, site))
-            context = get_streamer_context(streamer, sort_by_size, play_video)
+            context = get_streamer_context(streamer, sort_by_size, play_video, request.headers.get('User-Agent'))
             status_code = 500 if context['video_to_play'] is None or context['has_error'] else 200
             response = make_response(render_template('recordings_content.html.jinja', **context), status_code)
             query_param = get_recording_query_params(sort_by_size, play_video)
@@ -176,7 +178,7 @@ class HTTPManager(Manager):
             streamer = cast(Bot | None, self.getStreamer(user, site))
             sort_by_size = bool(request.args.get("sorted", False))
             play_video = request.args.get("play_video", None)
-            context = get_streamer_context(streamer, sort_by_size, play_video)
+            context = get_streamer_context(streamer, sort_by_size, play_video, request.headers.get('User-Agent'))
             status_code = 500 if context['has_error'] else 200
             response = make_response(render_template('video_list.html.jinja', **context), status_code)
             query_param = get_recording_query_params(sort_by_size, play_video)
@@ -189,7 +191,7 @@ class HTTPManager(Manager):
             streamer = cast(Bot | None, self.getStreamer(user, site))
             sort_by_size = bool(request.args.get("sorted", False))
             play_video = request.args.get("play_video", None)
-            context = get_streamer_context(streamer, sort_by_size, play_video)
+            context = get_streamer_context(streamer, sort_by_size, play_video, request.headers.get('User-Agent'))
             status_code = 200
             match = context['videos'].pop(filename, None)
             if(match is not None):
@@ -237,6 +239,7 @@ class HTTPManager(Manager):
                 'refresh_freq': WEB_LIST_FREQUENCY,
                 'toast_status': toast_status,
                 'toast_message': res,
+                'confirm_deletes': confirm_deletes(request.headers.get('User-Agent')),
             }
             return render_template('streamers_result.html.jinja', **context), status_code
         
@@ -250,7 +253,7 @@ class HTTPManager(Manager):
             streamer_context = {}
             #need this from the UI perspective to know whether to update due to polling windows
             if(previous_state != streamer.status_icon):
-                streamer_context = get_streamer_context(streamer, sort_by_size, play_video)
+                streamer_context = get_streamer_context(streamer, sort_by_size, play_video, request.headers.get('User-Agent'))
             status_code = 200
             has_error = False
             if(streamer is None):
@@ -281,6 +284,7 @@ class HTTPManager(Manager):
                 'streamer': streamer,
                 'streamer_has_error': has_error,
                 'streamer_error_message': res,
+                'confirm_deletes': confirm_deletes(request.headers.get('User-Agent')),
             }
             return render_template('streamer_record.html.jinja', **context), status_code
         
@@ -324,6 +328,7 @@ class HTTPManager(Manager):
                 'streamer': streamer,
                 'streamer_has_error': has_error,
                 'streamer_error_message': res,
+                'confirm_deletes': confirm_deletes(request.headers.get('User-Agent')),
             }
             return render_template('streamer_record.html.jinja', **context), status_code
         
@@ -391,6 +396,7 @@ class HTTPManager(Manager):
                 'toast_status': toast_status,
                 'toast_message': res,
                 'error_message': error_message,
+                'confirm_deletes': confirm_deletes(request.headers.get('User-Agent')),
             }
             return render_template('streamers_result.html.jinja', **context), status_code
         
@@ -436,6 +442,7 @@ class HTTPManager(Manager):
                 'toast_status': toast_status,
                 'toast_message': res,
                 'error_message': error_message,
+                'confirm_deletes': confirm_deletes(request.headers.get('User-Agent')),
             }
             return render_template('streamers_result.html.jinja', **context), status_code
 

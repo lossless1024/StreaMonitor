@@ -48,6 +48,7 @@
                 hx-swap="innerHTML"
                 hx-disabled-elt="this"
                 {{ "disabled" if disable_delete }}
+                {{ 'hx-confirm="Are you sure you want to delete {filename}?"'.format(filename=video.filename) if confirm_deletes }}
                 title="{{ 'you cannot remove a video currently loaded' if disable_delete else 'remove video' }}"
                 class="remove-video {{ 'currently-playing' if disable_delete }}">
                 <i class="icon feather icon-trash-2"></i>

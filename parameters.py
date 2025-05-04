@@ -52,6 +52,12 @@ WEB_STATUS_FREQUENCY = int(_str_status_frequency) if _str_status_frequency and _
 # set theater_mode
 WEB_THEATER_MODE = bool(os.getenv("STRMNTR_THEATER_MODE", False))
 
+# confirm deletes, default to mobile-only.
+# set to empty string to disable
+# set to "MOBILE" to explicitly confirm deletes only on mobile
+# set to any other non-falsy value to always check
+WEB_CONFIRM_DELETES = os.getenv("STRMNTR_CONFIRM_DEL", "MOBILE")
+
 # Password for the web server
 # If empty no auth required, else username admin and choosen password
 WEBSERVER_PASSWORD = os.getenv("STRMNTR_PASSWORD", "admin")
