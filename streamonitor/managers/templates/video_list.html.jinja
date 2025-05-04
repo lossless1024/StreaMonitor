@@ -1,6 +1,9 @@
 <div id="video-list">
     {% if videos is none or videos|length == 0 %}
         <p class="full-width center">No recordings</p>
+        <div class="full-width center streamer-toggle">
+            {% include 'streamer_toggle.html.jinja' ignore missing with context %}
+        </div>
     {% else %}
         <div class="files-container-header">
             <h3 class="title">Files</h3>
@@ -19,7 +22,10 @@
                     {% endif %}
                 </button>
         </div>
-        <div class="files-container total-size">
+        <div class="files-container streamer-info">
+            <div class="streamer-toggle">
+                {% include 'streamer_toggle.html.jinja' ignore missing with context %}
+            </div>
             <span>Total Space: {{ total_size | tohumanfilesize }}</span>
         </div>
         <div class="files-container video-list">

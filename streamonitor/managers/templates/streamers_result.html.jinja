@@ -10,8 +10,8 @@
     </tr></thead>
     <tbody>
     {% for streamer in streamers %}
-        {% set streamerHasError = False %}
-        {% set streamerErrorMessage = '' %}
+        {% set streamer_has_error = False %}
+        {% set streamer_error_message = '' %}
         {% include 'streamer_record.html.jinja' ignore missing with context %}
     {% endfor %}
     </tbody>
@@ -19,10 +19,18 @@
 {% else %}
     <p class="full-width center">No Streamers Found</p>
 {% endif %}
-{% if resultStatus != "hide" %}
+{% if toast_status != "hide" %}
 <div id="toast-notifications" hx-swap-oob="true">
-    <div class="toast {{ resultStatus }}">
-        {{ resultMessage }}
+    <div class="toast {{ toast_status }}">
+        {{ toast_message }}
+    </div>
+</div>
+{% endif %}
+{% if toast_status == "warning" and error_message %}
+<div id="error-container" hx-swap-oob="true">
+    <div class="error-modal">
+        <span>{{ error_message }}</span>
+        <button hx-delete="/clear" hx-swap="outerHTML" hx-target="closest .error-modal" hx-trigger="click">dismiss</button>
     </div>
 </div>
 {% endif %}

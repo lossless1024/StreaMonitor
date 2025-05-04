@@ -51,10 +51,10 @@
     </td> #}
 </tr>
 {% endif %}
-{% if streamerHasError %}
+{% if streamer_has_error %}
 <div id="error-container" hx-swap-oob="true">
     <div class="error-modal">
-        <span>{{ streamerErrorMessage }}</span>
+        <span>{{ streamer_error_message }}</span>
         <button hx-delete="/clear" hx-swap="outerHTML" hx-target="closest .error-modal" hx-trigger="click">dismiss</button>
     </div>
 </div>

@@ -1,0 +1,22 @@
+<button id="toggle-streamer" class="toggle-streamer-btn {{'pause-btn' if streamer.running else 'record-btn' }}" 
+    hx-patch="/toggle/{{ streamer.username }}/{{ streamer.site }}/recording"
+    hx-trigger="click"
+    hx-target="#toggle-streamer"
+    hx-swap="outerHTML"
+    hx-disabled-elt="this">
+    {% if streamer.running %}
+        <span>Pause</span>
+        <i class="icon feather icon-pause-circle"></i>
+    {% else %}
+        <span>Resume</span>
+        <i class="icon feather icon-play-circle"></i>
+    {% endif %}
+</button>
+{% if streamer_has_error %}
+<div hx-swap-oob="beforeend:#content">
+    <div class="error-modal">
+        <span>{{ streamer_error_message }}</span>
+        <button hx-delete="/clear" hx-swap="outerHTML" hx-target="closest .error-modal" hx-trigger="click">dismiss</button>
+    </div>
+</div>
+{% endif %}

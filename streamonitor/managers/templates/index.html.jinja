@@ -103,8 +103,8 @@
     </div>
     <div id="error-container">
     </div>
-    {% set resultStatus = 'hide' %}
-    {% set resultMessage = '' %}
+    {% set toast_status = 'hide' %}
+    {% set toast_message = '' %}
     {% set refresh_interval = 'hx-swap="innerHTML" hx-get="/refresh/streamers" hx-sync="#streamers:abort" hx-include=".filter-streamers-state:valid" hx-trigger="every {interval}s"'.format(interval=refresh_freq) %}
     <div id="streamers" {{ refresh_interval if refresh_freq and refresh_freq > 0}}>
         {% include 'streamers_result.html.jinja' ignore missing with context %}

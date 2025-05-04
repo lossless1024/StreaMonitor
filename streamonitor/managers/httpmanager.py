@@ -129,8 +129,8 @@ class HTTPManager(Manager):
                 'streamers': streamers,
                 'sites': Bot.loaded_sites,
                 'refresh_freq': WEB_LIST_FREQUENCY,
-                'resultStatus': "hide",
-                'resultMessage': "",
+                'toast_status': "hide",
+                'toast_message': "",
             }
             return render_template('streamers_result.html.jinja', **context)
 
@@ -221,18 +221,18 @@ class HTTPManager(Manager):
             site_filter = request.form.get("filter-site", None)
             status_filter = request.form.get("filter-status", None)
             streamers = streamer_list(self.streamers, username_filter, site_filter, status_filter)
-            resultStatus = "success"
+            toast_status = "success"
             status_code = 200
             streamer = self.getStreamer(user, site)
             res = self.do_add(streamer, user, site)
             if(res == 'Streamer already exists' or res == "Missing value(s)" or res == "Failed to add"):
-                resultStatus = "error"
+                toast_status = "error"
                 status_code = 500
             context = {
                 'streamers': streamers,
                 'refresh_freq': WEB_LIST_FREQUENCY,
-                'resultStatus': resultStatus,
-                'resultMessage': res,
+                'toast_status': toast_status,
+                'toast_message': res,
             }
             return render_template('streamers_result.html.jinja', **context), status_code
         
@@ -240,7 +240,6 @@ class HTTPManager(Manager):
         @login_required
         def get_streamer_navbar(user, site):
             streamer = self.getStreamer(user, site)
-            res = None
             status_code = 200
             has_error = False
             if(streamer is None):
@@ -267,8 +266,8 @@ class HTTPManager(Manager):
                 has_error = True
             context = {
                 'streamer': streamer,
-                'streamerHasError': has_error,
-                'streamerErrorMessage': res,
+                'streamer_has_error': has_error,
+                'streamer_error_message': res,
             }
             return render_template('streamer_record.html.jinja', **context), status_code
         
@@ -278,13 +277,10 @@ class HTTPManager(Manager):
             streamer = self.getStreamer(user, site)
             res = self.do_remove(streamer, user, site)
             status_code = 204
-            removeStreamerHasError = False
             if(res == "Failed to remove streamer" or res == "Streamer not found"):
                 status_code = 404
-                removeStreamerHasError = True
                 context = {
-                    'removeStreamerHasError': removeStreamerHasError,
-                    'removeStreamerResultMessage': res,
+                    'streamer_error_message': res,
                 }
                 response = make_response(render_template('streamer_record_error.html.jinja', **context),status_code)
                 response.headers['HX-Retarget'] = "#error-container"
@@ -313,27 +309,51 @@ class HTTPManager(Manager):
                 status_code = 200
             context = {
                 'streamer': streamer,
-                'streamerHasError': has_error,
-                'streamerErrorMessage': res,
+                'streamer_has_error': has_error,
+                'streamer_error_message': res,
             }
             return render_template('streamer_record.html.jinja', **context), status_code
         
+        @app.route("/toggle/<user>/<site>/recording", methods=['PATCH'])
+        @login_required
+        def toggle_streamer_recording_page(user, site):
+            streamer = self.getStreamer(user, site)
+            status_code = 500
+            res = "Streamer not found"
+            has_error = True
+            if(streamer is None):
+                status_code = 500
+            elif(streamer.running):
+                res = self.do_stop(streamer, user, site)
+            else:
+                res = self.do_start(streamer, user, site)
+            if(res == "OK"):
+                has_error = False
+                status_code = 200
+            context = {
+                'streamer': streamer,
+                'streamer_has_error': has_error,
+                'streamer_error_message': res,
+            }
+            return render_template('streamer_toggle.html.jinja', **context), status_code
+        
         @app.route("/start/streamers", methods=['PATCH'])
         @login_required
-        def start_all_streamers():
+        def start_streamers():
             status_code = 500
-            resultStatus = "error"
+            toast_status = "error"
             username_filter = request.args.get("filter-username", None)
             site_filter = request.args.get("filter-site", None)
             status_filter = request.args.get("filter-status", None)
             streamers = streamer_list(self.streamers, username_filter, site_filter, status_filter)
             res = ""
+            error_message = ""
             try:
                 if(len(streamers) == len(self.streamers)):
                     res = self.do_start(None, '*', None)
                     if(res == "Started all"):
                         status_code = 200
-                        resultStatus = "success"
+                        toast_status = "success"
                 else:
                     error = []
                     for streamer in streamers:
@@ -341,39 +361,43 @@ class HTTPManager(Manager):
                         if(partial_res != "OK"):
                             error.append(streamer.username)
                     else:
-                        error.append('no matching streamers')
+                        res = 'no matching streamers'
                     if(len(error) > 0):
-                        res = f"Failed to start: {','.join(error)}"
+                        toast_status = "warning"
+                        res = "Some Failed to Start"
+                        error_message = f"The following streamers failed to start:\n {'\n'.join(error)}"
                     else:
                         status_code = 200
-                        resultStatus = "success"
+                        toast_status = "success"
             except Exception as e:
                 self.logger.warning(e)
                 res = str(e)
             context = {
                 'streamers': streamers,
                 'refresh_freq': WEB_LIST_FREQUENCY,
-                'resultStatus': resultStatus,
-                'resultMessage': res,
+                'toast_status': toast_status,
+                'toast_message': res,
+                'error_message': error_message,
             }
             return render_template('streamers_result.html.jinja', **context), status_code
         
         @app.route("/stop/streamers", methods=['PATCH'])
         @login_required
-        def stop_all_streamers():
+        def stop_streamers():
             status_code = 500
-            resultStatus = "error"
+            toast_status = "error"
             username_filter = request.args.get("filter-username", None)
             site_filter = request.args.get("filter-site", None)
             status_filter = request.args.get("filter-status", None)
             streamers = streamer_list(self.streamers, username_filter, site_filter, status_filter)
             res = ""
+            error_message = ""
             try:
                 if(len(streamers) == len(self.streamers)):
                     res = self.do_stop(None, '*', None)
                     if(res == "Stopped all"):
                         status_code = 200
-                        resultStatus = "success"
+                        toast_status = "success"
                 else:
                     error = []
                     for streamer in streamers:
@@ -381,12 +405,14 @@ class HTTPManager(Manager):
                         if(partial_res != "OK"):
                             error.append(streamer.username)
                     else:
-                        error.append('no matching streamers')
+                        res = 'no matching streamers'
                     if(len(error) > 0):
-                        res = f"Failed to stop: {','.join(error)}"
+                        toast_status = "warning"
+                        res = "Some Failed to Stop"
+                        error_message = f"The following streamers failed to start:\n {'\n'.join(error)}"
                     else:
                         status_code = 200
-                        resultStatus = "success"
+                        toast_status = "success"
             except Exception as e:
                 self.logger.warning(e)
                 res = str(e)
@@ -394,8 +420,9 @@ class HTTPManager(Manager):
             context = {
                 'streamers': streamers,
                 'refresh_freq': WEB_LIST_FREQUENCY,
-                'resultStatus': resultStatus,
-                'resultMessage': res,
+                'toast_status': toast_status,
+                'toast_message': res,
+                'error_message': error_message,
             }
             return render_template('streamers_result.html.jinja', **context), status_code
 

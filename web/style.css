@@ -181,7 +181,8 @@ a {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 18.75rem;
+    width: fit-content;
+    max-width: 31.25rem;
     max-height: 37.5rem;
     text-align: center;
     padding: 0.5rem;
@@ -194,8 +195,23 @@ a {
     color: #D9D9D9;
     font-weight: 700;
     box-shadow:
-        0 0 0 100vw rgba(0,0,0, 0.6),
+        0 0 0 max(100vw, 100vh) rgba(0,0,0, 0.6),
         #D9D9D9 0 0 1rem 0.25rem;
+    
+    & span {
+        margin: 1rem;
+        white-space: pre-wrap;
+    }
+    
+    @media screen and (max-width: 550px) {
+        & {
+            min-width: 18.75rem;
+            max-width: 95vw;
+        }
+        & span {
+            margin: 0.5rem;
+        }
+    }
 }
 
 #toast-notifications {
@@ -239,6 +255,10 @@ a {
     
         &.success {
             background-color: #284B63;
+        }
+
+        &.warning {
+            background-color: #F28C23;
         }
     }
 }
@@ -731,7 +751,7 @@ a {
     }
 
     .playing-video {
-        margin-top: 4.5rem;
+        padding-top: 4.5rem;
         margin-bottom: 1.5rem;
     }
 
@@ -797,9 +817,38 @@ a {
         background-color: #2f2b27;
     }
 
-    .total-size {
+    .streamer-info {
         display: flex;
+        justify-content: space-between;
+        padding-inline: 1rem;
+    
+        @media screen and (max-width: 550px) {
+            & {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            span {
+                text-align: center;
+            }
+        }
+    }
+
+    .streamer-toggle {
+        display: inline-flex;
+        gap: 0.25rem;
         justify-content: center;
+        align-items: center;
+
+        .toggle-streamer-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        i.feather {
+            font-size: 1.25rem;
+        }
     }
 
     .video-list {
