@@ -740,10 +740,10 @@ a {
 
 #video-area {
     text-align: center;
-    aspect-ratio: 16/8;
-    max-height: 56rem;
     margin-left: auto;
     margin-right: auto;
+    height: calc((100vw / 1.77) + 9.625rem);
+    max-height: calc(100vh + 4.75rem);
 
     &:not(:has(video))  {
         height: 20vh;
@@ -764,7 +764,7 @@ a {
         padding-left: 0.5rem;
         padding-right: 0.5rem;
         aspect-ratio: 16/9;
-        max-height: 51.5rem;
+        height: calc(100% - 9.625rem);
     }
 }
 
@@ -835,10 +835,14 @@ a {
     }
 
     .streamer-toggle {
-        display: inline-flex;
+        display: flex;
         gap: 0.25rem;
         justify-content: center;
         align-items: center;
+
+        &.full-width.center {
+            margin-top: 1rem;
+        }
 
         .toggle-streamer-btn {
             display: flex;

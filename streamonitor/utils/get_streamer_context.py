@@ -23,30 +23,27 @@ def get_streamer_context(streamer: Bot, sort_by_size: bool, play_video: str) -> 
     recordings_error_message = None
     total_size = 0
     video_to_play: VideoData | None = None
-    try:
-        for elem in os.scandir(streamer.outputFolder):
-            if(elem.is_dir()):
-                continue
-            else:
-                abs_path = os.path.abspath(elem.path)
-                shortname = short_name(elem.name, streamer.username)
-                video = VideoData(elem, abs_path, shortname, play_video == elem.name)
-                if(video.play):
-                    video_to_play = video
-                total_size += video.filesize
-                videos[video.filename] = video
-    except Exception as e:
-        has_error = True
-        recordings_error_message = repr(e)
-        _logger.warning(e)
-    if(sort_by_size):
-        videos = dict(sorted(videos.items(), key=lambda item: item[1].filesize, reverse=True))
-    else:
-        videos = dict(sorted(videos.items(), reverse=True))
-    # if(sort_by_size):
-    #     videos = sorted(videos, key=lambda x: x.filesize, reverse=True)
-    # else:
-    #     videos = sorted(videos, key=lambda x: x.filename, reverse=True)
+    if(os.path.isdir(streamer.outputFolder)):
+        try:
+            for elem in os.scandir(streamer.outputFolder):
+                if(elem.is_dir()):
+                    continue
+                else:
+                    abs_path = os.path.abspath(elem.path)
+                    shortname = short_name(elem.name, streamer.username)
+                    video = VideoData(elem, abs_path, shortname, play_video == elem.name)
+                    if(video.play):
+                        video_to_play = video
+                    total_size += video.filesize
+                    videos[video.filename] = video
+        except Exception as e:
+            has_error = True
+            recordings_error_message = repr(e)
+            _logger.warning(e)
+        if(sort_by_size):
+            videos = dict(sorted(videos.items(), key=lambda item: item[1].filesize, reverse=True))
+        else:
+            videos = dict(sorted(videos.items(), reverse=True))
     context: StreamerContext = {
         'streamer': streamer,
         'sort_by_size': sort_by_size,
