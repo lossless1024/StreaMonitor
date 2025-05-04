@@ -280,6 +280,7 @@ a {
     grid-template-columns: 4.5rem minmax(calc(100vw - 9rem), 1fr) 4.5rem;
     position: fixed;
     top: 0;
+    z-index: 10;
     
     &.has-error {
         background-color: red;
@@ -393,6 +394,9 @@ a {
 .title-container {
     display: flex;
     justify-content: space-between;
+    position: relative;
+    top: 0;
+    padding-top: 1rem;
 
     h1 {
         margin-block: 1.65rem;
@@ -405,7 +409,7 @@ a {
         display: flex;
         gap: 0.5rem;
         position: absolute;
-        right: 1rem;
+        right: 0;
     }
 
     .du-percent-free {

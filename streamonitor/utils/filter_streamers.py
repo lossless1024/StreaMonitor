@@ -7,7 +7,7 @@ from streamonitor.enums import Status
 def filter_streamers(streamer: Bot, username_filter: str | None, site_filter: str | None, status_filter: str | None):
     result = True
     if(username_filter):
-        result = result and cast(str, streamer.username).startswith(username_filter)
+        result = result and cast(str, streamer.username).lower().startswith(username_filter.lower())
     if(site_filter):
         result = result and streamer.site == site_filter
     if(status_filter and status_filter == 'running'):
