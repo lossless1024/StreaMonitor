@@ -56,7 +56,7 @@ class HTTPManager(Manager):
                 num /= 1024.0
             return f"{num:.1f}Yi{suffix}"
 
-        @app.route('/simple')
+        @app.route('/dashboard')
         @login_required
         def mainSite():
             return app.send_static_file('index.html')
@@ -106,8 +106,12 @@ class HTTPManager(Manager):
         @login_required
         def status():
             usage = OOSDetector.space_usage()
+            username_filter = request.cookies.get('username_filter', None)
+            site_filter = request.cookies.get('site_filter', None)
+            status_filter = request.cookies.get('status_filter', 'all')
+            streamers, filtered = streamer_list(self.streamers, username_filter, site_filter, status_filter)
             context = {
-                'streamers': self.streamers,
+                'streamers': streamers,
                 'sites': Bot.loaded_sites,
                 'unique_sites': set(map(lambda x: x.site, self.streamers)),
                 'streamer_statuses': web_status_lookup,
@@ -116,6 +120,10 @@ class HTTPManager(Manager):
                 'percentage_free': round(usage.free / usage.total * 100, 3),
                 'refresh_freq': WEB_LIST_FREQUENCY,
                 'confirm_deletes': confirm_deletes(request.headers.get('User-Agent')),
+                'is_filtered': filtered,
+                'username_filter': username_filter,
+                'site_filter': site_filter,
+                'status_filter': status_filter,
             }
             return render_template('index.html.jinja', **context)
 
@@ -124,8 +132,8 @@ class HTTPManager(Manager):
         def refresh_streamers():
             username_filter = request.args.get("filter-username", None)
             site_filter = request.args.get("filter-site", None)
-            status_filter = request.args.get("filter-status", None)
-            streamers = streamer_list(self.streamers, username_filter, site_filter, status_filter)
+            status_filter = request.args.get("filter-status", 'all')
+            streamers, filtered = streamer_list(self.streamers, username_filter, site_filter, status_filter)
             context = {
                 'streamers': streamers,
                 'sites': Bot.loaded_sites,
@@ -134,7 +142,19 @@ class HTTPManager(Manager):
                 'toast_message': "",
                 'confirm_deletes': confirm_deletes(request.headers.get('User-Agent')),
             }
-            return render_template('streamers_result.html.jinja', **context)
+            response = make_response(render_template('streamers_result.html.jinja', **context))
+            set_filters = request.args.get("set_filters", False)
+            if(set_filters and len(streamers) > 0 and filtered):
+                if(username_filter):
+                    response.set_cookie('username_filter', username_filter)
+                if(site_filter):
+                    response.set_cookie('site_filter', site_filter)
+                response.set_cookie('status_filter', status_filter)
+            elif(set_filters and not filtered):
+                response.delete_cookie('username_filter')
+                response.delete_cookie('site_filter')
+                response.delete_cookie('status_filter')
+            return response
 
         @app.route('/recordings/<user>/<site>', methods=['GET'])
         @login_required
@@ -223,11 +243,11 @@ class HTTPManager(Manager):
             site_filter = request.form.get("filter-site", None)
             status_filter = request.form.get("filter-status", None)
             update_site_options = site not in map(lambda x: x.site, self.streamers)
-            streamers = streamer_list(self.streamers, username_filter, site_filter, status_filter)
             toast_status = "success"
             status_code = 200
             streamer = self.getStreamer(user, site)
             res = self.do_add(streamer, user, site)
+            streamers, filtered  = streamer_list(self.streamers, username_filter, site_filter, status_filter)
             if(res == 'Streamer already exists' or res == "Missing value(s)" or res == "Failed to add"):
                 toast_status = "error"
                 status_code = 500
@@ -363,11 +383,11 @@ class HTTPManager(Manager):
             username_filter = request.args.get("filter-username", None)
             site_filter = request.args.get("filter-site", None)
             status_filter = request.args.get("filter-status", None)
-            streamers = streamer_list(self.streamers, username_filter, site_filter, status_filter)
+            streamers, filtered  = streamer_list(self.streamers, username_filter, site_filter, status_filter)
             res = ""
             error_message = ""
             try:
-                if(len(streamers) == len(self.streamers)):
+                if(not filtered or len(streamers) == len(self.streamers)):
                     res = self.do_start(None, '*', None)
                     if(res == "Started all"):
                         status_code = 200
@@ -408,11 +428,11 @@ class HTTPManager(Manager):
             username_filter = request.args.get("filter-username", None)
             site_filter = request.args.get("filter-site", None)
             status_filter = request.args.get("filter-status", None)
-            streamers = streamer_list(self.streamers, username_filter, site_filter, status_filter)
+            streamers, filtered  = streamer_list(self.streamers, username_filter, site_filter, status_filter)
             res = ""
             error_message = ""
             try:
-                if(len(streamers) == len(self.streamers)):
+                if(not filtered or len(streamers) == len(self.streamers)):
                     res = self.do_stop(None, '*', None)
                     if(res == "Stopped all"):
                         status_code = 200

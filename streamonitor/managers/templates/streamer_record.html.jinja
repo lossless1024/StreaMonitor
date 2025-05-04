@@ -1,5 +1,5 @@
 {% if streamer is not none %}
-<tr class="streamer slug-{{ streamer.siteslug|lower }} status-{{ streamer.sc.name|lower }} {{'paused' if not streamer.running else 'recording' }}" data-streamer-name="{{ streamer.username }}">
+<tr id="streamer-{{ streamer.siteslug|lower }}-{{ streamer.username }}" class="streamer">
     <td class="site-container">
         <a class="streamer-link link-fill" target="_blank" href="{{ streamer.url }}">
             <span class="link-text">{{ streamer.site }}</span><span class="mobile-link-text">{{ streamer.siteslug }}</span>

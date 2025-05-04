@@ -591,6 +591,10 @@ a {
         }
     }
 
+    .streamer {
+        scroll-margin-top: 45vh;
+    }
+
     .streamer:nth-child(2n + 1) {
         background-color: #2F2F2F;
     }

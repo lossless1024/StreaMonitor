@@ -21,11 +21,11 @@ def filter_streamers(streamer: Bot, username_filter: str | None, site_filter: st
 
 def streamer_list(streamers: List[Bot], username_filter: str | None, site_filter: str | None, status_filter: str | None):
     if(username_filter or site_filter or (status_filter and status_filter != 'all')):
-        return list(
+        return (list(
             filter(
                 lambda x: filter_streamers(x, username_filter, site_filter, status_filter),
                 streamers
             )
-        )
+        ), True)
     else:
-        return streamers
+        return (streamers, False)

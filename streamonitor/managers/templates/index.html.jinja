@@ -2,6 +2,14 @@
 {% block title %}StreaMonitor - List{% endblock %}
 {% block head %}
     {{ super() }}
+    <script>
+        function resetFilters() {
+            document
+                .querySelectorAll('.filter-streamers-state')
+                .forEach(el => el.id === 'filter-status' ? el.value = 'all' : el.value = '');
+            htmx.trigger('#filter-streamers', 'afterReset');
+        }
+    </script>
 {% endblock %}
 {% block content %}
     <div class="title-container">
@@ -45,39 +53,38 @@
             </div>
         </form>
     </div>
-    <div hx-target="#streamers" class="streamers-list-actions">
-        <div class="filter-streamers" id="filter-streamers" hx-sync="#streamers:queue last" hx-trigger="afterReset delay:300ms" hx-get="/refresh/streamers">
-            <input class="hidden-checkbox" hx-on:keyup="if(event.key=='Enter'){this.checked=!this.checked}" id="show-filters" type="checkbox">
+    <div hx-target="#streamers" hx-swap="innerHTML" class="streamers-list-actions">
+        <div class="filter-streamers" id="filter-streamers" hx-vals='{"set_filters": "True"}' hx-sync="#streamers:queue last" hx-trigger="afterReset delay:300ms" hx-get="/refresh/streamers">
+            <input class="hidden-checkbox" hx-on:keyup="if(event.key=='Enter'){this.checked=!this.checked}" id="show-filters" type="checkbox" {{ 'checked' if is_filtered }}>
             <label class="fake-btn" for="show-filters">
                 Filters<i class="icon feather icon-chevron-up"></i>
             </label>
-            <form autocomplete="off" hx-sync="#streamers:queue last" hx-swap="innerHTML" hx-validate="false" hx-include=".filter-streamers-state:valid" class="filter-streamers-options">
+            <form autocomplete="off" hx-validate="false" hx-include=".filter-streamers-state:valid" class="filter-streamers-options">
                 <div class="middle-filter-container">
                     <div class="inner-filter-container">
                         <label for="filter-username" class="filter-label filter-flex-group">
                             <span class="filter-label-text">Username:</span>
-                            <input required type="text" name="filter-username" id="filter-username" minlength="1" class="filter-streamers-state" hx-get="/refresh/streamers" hx-trigger="input changed delay:350ms">
+                            <input required type="text" value="{{ username_filter if username_filter }}" name="filter-username" id="filter-username" minlength="1" class="filter-streamers-state" hx-get="/refresh/streamers" hx-trigger="input delay:350ms">
                         </label>
                         <label for="filter-site" class="filter-label filter-flex-group">
                             <span class="filter-label-text">Site:</span>
-                            {% set site_filter = '' %}
-                            <select name="filter-site" required class="filter-streamers-state drop-down" id="filter-site" hx-get="/refresh/streamers" hx-trigger="change changed delay:250ms">
+                            <select name="filter-site" required class="filter-streamers-state drop-down" id="filter-site" hx-get="/refresh/streamers" hx-trigger="change delay:250ms">
                                 {% include 'filter_site_options.html.jinja' ignore missing with context %}
                             </select>
                         </label>
                         <span class="filter-flex-group multi-item-container">
                             <label for="filter-status" class="filter-label">
                                 <span class="filter-label-text">Status:</span>
-                                <select name="filter-status" required class="filter-streamers-state drop-down" id="filter-status" hx-get="/refresh/streamers" hx-trigger="change changed delay:250ms">
-                                    <option value="all" selected="selected"></option>
-                                    <option value="running">Running</option>
-                                    <option value="rec">Recording</option>
+                                <select name="filter-status" required class="filter-streamers-state drop-down" id="filter-status" hx-get="/refresh/streamers" hx-trigger="change delay:250ms">
+                                    <option value="all" {{'selected="selected"' if status_filter == "all" or not status_filter }}></option>
+                                    <option value="running" {{'selected="selected"' if status_filter == "running"}}>Running</option>
+                                    <option value="rec" {{'selected="selected"' if status_filter == "rec"}}>Recording</option>
                                     {% for status in streamer_statuses.items() %}
-                                        <option value="{{ status[0].value }}">{{ status[1].split(',')[0] }}</option>
+                                        <option value="{{ status[0].value }}" {{'selected="selected"' if status_filter == (status[0].value|string)}}>{{ status[1].split(',')[0] }}</option>
                                     {% endfor %}
                                 </select>
                             </label>
-                            <button type="reset" hx-on:click="htmx.trigger('#filter-streamers', 'afterReset')"><i class="icon feather icon-trash-2"></i></button>
+                            <button type="button" hx-on:click="resetFilters()"><i class="icon feather icon-trash-2"></i></button>
                         </span>
                     </div>
                 </div>
@@ -105,7 +112,7 @@
     {% set toast_status = 'hide' %}
     {% set toast_message = '' %}
     {% set refresh_interval = 'hx-swap="innerHTML" hx-get="/refresh/streamers" hx-sync="#streamers:abort" hx-include=".filter-streamers-state:valid" hx-trigger="every {interval}s"'.format(interval=refresh_freq) %}
-    <div id="streamers" {{ refresh_interval if refresh_freq and refresh_freq > 0}}>
+    <div id="streamers" {{ refresh_interval|safe if refresh_freq and refresh_freq > 0}}>
         {% include 'streamers_result.html.jinja' ignore missing with context %}
     </div>
     <div id="toast-notifications">
