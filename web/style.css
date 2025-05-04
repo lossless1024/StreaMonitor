@@ -489,14 +489,16 @@ a {
         }
 
         & ~ .filter-streamers-options {
-            display: grid;
+            display: none;
             grid-template-rows: 0fr;
-            transition-property: grid-template-rows;
+            transition-property: grid-template-rows, display;
             transition-duration: 0.5s;
             transition-timing-function: ease-in-out;
+            transition-behavior: allow-discrete;
         }
 
         &:checked ~ .filter-streamers-options {
+            display: grid;
             grid-template-rows: 1fr;
     
             @starting-style {
@@ -513,6 +515,7 @@ a {
             flex-wrap: wrap;
             gap: 0.75rem;
             margin-block: 1.5rem;
+            padding-block: 0.25rem;
             align-items: end;
             overflow: clip;
         }
