@@ -2,18 +2,6 @@
 {% block title %}StreaMonitor - List{% endblock %}
 {% block head %}
     {{ super() }}
-    <meta name="htmx-config" content='{"useTemplateFragments":"true", "methodsThatUseUrlParams": ["get", "delete", "patch"]}'>
-    <style type="text/css">
-        .important { color: #336699; }
-    </style>
-    <script>
-        htmx.on('htmx:beforeSwap', function(evt) {
-            if(evt.detail.elt.classList.contains('delete-streamer') && !detail.shouldSwap) {
-                evt.detail.target = htmx.find("#error-container");
-            }
-            evt.detail.shouldSwap = true;
-        });
-    </script>
 {% endblock %}
 {% block content %}
     <div class="title-container">

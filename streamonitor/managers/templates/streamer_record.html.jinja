@@ -55,7 +55,7 @@
 <div id="error-container" hx-swap-oob="true">
     <div class="error-modal">
         <span>{{ streamerErrorMessage }}</span>
-        <button hx-on:click="dismissErrorModal()">dismiss</button>
+        <button hx-delete="/clear" hx-swap="outerHTML" hx-target="closest .error-modal" hx-trigger="click">dismiss</button>
     </div>
 </div>
 {% endif %}

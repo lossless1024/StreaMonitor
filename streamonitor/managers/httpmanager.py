@@ -286,8 +286,14 @@ class HTTPManager(Manager):
                     'removeStreamerHasError': removeStreamerHasError,
                     'removeStreamerResultMessage': res,
                 }
-                return render_template('streamer_record_error.html.jinja', **context),status_code
+                response = make_response(render_template('streamer_record_error.html.jinja', **context),status_code)
+                response.headers['HX-Retarget'] = "#error-container"
+                return response
             return '',status_code
+        
+        @app.route("/clear", methods=['DELETE'])
+        def clear_modal():
+            return '',204
         
         @app.route("/toggle/<user>/<site>", methods=['PATCH'])
         @login_required

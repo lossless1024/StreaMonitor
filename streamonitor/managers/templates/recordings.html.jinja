@@ -2,14 +2,6 @@
 {% block title %}StreaMonitor - {{ streamer.username }}{% endblock %}
 {% block head %}
     {{ super() }}
-    <style type="text/css">
-        .important { color: #336699; }
-    </style>
-    <script>
-        htmx.on('htmx:beforeSwap', function(evt) {
-            evt.detail.shouldSwap = true;
-        });
-    </script>
 {% endblock %}
 {% block nav %}
     {% set has_error = False %}

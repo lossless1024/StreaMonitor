@@ -190,9 +190,12 @@ a {
     flex-direction: column;
     gap: 0.5rem;
     justify-content: space-between;
-    background-color: #801818;
-    color: #F7F7F7;
+    background-color: #3C0000;
+    color: #D9D9D9;
     font-weight: 700;
+    box-shadow:
+        0 0 0 100vw rgba(0,0,0, 0.6),
+        #D9D9D9 0 0 1rem 0.25rem;
 }
 
 #toast-notifications {
@@ -228,7 +231,7 @@ a {
         padding: 1rem;
         text-align: center;
         color: #F7F7F7;
-        box-shadow: #7F7F7F 0 0 0.625;
+        box-shadow: #7F7F7F 0 0 0.625rem;
     
         &.error {
             background-color: #801818;
@@ -241,7 +244,8 @@ a {
 }
 
 #content {
-    margin: 1rem;
+    margin-inline: 1rem;
+    margin-bottom: 1rem;
     color: #BDBDBD;
     font-family: "PT Sans", sans-serif;
     font-weight: 700;

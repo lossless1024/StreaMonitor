@@ -31,7 +31,6 @@
                 hx-get="/videos/watch/{{ streamer.username }}/{{ streamer.site }}/{{ video.filename }}"
                 hx-trigger="click"
                 hx-include=".context-sorted"
-                hx-on::after-on-load="onPlayVideo(this)"
                 hx-target="#content"
                 hx-swap="innerHTML"><span class="filename">{{ video.shortname }}</span><span class="size">{{ video.human_readable_filesize }}</span></a>
                 <button hx-delete="/videos/{{ streamer.username }}/{{ streamer.site }}/{{ video.filename }}"
@@ -53,6 +52,6 @@
 {% if has_error %}
     <div class="error-modal">
         <span>{{ recordings_error_message }}</span>
-        <button hx-on:click="dismissErrorModal()">dismiss</button>
+        <button hx-delete="/clear" hx-swap="outerHTML" hx-target="closest .error-modal" hx-trigger="click">dismiss</button>
     </div>
 {% endif %}
