@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Dict, TYPE_CHECKING
 
-from parameters import WEB_STATUS_FREQUENCY
+from parameters import WEB_STATUS_FREQUENCY, WEB_THEATER_MODE
 import streamonitor.log as log
 from .short_name import short_name
 
@@ -53,5 +53,6 @@ def get_streamer_context(streamer: Bot, sort_by_size: bool, play_video: str) -> 
         'total_size': total_size,
         'has_error': has_error,
         'recordings_error_message': recordings_error_message,
+        'theater_mode': WEB_THEATER_MODE,
     }
     return context

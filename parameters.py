@@ -49,6 +49,9 @@ WEB_LIST_FREQUENCY = int(_str_list_frequency) if _str_list_frequency and _str_li
 _str_status_frequency = os.getenv("STRMNTR_STATUS_FREQ", None)
 WEB_STATUS_FREQUENCY = int(_str_status_frequency) if _str_status_frequency and _str_status_frequency.isdecimal else None
 
+# set theater_mode
+WEB_THEATER_MODE = bool(os.getenv("STRMNTR_THEATER_MODE", False))
+
 # Password for the web server
 # If empty no auth required, else username admin and choosen password
 WEBSERVER_PASSWORD = os.getenv("STRMNTR_PASSWORD", "admin")

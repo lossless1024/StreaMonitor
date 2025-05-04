@@ -17,3 +17,4 @@ class StreamerContext(TypedDict):
     total_size: int
     has_error: bool
     recordings_error_message: str | None
+    theater_mode: bool

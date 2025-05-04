@@ -743,7 +743,12 @@ a {
     margin-left: auto;
     margin-right: auto;
     height: calc((100vw / 1.77) + 9.625rem);
-    max-height: calc(100vh + 4.75rem);
+    /* doesn't extend beyond the width of the video list  */
+    max-height: calc((85rem / 1.77) + 9.625rem);
+    
+    &.theater-mode {
+        max-height: calc(100vh + 4.75rem);
+    }
 
     &:not(:has(video))  {
         height: 20vh;
