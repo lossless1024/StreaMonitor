@@ -399,6 +399,7 @@ class HTTPManager(Manager):
                             partial_res = self.do_start(streamer, None, None)
                             if(partial_res != "OK"):
                                 error.append(streamer.username)
+                        res = "Started All Shown"
                     else:
                         res = 'no matching streamers'
                     if(len(error) > 0):
@@ -445,6 +446,7 @@ class HTTPManager(Manager):
                             partial_res = self.do_stop(streamer, None, None)
                             if(partial_res != "OK"):
                                 error.append(streamer.username)
+                        res = "Stopped All Shown"
                     else:
                         res = 'no matching streamers'
                     if(len(error) > 0):
