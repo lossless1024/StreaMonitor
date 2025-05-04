@@ -545,8 +545,8 @@ a {
             display: flex;
             flex-wrap: wrap;
             gap: 0.75rem;
-            margin-block: 1.5rem;
-            padding-block: 0.25rem;
+            margin-top: 1.5rem;
+            padding-top: 0.25rem;
             align-items: end;
             overflow: clip;
         }
