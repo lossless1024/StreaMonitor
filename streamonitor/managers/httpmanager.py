@@ -452,7 +452,7 @@ class HTTPManager(Manager):
                     if(len(error) > 0):
                         toast_status = "warning"
                         res = "Some Failed to Stop"
-                        error_message = f"The following streamers failed to start:\n {'\n'.join(error)}"
+                        error_message = f"The following streamers failed to stop:\n {'\n'.join(error)}"
                     else:
                         status_code = 200
                         toast_status = "success"
