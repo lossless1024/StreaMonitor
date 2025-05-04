@@ -12,7 +12,7 @@ def filter_streamers(streamer: Bot, username_filter: str | None, site_filter: st
         result = result and streamer.site == site_filter
     if(status_filter and status_filter == 'running'):
         result = result and streamer.running
-    if(status_filter and status_filter == 'rec'):
+    elif(status_filter and status_filter == 'rec'):
         result = result and streamer.recording
     elif(status_filter and status_filter != 'all'):
         status = Status.OFFLINE.value if streamer.sc.value == Status.LONG_OFFLINE.value else streamer.sc.value
