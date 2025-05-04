@@ -41,12 +41,12 @@ SEGMENT_TIME = os.getenv("STRMNTR_SEGMENT_TIME", None)
 WEBSERVER_HOST = os.getenv("STRMNTR_HOST", "127.0.0.1")
 WEBSERVER_PORT = int(os.getenv("STRMNTR_PORT", 5000))
 
-# set frequency of how often the streamer list will update
-_str_list_frequency = os.getenv("STRMNTR_LIST_FREQ", None)
+# set frequency in seconds of how often the streamer list will update
+_str_list_frequency = os.getenv("STRMNTR_LIST_FREQ", 30)
 WEB_LIST_FREQUENCY = int(_str_list_frequency) if _str_list_frequency and _str_list_frequency.isdecimal() else None 
 
-# set frequency of how often the streamer's status will update on the recording page
-_str_status_frequency = os.getenv("STRMNTR_STATUS_FREQ", None)
+# set frequency in seconds of how often the streamer's status will update on the recording page
+_str_status_frequency = os.getenv("STRMNTR_STATUS_FREQ", 5)
 WEB_STATUS_FREQUENCY = int(_str_status_frequency) if _str_status_frequency and _str_status_frequency.isdecimal else None
 
 # set theater_mode
