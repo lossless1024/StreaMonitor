@@ -6,9 +6,10 @@
         <h1>{{ streamer.username }}</h1>
         <a href="{{ streamer.url }}" target="_blank"><div title="{{ streamer.web_status }}" class="status-indicator {{icon}}"><i class="icon feather icon-{{icon}}"></i></div></a>
     </div>
-    <span class="nav-spacer"></span>
+    <span class="nav-spacer">
+        <input type="hidden" name="prev_state" class="streamer-context play-video-context sorted-context" value="{{icon}}">
+    </span>
 </nav>
-<input type="hidden" name="prev_state" class="streamer-context play-video-context sorted-context" value="{{icon}}">
 {% if update_content %}
     <div hx-swap-oob="innerHTML:#video-list">
         {% include 'video_list.html.jinja' ignore missing with context %}

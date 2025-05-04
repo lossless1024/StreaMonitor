@@ -265,7 +265,7 @@ a {
 
 #content {
     margin-inline: 1rem;
-    margin-bottom: 1rem;
+    padding-bottom: 1rem;
     color: #BDBDBD;
     font-family: "PT Sans", sans-serif;
     font-weight: 700;
@@ -775,7 +775,6 @@ a {
 
 #video-list {
     margin-top: 1rem;
-    margin-bottom: 2rem;
     max-width: 85.5rem;
     margin-inline: auto;
 
@@ -817,15 +816,16 @@ a {
     }
 
     .files-container {
-        padding-block: 1.25rem;
-        padding-inline: 0.5rem;
+        padding-top: 1.25rem;
+        padding-inline: 1rem;
+        padding-bottom: 2rem;
         background-color: #2f2b27;
     }
 
     .streamer-info {
         display: flex;
         justify-content: space-between;
-        padding-inline: 1rem;
+        padding-inline: 1.5rem;
     
         @media screen and (max-width: 550px) {
             & {
