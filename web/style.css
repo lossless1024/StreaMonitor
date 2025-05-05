@@ -698,7 +698,7 @@ a {
                 }
             }
         }
-        .header-watching {
+        .header-running {
             grid-area: watch;
             text-align: end;
             margin-inline: 1rem;
