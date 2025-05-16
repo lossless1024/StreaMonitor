@@ -60,6 +60,12 @@ class Bot(Thread):
         Status.RESTRICTED: "Model is restricted, maybe geo-block"
     }
 
+    frame_format_map = {
+        'FISHEYE': 'F',
+        'PANORAMIC': 'P',
+        'CIRCULAR': 'C',
+    }
+
     def __init__(self, username):
         super().__init__()
         self.username = username
@@ -161,7 +167,8 @@ class Bot(Thread):
                                 self._sleep(self.sleep_on_error)
                                 continue
                             self.log('Started downloading show')
-                            ret = self.getVideo(self, video_url, self.genOutFilename())
+                            os.makedirs(self.outputFolder, exist_ok=True)
+                            ret = self.getVideo(self)
                             if not ret:
                                 self.sc = self.Status.ERROR
                                 self.log(self.status())
@@ -279,14 +286,6 @@ class Bot(Thread):
     def outputFolder(self):
         return os.path.join(DOWNLOADS_DIR, self.username + ' [' + self.siteslug + ']')
 
-    def genOutFilename(self, create_dir=True):
-        folder = self.outputFolder
-        if create_dir:
-            os.makedirs(folder, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        filename = os.path.join(folder, f'{self.username}-{timestamp}.{CONTAINER}')
-        return filename
-
     def export(self):
         return {"site": self.site, "username": self.username, "running": self.running}
 
@@ -303,3 +302,13 @@ class Bot(Thread):
     def createInstance(username: str, site: str = None):
         if site:
             return Bot.str2site(site)(username)
+
+    def vrFilenamePart(self):
+        return ""
+
+    def filename(self):
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        return os.path.join(self.outputFolder, f'{self.username}{self.vrFilenamePart()}-{timestamp}.{CONTAINER}')
+
+    def filenameSegmented(self):
+        return os.path.join(self.outputFolder, f'{self.username}{self.vrFilenamePart()}-%Y%m%d-%H%M%S.{CONTAINER}')

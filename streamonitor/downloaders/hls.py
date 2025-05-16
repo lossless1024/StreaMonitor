@@ -6,12 +6,13 @@ from threading import Thread
 from ffmpy import FFmpeg, FFRuntimeError
 from time import sleep
 from parameters import DEBUG, CONTAINER, SEGMENT_TIME
+from streamonitor.bot import Bot
 
 
-def getVideoNativeHLS(self, url, filename):
+def getVideoNativeHLS(self: Bot):
     self.stopDownloadFlag = False
     error = False
-    tmpfilename = filename[:-len('.' + CONTAINER)] + '.tmp.ts'
+    tmpfilename = self.filename()[:-len('.' + CONTAINER)] + '.tmp.ts'
 
     def debug_(message):
         self.debug(message, filename + '.log')
@@ -22,7 +23,7 @@ def getVideoNativeHLS(self, url, filename):
         with open(tmpfilename, 'wb') as outfile:
             did_download = False
             while not self.stopDownloadFlag:
-                r = requests.get(url, headers=self.headers, cookies=self.cookies)
+                r = requests.get(self.getVideoUrl(), headers=self.headers, cookies=self.cookies)
                 chunklist = m3u8.loads(r.content.decode("utf-8"))
                 if len(chunklist.segments) == 0:
                     return
@@ -34,7 +35,7 @@ def getVideoNativeHLS(self, url, filename):
                     chunk_uri = chunk.uri
                     debug_('Downloading ' + chunk_uri)
                     if not chunk_uri.startswith("https://"):
-                        chunk_uri = '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + chunk_uri
+                        chunk_uri = '/'.join(self.getVideoUrl().split('.m3u8')[0].split('/')[:-1]) + '/' + chunk_uri
                     m = requests.get(chunk_uri, headers=self.headers, cookies=self.cookies)
                     if m.status_code != 200:
                         return
@@ -58,13 +59,13 @@ def getVideoNativeHLS(self, url, filename):
 
     # Post-processing
     try:
-        stdout = open(filename + '.postprocess_stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
-        stderr = open(filename + '.postprocess_stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
+        stdout = open(self.filename() + '.postprocess_stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
+        stderr = open(self.filename() + '.postprocess_stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
         output_str = '-c:a copy -c:v copy'
         if SEGMENT_TIME is not None:
             output_str += f' -f segment -reset_timestamps 1 -segment_time {str(SEGMENT_TIME)}',
-            filename = filename[:-len('.' + CONTAINER)] + '_%03d.' + CONTAINER
-        ff = FFmpeg(inputs={tmpfilename: None}, outputs={filename: output_str})
+            filename = self.filename()[:-len('.' + CONTAINER)] + '_%03d.' + CONTAINER
+        ff = FFmpeg(inputs={tmpfilename: None}, outputs={self.filename(): output_str})
         ff.run(stdout=stdout, stderr=stderr)
         os.remove(tmpfilename)
     except FFRuntimeError as e:

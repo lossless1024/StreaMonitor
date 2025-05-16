@@ -1,18 +1,21 @@
 import json
 import os
 import subprocess
-from threading import Thread
-from websocket import create_connection, WebSocketConnectionClosedException, WebSocketException
 from contextlib import closing
+from threading import Thread
+
 from ffmpy import FFmpeg, FFRuntimeError
+from websocket import create_connection, WebSocketConnectionClosedException, WebSocketException
+
 from parameters import DEBUG, CONTAINER, SEGMENT_TIME
+from streamonitor.bot import Bot
 
 
-def getVideoWSSVR(self, url, filename):
+def getVideoWSSVR(self: Bot):
     self.stopDownloadFlag = False
     error = False
-    url = url.replace('fmp4s://', 'wss://')
-    tmpfilename = filename[:-len('.' + CONTAINER)] + '.tmp.mp4'
+    url = self.getVideoUrl().replace('fmp4s://', 'wss://')
+    tmpfilename = self.filename()[:-len('.' + CONTAINER)] + '.tmp.mp4'
 
     def debug_(message):
         self.debug(message, filename + '.log')
@@ -68,13 +71,13 @@ def getVideoWSSVR(self, url, filename):
 
     # Post-processing
     try:
-        stdout = open(filename + '.postprocess_stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
-        stderr = open(filename + '.postprocess_stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
+        stdout = open(self.filename() + '.postprocess_stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
+        stderr = open(self.filename() + '.postprocess_stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
         output_str = '-c:a copy -c:v copy'
         if SEGMENT_TIME is not None:
             output_str += f' -f segment -reset_timestamps 1 -segment_time {str(SEGMENT_TIME)}'
-            filename = filename[:-len('.' + CONTAINER)] + '_%03d.' + CONTAINER
-        ff = FFmpeg(inputs={tmpfilename: '-ignore_editlist 1'}, outputs={filename: output_str})
+            filename = self.filename()[:-len('.' + CONTAINER)] + '_%03d.' + CONTAINER
+        ff = FFmpeg(inputs={tmpfilename: '-ignore_editlist 1'}, outputs={self.filename(): output_str})
         ff.run(stdout=stdout, stderr=stderr)
         os.remove(tmpfilename)
     except FFRuntimeError as e:

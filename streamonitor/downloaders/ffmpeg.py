@@ -1,13 +1,15 @@
 import errno
 import subprocess
 import sys
+from threading import Thread
 
 import requests.cookies
-from threading import Thread
-from parameters import DEBUG, SEGMENT_TIME, CONTAINER, FFMPEG_PATH
+
+from parameters import DEBUG, SEGMENT_TIME, FFMPEG_PATH
+from streamonitor.bot import Bot
 
 
-def getVideoFfmpeg(self, url, filename):
+def getVideoFfmpeg(self: Bot):
     cmd = [
         FFMPEG_PATH,
         '-user_agent', self.headers['User-Agent']
@@ -24,34 +26,22 @@ def getVideoFfmpeg(self, url, filename):
         ])
 
     cmd.extend([
-        '-i', url,
+        '-i', self.getVideoUrl(),
         '-c:a', 'copy',
         '-c:v', 'copy',
     ])
 
-    frame_format_map = {
-        'FISHEYE': 'F',
-        'PANORAMIC': 'P',
-        'CIRCULAR': 'C',
-    }
-    
-    vr_suffix = ""
-    vr_cam_settings = self.lastInfo['broadcastSettings']['vrCameraSettings']
-    if vr_cam_settings is not None:
-        vr_suffix = f"_{vr_cam_settings["stereoPacking"]}_{vr_cam_settings["frameFormat"]}{vr_cam_settings["horizontalAngle"]}"
-
     if SEGMENT_TIME is not None:
-        username = filename.rsplit('-', maxsplit=2)[0]
         cmd.extend([
             '-f', 'segment',
             '-reset_timestamps', '1',
             '-segment_time', str(SEGMENT_TIME),
             '-strftime', '1',
-            f'{username}-%Y%m%d-%H%M%S{vr_suffix}.{CONTAINER}'
+            self.filenameSegmented()
         ])
     else:
         cmd.extend([
-            filename
+            self.filename()
         ])
 
     print(cmd)
@@ -68,8 +58,8 @@ def getVideoFfmpeg(self, url, filename):
     def execute():
         nonlocal error
         try:
-            stdout = open(filename + '.stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
-            stderr = open(filename + '.stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
+            stdout = open(self.filename() + '.stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
+            stderr = open(self.filename() + '.stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
             startupinfo = None
             if sys.platform == "win32":
                 startupinfo = subprocess.STARTUPINFO()
