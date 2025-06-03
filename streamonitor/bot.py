@@ -13,7 +13,6 @@ import requests.cookies
 
 import streamonitor.log as log
 from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, CONTAINER, HTTP_USER_AGENT
-from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 
 
 class Bot(Thread):
@@ -79,6 +78,7 @@ class Bot(Thread):
         self.running = False
         self.quitting = False
         self.sc = self.Status.NOTRUNNING  # Status code
+        from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
         self.getVideo = getVideoFfmpeg
         self.stopDownload = None
 
