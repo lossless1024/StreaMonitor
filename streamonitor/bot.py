@@ -110,14 +110,14 @@ class Bot(Thread):
     
     @property
     def web_status(self):
-        if(self.sc):
+        if self.sc:
             return web_status_lookup.get(self.sc, web_status_lookup[Status.OFFLINE])
         else:
             return web_status_lookup.get(Status.UNKNOWN)
 
     @property
     def status_icon(self):
-        if(self.recording):
+        if self.recording:
             message = 'arrow-down-circle'
         else:
             message = status_icons_lookup.get(self.sc) or status_icons_lookup.get(Status.UNKNOWN)

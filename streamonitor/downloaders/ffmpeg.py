@@ -51,8 +51,8 @@ def getVideoFfmpeg(self, url, filename):
             self.stop = True
 
     stopping = _Stopper()
-
     error = False
+
     def execute():
         nonlocal error
         try:

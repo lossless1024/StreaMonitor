@@ -81,5 +81,4 @@ def getVideoWSSVR(self, url, filename):
         if e.exit_code and e.exit_code != 255:
             return False
 
-
     return True

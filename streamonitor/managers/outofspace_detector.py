@@ -21,7 +21,6 @@ class OOSDetector(Thread):
         usage = OOSDetector.space_usage()
         free_percent = usage.free / usage.total * 100
         return free_percent
-        
 
     @staticmethod
     def space_usage():

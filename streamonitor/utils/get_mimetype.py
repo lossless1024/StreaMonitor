@@ -8,7 +8,7 @@ def get_mimetype(file):
     mimetype = 'video/mp4'
     # if we lie about this, chrome will play it
     # need to look at alternatives for firefox
-    if(file is not None and file.lower().endswith('.mkv')):
+    if file is not None and file.lower().endswith('.mkv'):
         mimetype = 'video/mp4'
     try:
         mimetype = mimetypes.guess_type(file)[0]

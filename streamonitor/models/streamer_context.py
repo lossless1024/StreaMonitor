@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, TypedDict, TYPE_CHECKING
 
 
-if(TYPE_CHECKING):
+if TYPE_CHECKING:
     from streamonitor.bot import Bot
     from streamonitor.models.video_data import VideoData
 

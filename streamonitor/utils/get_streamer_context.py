@@ -8,7 +8,7 @@ import streamonitor.log as log
 from .short_name import short_name
 from .confirm_deletes import confirm_deletes
 
-if(TYPE_CHECKING):
+if TYPE_CHECKING:
     from streamonitor.bot import Bot
     from streamonitor.models import StreamerContext
 
@@ -24,16 +24,16 @@ def get_streamer_context(streamer: Bot, sort_by_size: bool, play_video: str, use
     recordings_error_message = None
     total_size = 0
     video_to_play: VideoData | None = None
-    if(os.path.isdir(streamer.outputFolder)):
+    if os.path.isdir(streamer.outputFolder):
         try:
             for elem in os.scandir(streamer.outputFolder):
-                if(elem.is_dir()):
+                if elem.is_dir():
                     continue
                 else:
                     abs_path = os.path.abspath(elem.path)
                     shortname = short_name(elem.name, streamer.username)
                     video = VideoData(elem, abs_path, shortname, play_video == elem.name)
-                    if(video.play):
+                    if video.play:
                         video_to_play = video
                     total_size += video.filesize
                     videos[video.filename] = video
@@ -41,7 +41,7 @@ def get_streamer_context(streamer: Bot, sort_by_size: bool, play_video: str, use
             has_error = True
             recordings_error_message = repr(e)
             _logger.warning(e)
-        if(sort_by_size):
+        if sort_by_size:
             videos = dict(sorted(videos.items(), key=lambda item: item[1].filesize, reverse=True))
         else:
             videos = dict(sorted(videos.items(), reverse=True))
