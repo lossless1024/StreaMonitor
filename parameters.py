@@ -8,6 +8,9 @@ DEBUG = bool(os.getenv("STRMNTR_DEBUG", False))
 # The camsoda bot ignores this setting in favor of a chrome useragent generated with the fake-useragent library
 HTTP_USER_AGENT = os.getenv("STRMNTR_USER_AGENT", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0")
 
+# Specify the full path to the ffmpeg binary. By default, ffmpeg found on PATH is used.
+FFMPEG_PATH = 'ffmpeg'
+
 # You can enter a number to select a specific height.
 # Use a huge number here and closest match to get the highest resolution variant
 # Eg: 240, 360, 480, 720, 1080, 1440, 99999

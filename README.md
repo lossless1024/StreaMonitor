@@ -95,7 +95,7 @@ Simply start it in the folder with `docker-compose up`.
 
 ## Configuration
 
-You can set some parameters in the parameters.py.
+You can set some parameters in the [parameters.py](parameters.py).
 
 ## Disclaimer
 
