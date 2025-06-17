@@ -27,7 +27,7 @@ class HTTPManager(Manager):
         self.logger = log.Logger("manager")
 
     def run(self):
-        app = Flask(__name__, "", "../../web")
+        app = Flask(__name__, "", "../../web", template_folder="../../templates")
         werkzeug_logger = logging.getLogger('werkzeug')
         werkzeug_logger.disabled = True
 

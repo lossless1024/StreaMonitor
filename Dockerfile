@@ -13,7 +13,8 @@ RUN pip3 install -r requirements.txt
 COPY *.py ./
 COPY streamonitor ./streamonitor 
 COPY web ./web
+COPY templates ./templates
 
-EXPOSE 6969
+EXPOSE 5000
 CMD [ "python3", "Downloader.py"]
 
