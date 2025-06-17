@@ -1,10 +1,15 @@
 import requests
 from streamonitor.bot import Bot
+from streamonitor.enums import Status
 
 
 class CamsCom(Bot):
     site = 'CamsCom'
     siteslug = 'CC'
+
+    def __init__(self, username):
+        super().__init__(username)
+        self.url = self.getWebsiteURL()
 
     def getWebsiteURL(self):
         return "https://cams.com/" + self.username
@@ -17,15 +22,15 @@ class CamsCom(Bot):
         self.lastInfo = r.json()
         
         if 'stream_name' not in self.lastInfo:
-            return Bot.Status.NOTEXIST
+            return Status.NOTEXIST
         if self.lastInfo['online'] == '0':
-            return Bot.Status.OFFLINE
+            return Status.OFFLINE
         if self.lastInfo['online'] == '1':
-            return Bot.Status.PUBLIC
+            return Status.PUBLIC
         if self.lastInfo['online'] is not None:
-            return Bot.Status.PRIVATE
+            return Status.PRIVATE
             
-        return Bot.Status.UNKNOWN
+        return Status.UNKNOWN
 
 
 Bot.loaded_sites.add(CamsCom)

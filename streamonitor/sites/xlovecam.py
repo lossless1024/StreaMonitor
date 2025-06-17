@@ -1,5 +1,6 @@
 import requests
 from streamonitor.bot import Bot
+from streamonitor.enums import Status
 
 
 class XLoveCam(Bot):
@@ -40,7 +41,7 @@ class XLoveCam(Bot):
 
     def getStatus(self):
         if self._id is None:
-            return Bot.Status.NOTEXIST
+            return Status.NOTEXIST
 
         data = {
             'performerId': self._id,
@@ -48,21 +49,21 @@ class XLoveCam(Bot):
         r = requests.post(f'https://www.xlovecam.com/hu/performerAction/getPerformerRoom', headers=self.headers, data=data)
 
         if not r.ok:
-            return Bot.Status.UNKNOWN
+            return Status.UNKNOWN
         if 'content' not in r.json():
-            return Bot.Status.UNKNOWN
+            return Status.UNKNOWN
         if 'performer' not in r.json()['content']:
-            return Bot.Status.UNKNOWN
+            return Status.UNKNOWN
         self.lastInfo = r.json()['content']['performer']
 
         if not self.lastInfo.get('enabled'):
-            return Bot.Status.NOTEXIST
+            return Status.NOTEXIST
         if self.lastInfo.get('online') == 1:
-            return Bot.Status.PUBLIC
+            return Status.PUBLIC
         if 'hlsPlaylistFree' not in self.lastInfo:
-            return Bot.Status.PRIVATE
+            return Status.PRIVATE
         if self.lastInfo.get('online') == 0:
-            return Bot.Status.OFFLINE
-        return Bot.Status.UNKNOWN
+            return Status.OFFLINE
+        return Status.UNKNOWN
 
 Bot.loaded_sites.add(XLoveCam)

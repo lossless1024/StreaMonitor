@@ -1,10 +1,15 @@
 import requests
 from streamonitor.bot import Bot
+from streamonitor.enums import Status
 
 
 class CherryTV(Bot):
     site = 'Cherry.tv'
     siteslug = 'CHTV'
+
+    def __init__(self, username):
+        super().__init__(username)
+        self.url = self.getWebsiteURL()
 
     def getWebsiteURL(self):
         return "https://www.cherry.tv/" + self.username
@@ -21,12 +26,12 @@ class CherryTV(Bot):
         self.lastInfo = r.json()['data']['streamer']
         
         if not self.lastInfo:
-            return Bot.Status.NOTEXIST
+            return Status.NOTEXIST
         if not self.lastInfo['broadcast']:
-            return Bot.Status.OFFLINE
+            return Status.OFFLINE
         if self.lastInfo['broadcast']['showStatus'] == 'Public':
-            return Bot.Status.PUBLIC
-        return Bot.Status.UNKNOWN
+            return Status.PUBLIC
+        return Status.UNKNOWN
 
 
 Bot.loaded_sites.add(CherryTV)

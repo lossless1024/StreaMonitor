@@ -4,6 +4,7 @@ import requests
 from requests.cookies import RequestsCookieJar
 from streamonitor.bot import Bot
 from streamonitor.downloaders.hls import getVideoNativeHLS
+from streamonitor.enums import Status
 
 
 class ManyVids(Bot):
@@ -43,19 +44,19 @@ class ManyVids(Bot):
     def getStatus(self):
         r = requests.get('https://roompool.live.manyvids.com/roompool/' + self.username + '?private=false', headers=self.headers)
         if r.status_code != 200:
-            return Bot.Status.UNKNOWN
+            return Status.UNKNOWN
 
         self.lastInfo = r.json()
 
         if self.lastInfo['roomLocationReason'] == "ROOM_VALIDATION_FAILED":
-            return Bot.Status.NOTEXIST
+            return Status.NOTEXIST
         if self.lastInfo['roomLocationReason'] == "ROOM_OK":
             r = self.requestStreamInfo()
             if 'withCredentials' not in r.json():
-                return Bot.Status.OFFLINE
-            return Bot.Status.PUBLIC
+                return Status.OFFLINE
+            return Status.PUBLIC
 
-        return Bot.Status.UNKNOWN
+        return Status.UNKNOWN
 
 
 Bot.loaded_sites.add(ManyVids)

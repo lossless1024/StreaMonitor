@@ -1,5 +1,6 @@
 import requests
 from streamonitor.bot import Bot
+from streamonitor.enums import Status
 
 
 class StripChat(Bot):
@@ -9,6 +10,7 @@ class StripChat(Bot):
     def __init__(self, username):
         super().__init__(username)
         self.vr = False
+        self.url = self.getWebsiteURL()
 
     def getWebsiteURL(self):
         return "https://stripchat.com/" + self.username
@@ -35,18 +37,18 @@ class StripChat(Bot):
     def getStatus(self):
         r = requests.get('https://stripchat.com/api/vr/v2/models/username/' + self.username, headers=self.headers)
         if r.status_code != 200:
-            return Bot.Status.UNKNOWN
+            return Status.UNKNOWN
 
         self.lastInfo = r.json()
 
         if self.lastInfo["model"]["status"] == "public" and self.lastInfo["isCamAvailable"] and self.lastInfo['cam']["isCamActive"]:
-            return Bot.Status.PUBLIC
+            return Status.PUBLIC
         if self.lastInfo["model"]["status"] in ["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"]:
-            return Bot.Status.PRIVATE
+            return Status.PRIVATE
         if self.lastInfo["model"]["status"] in ["off", "idle"]:
-            return Bot.Status.OFFLINE
+            return Status.OFFLINE
         self.logger.warn(f'Got unknown status: {self.lastInfo["model"]["status"]}')
-        return Bot.Status.UNKNOWN
+        return Status.UNKNOWN
 
 
 Bot.loaded_sites.add(StripChat)
