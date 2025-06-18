@@ -1,4 +1,5 @@
 import errno
+import os
 import subprocess
 import sys
 
@@ -29,6 +30,10 @@ def getVideoFfmpeg(self, url, filename):
         '-c:v', 'copy',
     ])
 
+    suffix = ''
+    if hasattr(self, 'filename_extra_suffix'):
+        suffix = self.filename_extra_suffix
+
     if SEGMENT_TIME is not None:
         username = filename.rsplit('-', maxsplit=2)[0]
         cmd.extend([
@@ -36,11 +41,11 @@ def getVideoFfmpeg(self, url, filename):
             '-reset_timestamps', '1',
             '-segment_time', str(SEGMENT_TIME),
             '-strftime', '1',
-            f'{username}-%Y%m%d-%H%M%S.{CONTAINER}'
+            f'{username}-%Y%m%d-%H%M%S{suffix}.{CONTAINER}'
         ])
     else:
         cmd.extend([
-            filename
+            os.path.splitext(filename)[0] + suffix + '.' + CONTAINER
         ])
 
     class _Stopper:
