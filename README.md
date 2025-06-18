@@ -11,7 +11,8 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 | Cams.com      | `CC`         |                             |                        | Currently only 360p   |
 | CamSoda       | `CS`         |                             |                        | Yes                   |
 | Chaturbate    | `CB`         |                             |                        | Yes                   |
-| Dreamcam VR   | `DCVR`       |                             |                        | No                    |
+| DreamCam      | `DC`         |                             |                        | No                    |
+| DreamCam VR   | `DCVR`       |                             | for VR videos          | No                    |
 | Flirt4Free    | `F4F`        |                             |                        | Yes                   |
 | MyFreeCams    | `MFC`        |                             |                        | Yes                   |
 | SexChat.hu    | `SCHU`       |                             | use the id as username | No                    |
