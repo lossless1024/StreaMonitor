@@ -1,7 +1,7 @@
 from itertools import islice
 from typing import cast
 
-from flask import Flask, make_response, render_template, request, send_from_directory
+from flask import Flask, make_response, render_template, request, send_from_directory, Response
 import os
 import json
 import logging
@@ -70,10 +70,10 @@ class HTTPManager(Manager):
             json_status = {}
             for status in Status:
                 json_status[status.value] = Bot.status_messages[status]
-            return json.dumps({
+            return Response(json.dumps({
                 "sites": json_sites,
                 "status": json_status,
-            })
+            }), mimetype='application/json')
 
         @app.route('/api/data')
         @login_required
@@ -89,13 +89,13 @@ class HTTPManager(Manager):
                     "username": streamer.username
                 }
                 json_streamer.append(json_stream)
-            return json.dumps({
+            return Response(json.dumps({
                 "streamers": json_streamer,
                 "freeSpace": {
                     "percentage": str(round(OOSDetector.free_space(), 3)),
                     "absolute": humanReadbleSize(OOSDetector.space_usage().free)
                 }
-            })
+            }), mimetype='application/json')
 
         @app.route('/api/command')
         @login_required
