@@ -12,7 +12,14 @@ def getVideoWSSVR(self, url, filename):
     self.stopDownloadFlag = False
     error = False
     url = url.replace('fmp4s://', 'wss://')
-    tmpfilename = filename[:-len('.' + CONTAINER)] + '.tmp.mp4'
+
+    suffix = ''
+    if hasattr(self, 'filename_extra_suffix'):
+        suffix = self.filename_extra_suffix
+
+    basefilename = filename[:-len('.' + CONTAINER)]
+    filename = basefilename + suffix + '.' + CONTAINER
+    tmpfilename = basefilename + '.tmp.mp4'
 
     def debug_(message):
         self.debug(message, filename + '.log')
@@ -73,7 +80,7 @@ def getVideoWSSVR(self, url, filename):
         output_str = '-c:a copy -c:v copy'
         if SEGMENT_TIME is not None:
             output_str += f' -f segment -reset_timestamps 1 -segment_time {str(SEGMENT_TIME)}'
-            filename = filename[:-len('.' + CONTAINER)] + '_%03d.' + CONTAINER
+            filename = basefilename + '_%03d' + suffix + '.' + CONTAINER
         ff = FFmpeg(inputs={tmpfilename: '-ignore_editlist 1'}, outputs={filename: output_str})
         ff.run(stdout=stdout, stderr=stderr)
         os.remove(tmpfilename)
