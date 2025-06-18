@@ -5,7 +5,7 @@ import subprocess
 from threading import Thread
 from ffmpy import FFmpeg, FFRuntimeError
 from time import sleep
-from parameters import DEBUG, CONTAINER, SEGMENT_TIME
+from parameters import DEBUG, CONTAINER, SEGMENT_TIME, FFMPEG_PATH
 
 
 def getVideoNativeHLS(self, url, filename):
@@ -64,7 +64,7 @@ def getVideoNativeHLS(self, url, filename):
         if SEGMENT_TIME is not None:
             output_str += f' -f segment -reset_timestamps 1 -segment_time {str(SEGMENT_TIME)}',
             filename = filename[:-len('.' + CONTAINER)] + '_%03d.' + CONTAINER
-        ff = FFmpeg(inputs={tmpfilename: None}, outputs={filename: output_str})
+        ff = FFmpeg(executable=FFMPEG_PATH, inputs={tmpfilename: None}, outputs={filename: output_str})
         ff.run(stdout=stdout, stderr=stderr)
         os.remove(tmpfilename)
     except FFRuntimeError as e:

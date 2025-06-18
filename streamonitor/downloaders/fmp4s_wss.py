@@ -5,7 +5,7 @@ from threading import Thread
 from websocket import create_connection, WebSocketConnectionClosedException, WebSocketException
 from contextlib import closing
 from ffmpy import FFmpeg, FFRuntimeError
-from parameters import DEBUG, CONTAINER, SEGMENT_TIME
+from parameters import DEBUG, CONTAINER, SEGMENT_TIME, FFMPEG_PATH
 
 
 def getVideoWSSVR(self, url, filename):
@@ -81,7 +81,7 @@ def getVideoWSSVR(self, url, filename):
         if SEGMENT_TIME is not None:
             output_str += f' -f segment -reset_timestamps 1 -segment_time {str(SEGMENT_TIME)}'
             filename = basefilename + '_%03d' + suffix + '.' + CONTAINER
-        ff = FFmpeg(inputs={tmpfilename: '-ignore_editlist 1'}, outputs={filename: output_str})
+        ff = FFmpeg(executable=FFMPEG_PATH, inputs={tmpfilename: '-ignore_editlist 1'}, outputs={filename: output_str})
         ff.run(stdout=stdout, stderr=stderr)
         os.remove(tmpfilename)
     except FFRuntimeError as e:
