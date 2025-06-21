@@ -4,9 +4,9 @@ import math
 def human_file_size(size):
     units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB"]
     size = abs(size)
-    exponent = math.floor(math.log(size, 1024))
-    if exponent > len(units) - 1:
-        return f"{size:.1f}YiB"
+    exponent = 0
+    if size > 0:
+        exponent = min(math.floor(math.log(size, 1024)), len(units) - 1)
     humansize = size / (1024 ** exponent)
     if humansize >= 1000:
         return f"{humansize:.4g}{units[exponent]}"
