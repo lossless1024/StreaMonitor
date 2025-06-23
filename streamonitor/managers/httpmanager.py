@@ -174,7 +174,7 @@ class HTTPManager(Manager):
 
         @app.route('/video/<user>/<site>/<path:filename>', methods=['GET'])
         def get_video(user, site, filename):
-            streamer = cast(Bot | None, self.getStreamer(user, site))
+            streamer = cast(Union[Bot, None], self.getStreamer(user, site))
             return send_from_directory(
                 os.path.abspath(streamer.outputFolder),
                 filename
@@ -184,7 +184,7 @@ class HTTPManager(Manager):
         @login_required
         def watch_video(user, site, play_video):
             sort_by_size = bool(request.args.get("sorted", False))
-            streamer = cast(Bot | None, self.getStreamer(user, site))
+            streamer = cast(Union[Bot, None], self.getStreamer(user, site))
             context = get_streamer_context(streamer, sort_by_size, play_video, request.headers.get('User-Agent'))
             status_code = 500 if context['video_to_play'] is None or context['has_error'] else 200
             response = make_response(render_template('recordings_content.html.jinja', **context), status_code)
@@ -195,7 +195,7 @@ class HTTPManager(Manager):
         @app.route('/videos/<user>/<site>', methods=['GET'])
         @login_required
         def sort_videos(user, site):
-            streamer = cast(Bot | None, self.getStreamer(user, site))
+            streamer = cast(Union[Bot, None], self.getStreamer(user, site))
             sort_by_size = bool(request.args.get("sorted", False))
             play_video = request.args.get("play_video", None)
             context = get_streamer_context(streamer, sort_by_size, play_video, request.headers.get('User-Agent'))
@@ -208,7 +208,7 @@ class HTTPManager(Manager):
         @app.route('/videos/<user>/<site>/<path:filename>', methods=['DELETE'])
         @login_required
         def delete_video(user, site, filename):
-            streamer = cast(Bot | None, self.getStreamer(user, site))
+            streamer = cast(Union[Bot, None], self.getStreamer(user, site))
             sort_by_size = bool(request.args.get("sorted", False))
             play_video = request.args.get("play_video", None)
             context = get_streamer_context(streamer, sort_by_size, play_video, request.headers.get('User-Agent'))
