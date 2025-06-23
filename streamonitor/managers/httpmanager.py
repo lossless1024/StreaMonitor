@@ -1,5 +1,5 @@
 from itertools import islice
-from typing import cast
+from typing import cast, Union
 
 from flask import Flask, make_response, render_template, request, send_from_directory, Response
 import os
@@ -161,7 +161,7 @@ class HTTPManager(Manager):
         def recordings(user, site):
             video = request.args.get("play_video")
             sort_by_size = bool(request.args.get("sorted", False))
-            streamer = cast(Bot | None, self.getStreamer(user, site))
+            streamer = cast(Union[Bot, None], self.getStreamer(user, site))
             context = get_streamer_context(streamer, sort_by_size, video, request.headers.get('User-Agent'))
             status_code = 500 if context['has_error'] else 200
             if video is None and streamer.recording and len(context['videos']) > 1:
