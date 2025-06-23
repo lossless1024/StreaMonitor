@@ -1,3 +1,4 @@
+import time
 import requests
 from streamonitor.bot import Bot
 from streamonitor.enums import Status
@@ -8,20 +9,30 @@ class SexChatHU(Bot):
     site = 'SexChatHU'
     siteslug = 'SCHU'
 
+    _performers_list_cache = None
+    _performers_list_cache_timestamp = 0
+
     def __init__(self, username, room_id=None):
+        super().__init__(username)
         if room_id:
             self.room_id = room_id
-            self.username = username
-        else:
-            try:
-                int(username)
-            except Exception:
-                raise 'Use the room number from the URL instead the name'
+        elif username.isnumeric():
             self.room_id = username
-            self.getStatus()
-            username = self.lastInfo.get('screenName')
-            self.lastInfo = {}
-        super().__init__(username)
+        else:
+            if SexChatHU._performers_list_cache_timestamp < time.time() - 60 * 60 or \
+                    SexChatHU._performers_list_cache is None:  # Cache for 1 hour
+                req = requests.get('https://sexchat.hu/ajax/api/roomList/babes', headers=self.headers)
+                SexChatHU._performers_list_cache = req.json()
+                SexChatHU._performers_list_cache_timestamp = time.time()
+            for performer in SexChatHU._performers_list_cache:
+                if performer['screenname'] == username:
+                    self.room_id = str(performer['perfid'])
+                    self.username = performer['screenname']
+                    break
+            else:
+                super().__init__(username)
+                self.sc = Status.NOTEXIST
+                return
         self.url = self.getWebsiteURL()
 
     def getWebsiteURL(self):
