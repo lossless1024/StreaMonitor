@@ -1,8 +1,10 @@
+import os.path
 import environ
 
 
 env = environ.Env()
-environ.Env.read_env()
+if os.path.exists('.env'):
+    environ.Env.read_env('.env')
 
 
 DOWNLOADS_DIR = env.str("STRMNTR_DOWNLOAD_DIR", "downloads")
