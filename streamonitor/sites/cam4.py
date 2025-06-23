@@ -15,6 +15,8 @@ class Cam4(Bot):
         return "https://hu.cam4.com/" + self.username
     
     def getVideoUrl(self):
+        if 'cdnURL' not in self.lastInfo:
+            return None
         return self.getWantedResolutionPlaylist(self.lastInfo['cdnURL'])
 
     def getStatus(self):
