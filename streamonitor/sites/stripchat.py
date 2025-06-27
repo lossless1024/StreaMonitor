@@ -1,16 +1,30 @@
+import datetime
+import json
+import os
+from json import JSONDecodeError
+
 import requests
+from websocket import WebSocketApp
+
 from streamonitor.bot import Bot
+from streamonitor.bot_chat import ChatCollectingMixin
 from streamonitor.enums import Status
 
 
-class StripChat(Bot):
+class StripChat(ChatCollectingMixin, Bot):
     site = 'StripChat'
     siteslug = 'SC'
 
+    _initial_data = {}
+
     def __init__(self, username):
+        if StripChat._initial_data == {}:
+            self.getInitialData()
         super().__init__(username)
         self.vr = False
         self.url = self.getWebsiteURL()
+        self._model_id = None
+        self._chat_websocket = None
 
     def getWebsiteURL(self):
         return "https://stripchat.com/" + self.username
@@ -41,6 +55,9 @@ class StripChat(Bot):
 
         self.lastInfo = r.json()
 
+        if self._model_id is None:
+            self._model_id = self.lastInfo["model"]['id']
+
         if self.lastInfo["model"]["status"] == "public" and self.lastInfo["isCamAvailable"] and self.lastInfo['cam']["isCamActive"]:
             return Status.PUBLIC
         if self.lastInfo["model"]["status"] in ["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"]:
@@ -49,6 +66,68 @@ class StripChat(Bot):
             return Status.OFFLINE
         self.logger.warn(f'Got unknown status: {self.lastInfo["model"]["status"]}')
         return Status.UNKNOWN
+
+    def getInitialData(self):
+        r = requests.get('https://stripchat.com/api/front/v3/config/initial', headers=self.headers)
+        if r.status_code != 200:
+            raise Exception("Failed to fetch initial data from StripChat")
+        StripChat._initial_data = r.json().get('initial')
+
+    def prepareChatLog(self, message_callback):
+        if 'client' not in StripChat._initial_data or not 'websocket' in StripChat._initial_data['client']:
+            self.log("No initial data")
+            return
+
+        _ws_initial = StripChat._initial_data['client']['websocket']
+
+        if not self._model_id:
+            self.getStatus()
+        if not self._model_id:
+            return
+        model_id = str(self._model_id)
+
+        def on_open(ws):
+            ws.send('{"connect":{"token":"' + _ws_initial['token'] + '","name":"js"},"id":1}')
+            ws.send('{"subscribe":{"channel":"newChatMessage@' + model_id + '"},"id":2}')
+            self.log('Chat logger connected')
+
+        def on_message(conn, t):
+            if t == '{}':  # ping
+                conn.send('{}')
+                self.debug('pingpong')
+
+            elif 'newChatMessage@' in t:  # message
+                tss = t.split('\n')
+                for ts in tss:
+                    try:
+                        tj = json.loads(ts)
+                    except json.JSONDecodeError:
+                        self.log(f"Failed to decode JSON message: {message}")
+                        return
+
+                    if 'push' in tj:
+                        if tj['push']['channel'] == 'newChatMessage@' + model_id:
+                            message = tj['push']['pub']['data']['message']
+                            username = message['userData']['username']
+                            if message['type'] == 'text':
+                                text = message['details']['body']
+                                self.debug(f"{datetime.datetime.now().timestamp()!s} - {username}: {text}")
+                                try:
+                                    message_callback(username, text)
+                                except Exception as e:
+                                    self.log(f"Error processing message callback: {e}")
+
+
+        from websocket import WebSocketApp
+        self._chat_websocket = WebSocketApp(_ws_initial['url'], on_open=on_open, on_message=on_message)
+
+    def startChatLog(self):
+        self.log('Starting chat logger')
+        self._chat_websocket.run_forever()
+
+    def stopChatLog(self):
+        self.log('Stopping chat logger')
+        self._chat_websocket.close()
 
 
 Bot.loaded_sites.add(StripChat)

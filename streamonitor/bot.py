@@ -136,6 +136,9 @@ class Bot(Thread):
             if self.quitting or not self.running:
                 return
 
+    def getVideoWrapper(self, url, filename):
+        return self.getVideo(self, url, filename)
+
     def run(self):
         while not self.quitting:
             while not self.running and not self.quitting:
@@ -182,7 +185,7 @@ class Bot(Thread):
                             self.log('Started downloading show')
                             self.recording = True
                             file = self.genOutFilename()
-                            ret = self.getVideo(self, video_url, file)
+                            ret = self.getVideoWrapper(video_url, file)
                             if not ret:
                                 self.sc = Status.ERROR
                                 self.log(self.status())
