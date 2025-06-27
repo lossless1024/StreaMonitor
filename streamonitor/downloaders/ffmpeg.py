@@ -25,7 +25,7 @@ def getVideoFfmpeg(self, url, filename):
         ])
 
     cmd.extend([
-        '-re',
+        '-readrate', '1.3',
         '-max_reload', '20',
         '-seg_max_retry', '20',
         '-m3u8_hold_counters', '20',
