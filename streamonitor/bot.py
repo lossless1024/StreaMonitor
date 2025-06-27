@@ -3,7 +3,6 @@ import os
 import traceback
 
 import m3u8
-from enum import Enum
 from time import sleep
 from datetime import datetime
 from threading import Thread
@@ -16,6 +15,7 @@ import streamonitor.log as log
 from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, CONTAINER, HTTP_USER_AGENT
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 from streamonitor.mappers import web_status_lookup, status_icons_lookup
+from streamonitor.models import VideoData
 
 
 class Bot(Thread):
@@ -69,15 +69,15 @@ class Bot(Thread):
         self.getVideo = getVideoFfmpeg
         self.stopDownload = None
         self.recording = False
+        self.video_files = []
+        self.video_files_total_size = 0
+        self.cache_file_list()
 
     def getLogger(self):
         return log.Logger("[" + self.siteslug + "] " + self.username).get_logger()
 
     def restart(self):
         self.running = True
-
-    def getWebsiteURL(self):
-        return "javascript:void(0)"
 
     def stop(self, a, b, thread_too=False):
         if self.running:
@@ -122,6 +122,26 @@ class Bot(Thread):
         else:
             message = status_icons_lookup.get(self.sc) or status_icons_lookup.get(Status.UNKNOWN)
         return message
+
+    def getWebsiteURL(self):
+        return "javascript:void(0)"
+
+    def cache_file_list(self):
+        videos_folder = self.outputFolder
+        _videos = []
+        _total_size = 0
+        if os.path.isdir(videos_folder):
+            try:
+                for file in os.scandir(videos_folder):
+                    if file.is_dir():
+                        continue
+                    video = VideoData(file, self.username)
+                    _total_size += video.filesize
+                    _videos.append(video)
+            except Exception as e:
+                self.logger.warning(e)
+        self.video_files = _videos
+        self.video_files_total_size = _total_size
 
     def _sleep(self, time):
         while time > 0:
@@ -184,6 +204,7 @@ class Bot(Thread):
                                 continue
                             self.recording = False
                             self.log('Recording ended')
+                            self.cache_file_list()
                 except Exception as e:
                     self.logger.exception(e)
                     self.log(self.status())
@@ -222,7 +243,7 @@ class Bot(Thread):
         if not variant_m3u8.is_variant and len(sources) >= 1:
             self.logger.warn("Not variant playlist, can't select resolution")
             return None
-        return sources #  [(url, (width, height)),...]
+        return sources  # [(url, (width, height)),...]
 
     def getWantedResolutionPlaylist(self, url):
         try:
@@ -293,7 +314,7 @@ class Bot(Thread):
 
     @property
     def outputFolder(self):
-        return os.path.join(DOWNLOADS_DIR, self.username + ' [' + self.siteslug + ']')
+        return str(os.path.join(DOWNLOADS_DIR, self.username + ' [' + self.siteslug + ']'))
 
     def genOutFilename(self, create_dir=True):
         folder = self.outputFolder
@@ -314,8 +335,10 @@ class Bot(Thread):
                     site == sitecls.siteslug.lower() or \
                     site in sitecls.aliases:
                 return sitecls
+        return None
 
     @staticmethod
     def createInstance(username: str, site: str = None):
         if site:
             return Bot.str2site(site)(username)
+        return None

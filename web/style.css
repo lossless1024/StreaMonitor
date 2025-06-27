@@ -748,6 +748,10 @@ a {
             margin-left: 1rem;
             margin-block: 0.5rem;
         }
+        td.streamer-disk-usage {
+            grid-area: trash;
+            text-align: end;
+        }
     }
 }
 

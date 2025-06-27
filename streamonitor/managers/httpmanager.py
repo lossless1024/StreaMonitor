@@ -217,6 +217,7 @@ class HTTPManager(Manager):
             if match is not None:
                 try:
                     os.remove(match.abs_path)
+                    streamer.cache_file_list()
                     context['total_size'] = context['total_size'] - match.filesize
                     if context['video_to_play'] is not None and filename == context['video_to_play'].filename:
                         context['video_to_play'] = None
