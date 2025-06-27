@@ -6,19 +6,20 @@ import os
 import json
 import logging
 
+from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD, WEB_LIST_FREQUENCY, WEB_STATUS_FREQUENCY
+import streamonitor.log as log
 from functools import wraps
+from secrets import compare_digest
 from streamonitor.bot import Bot
 from streamonitor.enums import Status
-import streamonitor.log as log
 from streamonitor.manager import Manager
 from streamonitor.managers.outofspace_detector import OOSDetector
-from streamonitor.models import InvalidStreamer
-from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD, WEB_LIST_FREQUENCY, WEB_STATUS_FREQUENCY
-from secrets import compare_digest
+from streamonitor.utils import human_file_size
 
-from streamonitor.utils import confirm_deletes, streamer_list, get_recording_query_params, get_streamer_context, \
-    human_file_size
-from streamonitor.mappers import web_status_lookup, status_icons_lookup
+from .filters import status_icon, status_text
+from .mappers import web_status_lookup, status_icons_lookup
+from .models import InvalidStreamer
+from .utils import confirm_deletes, streamer_list, get_recording_query_params, get_streamer_context
 
 
 class HTTPManager(Manager):
@@ -27,21 +28,12 @@ class HTTPManager(Manager):
         self.logger = log.Logger("manager")
 
     def run(self):
-        app = Flask(__name__, "", "../../web", template_folder="../../templates")
+        app = Flask(__name__, "")
         werkzeug_logger = logging.getLogger('werkzeug')
         werkzeug_logger.disabled = True
 
         app.add_template_filter(human_file_size, name='tohumanfilesize')
-
-        def status_icon(sc):
-            return status_icons_lookup.get(sc) or status_icons_lookup.get(Status.UNKNOWN)
         app.add_template_filter(status_icon, name='status_icon_class')
-
-        def status_text(sc):
-            if sc:
-                return web_status_lookup.get(sc, web_status_lookup[Status.OFFLINE])
-            else:
-                return web_status_lookup.get(Status.UNKNOWN)
         app.add_template_filter(status_text, name='status_text')
 
         def check_auth(username, password):

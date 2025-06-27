@@ -9,7 +9,7 @@ from streamonitor.models.video_data import VideoData
 
 if TYPE_CHECKING:
     from streamonitor.bot import Bot
-    from streamonitor.models import StreamerContext
+    from streamonitor.managers.httpmanager.models import StreamerContext
 
 
 _logger = log.Logger("utils")
