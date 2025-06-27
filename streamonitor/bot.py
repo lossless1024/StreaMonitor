@@ -131,7 +131,7 @@ class Bot(Thread):
         while time > 0:
             sleep(1)
             time -= 1
-            if self.quitting:
+            if self.quitting or not self.running:
                 return
 
     def run(self):
