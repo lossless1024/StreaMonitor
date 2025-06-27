@@ -44,7 +44,7 @@
                 <select name="site" id="site" class="drop-down" required="required">
                     {% set default_site = streamers[-1].site if streamers|length > 0 else '' %}
                     {% for site in sites %}
-                        <option value="{{ site.site }}" {% if site.site == default_site %}selected="selected"{% endif %}>{{ site.site }}</option>
+                        <option value="{{ site }}" {% if site == default_site %}selected="selected"{% endif %}>{{ site }}</option>
                     {% endfor %}
                 </select>
             </label>

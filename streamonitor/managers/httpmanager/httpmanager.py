@@ -26,6 +26,8 @@ class HTTPManager(Manager):
     def __init__(self, streamers):
         super().__init__(streamers)
         self.logger = log.Logger("manager")
+        self.loaded_site_names = [site.site for site in Bot.loaded_sites]
+        self.loaded_site_names.sort()
 
     def run(self):
         app = Flask(__name__, "")
@@ -108,7 +110,7 @@ class HTTPManager(Manager):
             streamers, filtered = streamer_list(self.streamers, username_filter, site_filter, status_filter)
             context = {
                 'streamers': streamers,
-                'sites': Bot.loaded_sites,
+                'sites': self.loaded_site_names,
                 'unique_sites': set(map(lambda x: x.site, self.streamers)),
                 'streamer_statuses': web_status_lookup,
                 'free_space': human_file_size(usage.free),
