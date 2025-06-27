@@ -1,8 +1,12 @@
 services:
   streamonitor:
+# If you want to build locally, use this instead the image line below:
+#    build: ./
+#    image: streamonitor:latest
+
+    image: ghcr.io/lossless1024/streamonitor:latest
+
     restart: unless-stopped
-    build: ./
-    image: streamonitor:latest
     environment:
       # set timzeone
       #TZ: Etc/UTC
