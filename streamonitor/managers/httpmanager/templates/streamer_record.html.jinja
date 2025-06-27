@@ -1,15 +1,9 @@
 {% if streamer is not none %}
 <tr id="streamer-{{ streamer.siteslug|lower }}-{{ streamer.username }}" class="streamer">
     <td class="icon-container">
-        {% if streamer.recording %}
-            <div title="Recording" class="status-indicator arrow-down-circle">
-                <i class="icon feather icon-arrow-down-circle"></i>
-            </div>
-        {% else %}
-            <div title="{{ streamer.sc | status_text }}" class="status-indicator {{ streamer.sc | status_icon_class }}">
-                <i class="icon feather icon-{{ streamer.sc | status_icon_class }}"></i>
-            </div>
-        {% endif %}
+        <div title="{{ streamer.sc | status_text }}" class="status-indicator {{ streamer | status_icon_class }}">
+            <i class="icon feather icon-{{ streamer | status_icon_class }}"></i>
+        </div>
     </td>
     <td class="site-container">
         <a class="streamer-link link-fill" target="_blank" href="{{ streamer.url }}">

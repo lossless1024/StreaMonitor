@@ -1,5 +1,5 @@
 {% set refresh_interval = 'hx-swap="outerHTML" hx-get="/recording/nav/{user}/{site}" hx-sync="#video-list:abort" hx-include=".streamer-context" hx-trigger="every {interval}s"'.format(interval=refresh_freq, user=streamer.username, site=streamer.site) %}
-{% set icon = streamer.sc | status_icon_class %}
+{% set icon = streamer | status_icon_class %}
 <nav id="nav-bar" class="nav {{ 'has-error' if has_error }}" {{ refresh_interval if refresh_freq and refresh_freq > 0}}>
     <a class="home-link" href="/#streamer-{{ streamer.siteslug|lower }}-{{ streamer.username }}"><i class="icon feather icon-home"></i></a>
     <div class="streamer-info">

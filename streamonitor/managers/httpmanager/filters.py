@@ -9,5 +9,7 @@ def status_text(sc):
         return web_status_lookup.get(Status.UNKNOWN)
 
 
-def status_icon(sc):
-    return status_icons_lookup.get(sc) or status_icons_lookup.get(Status.UNKNOWN)
+def status_icon(streamer):
+    if streamer.recording:
+        return 'arrow-down-circle'
+    return status_icons_lookup.get(streamer.sc) or status_icons_lookup.get(Status.UNKNOWN)
