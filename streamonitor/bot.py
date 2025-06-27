@@ -14,7 +14,6 @@ from streamonitor.enums import Status
 import streamonitor.log as log
 from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, CONTAINER, HTTP_USER_AGENT
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
-from streamonitor.mappers import web_status_lookup, status_icons_lookup
 from streamonitor.models import VideoData
 
 
@@ -106,21 +105,6 @@ class Bot(Thread):
         message = self.status_messages.get(self.sc) or self.status_messages.get(Status.UNKNOWN)
         if self.sc == Status.NOTEXIST:
             self.running = False
-        return message
-    
-    @property
-    def web_status(self):
-        if self.sc:
-            return web_status_lookup.get(self.sc, web_status_lookup[Status.OFFLINE])
-        else:
-            return web_status_lookup.get(Status.UNKNOWN)
-
-    @property
-    def status_icon(self):
-        if self.recording:
-            message = 'arrow-down-circle'
-        else:
-            message = status_icons_lookup.get(self.sc) or status_icons_lookup.get(Status.UNKNOWN)
         return message
 
     def getWebsiteURL(self):

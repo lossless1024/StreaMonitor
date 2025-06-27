@@ -18,7 +18,7 @@ from secrets import compare_digest
 
 from streamonitor.utils import confirm_deletes, streamer_list, get_recording_query_params, get_streamer_context, \
     human_file_size
-from streamonitor.mappers import web_status_lookup
+from streamonitor.mappers import web_status_lookup, status_icons_lookup
 
 
 class HTTPManager(Manager):
@@ -32,6 +32,17 @@ class HTTPManager(Manager):
         werkzeug_logger.disabled = True
 
         app.add_template_filter(human_file_size, name='tohumanfilesize')
+
+        def status_icon(sc):
+            return status_icons_lookup.get(sc) or status_icons_lookup.get(Status.UNKNOWN)
+        app.add_template_filter(status_icon, name='status_icon_class')
+
+        def status_text(sc):
+            if sc:
+                return web_status_lookup.get(sc, web_status_lookup[Status.OFFLINE])
+            else:
+                return web_status_lookup.get(Status.UNKNOWN)
+        app.add_template_filter(status_text, name='status_text')
 
         def check_auth(username, password):
             return WEBSERVER_PASSWORD == "" or (username == 'admin' and compare_digest(password, WEBSERVER_PASSWORD))
@@ -48,13 +59,6 @@ class HTTPManager(Manager):
                 return f(**kwargs)
 
             return wrapped_view
-
-        def humanReadbleSize(num, suffix="B"):
-            for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
-                if abs(num) < 1024.0:
-                    return f"{num:3.1f}{unit}{suffix}"
-                num /= 1024.0
-            return f"{num:.1f}Yi{suffix}"
 
         @app.route('/dashboard')
         @login_required
@@ -93,7 +97,7 @@ class HTTPManager(Manager):
                 "streamers": json_streamer,
                 "freeSpace": {
                     "percentage": str(round(OOSDetector.free_space(), 3)),
-                    "absolute": humanReadbleSize(OOSDetector.space_usage().free)
+                    "absolute": human_file_size(OOSDetector.space_usage().free)
                 }
             }), mimetype='application/json')
 
@@ -273,7 +277,7 @@ class HTTPManager(Manager):
             previous_state = request.args.get("prev_state", False)
             streamer_context = {}
             # need this from the UI perspective to know whether to update due to polling windows
-            if previous_state != streamer.status_icon:
+            if previous_state != streamer.sc:
                 streamer_context = get_streamer_context(
                     streamer, sort_by_size, play_video, request.headers.get('User-Agent'))
             status_code = 200
@@ -302,6 +306,7 @@ class HTTPManager(Manager):
                 status_code = 500
                 res = f"Could not get info for {user} on site {site}"
                 has_error = True
+            streamer.cache_file_list()
             context = {
                 'streamer': streamer,
                 'streamer_has_error': has_error,

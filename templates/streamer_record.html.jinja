@@ -1,5 +1,16 @@
 {% if streamer is not none %}
 <tr id="streamer-{{ streamer.siteslug|lower }}-{{ streamer.username }}" class="streamer">
+    <td class="icon-container">
+        {% if streamer.recording %}
+            <div title="Recording" class="status-indicator arrow-down-circle">
+                <i class="icon feather icon-arrow-down-circle"></i>
+            </div>
+        {% else %}
+            <div title="{{ streamer.sc | status_text }}" class="status-indicator {{ streamer.sc | status_icon_class }}">
+                <i class="icon feather icon-{{ streamer.sc | status_icon_class }}"></i>
+            </div>
+        {% endif %}
+    </td>
     <td class="site-container">
         <a class="streamer-link link-fill" target="_blank" href="{{ streamer.url }}">
             <span class="link-text">{{ streamer.site }}</span><span class="mobile-link-text">{{ streamer.siteslug }}</span>
@@ -7,7 +18,7 @@
     </td>
     <td class="streamer-container"><a class="link-fill" href="/recordings/{{ streamer.username }}/{{ streamer.site }}">{{ streamer.username }}</a></td>
     <td class="streamer-will-record">
-        <span class="recording-status {{'not-recording' if not streamer.running }}">{{ streamer.running }}</span>
+        <span class="recording-status {{'not-recording' if not streamer.running }}">{% if streamer.running %}Yes{% else %}No{% endif %}</span>
         <button class="{{'pause-btn' if streamer.running else 'record-btn' }}" 
             hx-patch="/toggle/{{ streamer.username }}/{{ streamer.site }}"
             hx-trigger="click"
@@ -24,8 +35,10 @@
             {% endif %}
         </button>
     </td>
-    <td class="streamer-status">
-        <span class="streamer-status-text">{{ streamer.web_status }}</span>
+    <td class="center">{{ streamer.sc | status_text }}</td>
+    <td class="right-align">{{ streamer.video_files_total_size | tohumanfilesize(fix_decimals=2) }}</td>
+    <td class="right-align">{{ streamer.video_files | count }}</td>
+    <td class="center">
         <button hx-get="/streamer-info/{{ streamer.username }}/{{ streamer.site }}"
             hx-trigger="click"
             hx-target="closest .streamer"
@@ -35,7 +48,7 @@
             <i class="icon feather icon-refresh-cw"></i>
         </button>
     </td>
-    <td class="streamer-remove">
+    <td class="center">
         <button hx-delete="/remove/{{ streamer.username }}/{{ streamer.site }}"
             hx-trigger="click"
             hx-target="closest .streamer"
@@ -46,9 +59,6 @@
             class="modify-streamers delete-streamer">
             <i class="icon feather icon-trash-2"></i>
         </button>
-    </td>
-    <td class="streamer-disk-usage">
-        {{ streamer.video_files_total_size | tohumanfilesize }} in {{ streamer.video_files | count }} videos
     </td>
 </tr>
 {% endif %}

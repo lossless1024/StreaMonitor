@@ -16,9 +16,6 @@ img, picture, video, canvas, svg {
     max-width: 100%;
 }
 
-input, button, textarea, select {
-    font: inherit;
-}
 
 button,
 input[type='button'],
@@ -61,8 +58,7 @@ input, textarea, select {
     font-weight: 400;
 }
 
-input,
-select {
+input, select {
     padding-block: 1px;
     padding-inline: 0.25rem;
 }
@@ -164,6 +160,10 @@ a {
     text-align: left;
 }
 
+.right-align {
+    text-align: right;
+}
+
 .link-fill {
     display: flex;
     height: 100%;
@@ -211,6 +211,71 @@ a {
         & span {
             margin: 0.5rem;
         }
+    }
+}
+
+.status-indicator {
+    color: white;
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+
+    &.arrow-down-circle {
+        background-color: #128fa8;
+
+        i {
+            background: linear-gradient(#F7F7F7, #0f0, #F7F7F7);
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: downloading 6s ease-in-out infinite;
+            background-size: 100% 400%;
+        }
+    }
+
+    &.help-circle {
+        background-color: #EAC9CF;
+        color: #206898;
+    }
+
+    &.eye {
+        background-color: #6AA84F
+    }
+
+    &.video-off {
+        background-color: #7F7F7F;
+    }
+
+    &.eye-off {
+        background-color: #F28C23;
+    }
+
+    &.bell-off {
+        color: #888;
+    }
+
+    &.alert-octagon, &.minus-circle, &.x-octagon {
+        background-color: #801818;
+        color: #F7F7F7;
+    }
+
+    &.alert-triangle {
+        background-color: #FFD24D;
+        color: #7F7F7F;
+    }
+
+    .feather {
+        font-size: 1.5rem;
+    }
+
+    .icon-video-off,
+    .icon-eye-off,
+    .icon-bell-off {
+        font-size: 1.3rem;
     }
 }
 
@@ -300,70 +365,6 @@ a {
         justify-content: center;
         gap: 0.5rem;
         align-items: center;
-
-        .status-indicator {
-            color: white;
-            border-radius: 50%;
-            width: 2rem;
-            height: 2rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: 700;
-
-            &.help-circle {
-                background-color: #EAC9CF;
-                color: #206898;
-            }
-
-            &.arrow-down-circle {
-                background-color: #128fa8;
-
-                .icon-arrow-down-circle {
-                    background: linear-gradient(#F7F7F7, #0f0, #F7F7F7);
-                    -webkit-background-clip: text;
-                    background-clip: text;
-                    color: transparent;
-                    animation: downloading 6s ease-in-out infinite;
-                    background-size: 100% 400%;
-                }
-            }
-
-            &.eye {
-                background-color: #6AA84F
-            }
-
-            &.bell-off,
-            &.video-off {
-                background-color: #7F7F7F;
-            }
-
-            &.eye-off {
-                background-color: #F28C23;
-            }
-
-            &.alert-octagon,
-            &.minus-circle,
-            &.x-octagon {
-                background-color: #801818;
-                color: #F7F7F7;
-            }
-
-            &.alert-triangle {
-                background-color: #FFD24D;
-                color: #7F7F7F;
-            }
-
-            .feather {
-                font-size: 1.5rem;
-            }
-
-            .icon-video-off,
-            .icon-eye-off,
-            .icon-bell-off {
-                font-size: 1.3rem;
-            }
-        }
     }
 
     h1 {
@@ -420,11 +421,12 @@ a {
     .du-space {
         display: flex;
         flex-direction: column;
+        text-align: right;
     }
 
     .du-label-free,
     .du-label-total {
-        text-align: end;
+        text-align: left;
     }
 }
 
@@ -591,6 +593,10 @@ a {
         }
     }
 
+    .icon-container {
+        width: 0;
+    }
+
     .streamer {
         scroll-margin-top: 45vh;
     }
@@ -617,11 +623,6 @@ a {
         i.feather {
             font-size: 1.25rem;
         }
-    }
-
-    .streamer-status,
-    .streamer-remove {
-        text-align: center;
     }
 
     .pause-btn {

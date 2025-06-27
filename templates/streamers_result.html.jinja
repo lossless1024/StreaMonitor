@@ -1,12 +1,15 @@
 {% if streamers|length > 0 %}
 <table class="streamers-list">
     <thead><tr>
+        <th></th>
         <th class="header-site left-align">Site</th>
         <th class="header-streamer-name left-align">Username</th>
         <th class="header-running">Running</th>
         <th class="header-status">Status</th>
+        <th class="right-align">Total Size</th>
+        <th class="right-align">Videos count</th>
+        <th class="header-remove">Refresh</th>
         <th class="header-remove">Remove</th>
-        <th>Total Size</th>
     </tr></thead>
     <tbody>
     {% for streamer in streamers %}
