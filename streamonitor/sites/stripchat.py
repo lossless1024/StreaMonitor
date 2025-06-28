@@ -91,6 +91,30 @@ class StripChat(ChatCollectingMixin, Bot):
             ws.send('{"subscribe":{"channel":"newChatMessage@' + model_id + '"},"id":2}')
             self.log('Chat logger connected')
 
+            try:
+                req = requests.get(
+                    f"https://hu.stripchat.com/api/front/v2/models/username/{self.username}/chat?source=regular",
+                    headers=self.headers
+                )
+                if req.status_code != 200:
+                    return
+                prev_data = req.json()
+                if 'messages' in prev_data:
+                    previous_chat_messages = req.json()['messages']
+                    for message in previous_chat_messages:
+                        if message['type'] != 'text':
+                            continue
+                        timestamp = datetime.datetime.strptime(message['createdAt'], "%Y-%m-%dT%H:%M:%SZ").timestamp()
+                        username = message['userData']['username']
+                        text = message['details']['body']
+                        try:
+                            message_callback(username, text, timestamp=timestamp, initial=True)
+                        except Exception as e:
+                            self.log(f"Error processing message callback: {e}")
+                    self.debug('Loaded previous messages')
+            except Exception as e:
+                self.log(f"Failed to load previous messages: {e}")
+
         def on_message(conn, t):
             if t == '{}':  # ping
                 conn.send('{}')
@@ -117,9 +141,11 @@ class StripChat(ChatCollectingMixin, Bot):
                                 except Exception as e:
                                     self.log(f"Error processing message callback: {e}")
 
+        def on_close(conn):
+            self.log('Chat logger disconnected')
 
-        from websocket import WebSocketApp
-        self._chat_websocket = WebSocketApp(_ws_initial['url'], on_open=on_open, on_message=on_message)
+        self._chat_websocket = WebSocketApp(
+            _ws_initial['url'], on_open=on_open, on_message=on_message, on_close=on_close)
 
     def startChatLog(self):
         self.log('Starting chat logger')

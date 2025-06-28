@@ -106,11 +106,11 @@ class ChatCollectingMixin:
         def handle_chat_message(username, message, timestamp=None, initial=False):
             if not timestamp:
                 timestamp = datetime.datetime.now().timestamp()
-            relative_time = timestamp - start_timestamp
             for file in chat_log_files:
                 if initial:
-                    file.writeInitialMessage(timestamp, relative_time, username, message)
+                    file.writeInitialMessage(timestamp, 0, username, message)
                 else:
+                    relative_time = timestamp - start_timestamp
                     file.writeMessage(timestamp, relative_time, username, message)
 
         self.prepareChatLog(handle_chat_message)
