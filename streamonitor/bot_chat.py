@@ -114,9 +114,11 @@ class ChatCollectingMixin:
                     file.writeMessage(timestamp, relative_time, username, message)
 
         self.prepareChatLog(handle_chat_message)
+        self.log("Starting chat logger")
         chat_thread = Thread(target=self.startChatLog)
         chat_thread.start()
 
         super().getVideoWrapper(url, filename)
+        self.log("Stopping chat logger")
         self.stopChatLog()
         del chat_log_files[:]

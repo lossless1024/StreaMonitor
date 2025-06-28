@@ -148,11 +148,9 @@ class StripChat(ChatCollectingMixin, Bot):
             _ws_initial['url'], on_open=on_open, on_message=on_message, on_close=on_close)
 
     def startChatLog(self):
-        self.log('Starting chat logger')
         self._chat_websocket.run_forever()
 
     def stopChatLog(self):
-        self.log('Stopping chat logger')
         self._chat_websocket.close()
 
 

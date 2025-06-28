@@ -1,11 +1,16 @@
 import time
 import requests
+import socketio
+import engineio.packet
+
+from parameters import DEBUG
 from streamonitor.bot import Bot
+from streamonitor.bot_chat import ChatCollectingMixin
 from streamonitor.enums import Status
 
 
 # Site of Hungarian group AdultPerformerNetwork
-class SexChatHU(Bot):
+class SexChatHU(ChatCollectingMixin, Bot):
     site = 'SexChatHU'
     siteslug = 'SCHU'
 
@@ -34,6 +39,7 @@ class SexChatHU(Bot):
                 self.sc = Status.NOTEXIST
                 return
         self.url = self.getWebsiteURL()
+        self._chat_sio = None
 
     def getWebsiteURL(self):
         return "https://sexchat.hu/mypage/" + self.room_id + "/" + self.username + "/chat"
@@ -62,6 +68,51 @@ class SexChatHU(Bot):
         elif self.lastInfo["onlineStatus"] == "offline":
             return Status.OFFLINE
         return Status.UNKNOWN
+
+    def prepareChatLog(self, message_callback):
+        self._chat_sio = sio = socketio.Client(logger=DEBUG, engineio_logger=DEBUG)
+
+        def chat_ping():
+            ping_timeout = 25
+            while sio.connected:
+                sio.emit('pingping', {'ping': True})
+                for _ in range(ping_timeout):
+                    if not sio.connected:
+                        return
+                    sio.sleep(1)
+
+        def chat_register():
+            sio.emit('call', {"method": "joinRoom", "roomid": self.room_id, "dropOldClient": True, "mode": "free"})
+            #sio.emit('call', {'method': 'registerRoomStatusCallback'})
+            #sio.emit('call', {'method': 'getRoomList'})
+
+        @sio.event
+        def connect():
+            self.log('Chat logger connected')
+            sio.eio._send_packet(engineio.packet.Packet(engineio.packet.PING, 'probe'))
+            time.sleep(1)
+            sio.eio._send_packet(engineio.packet.Packet(engineio.packet.UPGRADE))
+            sio.emit('call', {
+                "authenticate": "guest", "userbase": "sexchat", "flashid": -1, "pingTimeout": 30
+            }, callback=chat_register)
+            sio.start_background_task(chat_ping)
+
+        @sio.event
+        def chatMessage(data):
+            username = data['from']
+            text = data['message']['text']
+            message_callback(username, text)
+            self.debug(f"{username}: {text}")
+
+        @sio.event
+        def disconnect():
+            self.log('Chat logger disconnected')
+
+    def startChatLog(self):
+        self._chat_sio.connect('https://chatserver.apn2.com')
+
+    def stopChatLog(self):
+        self._chat_sio.eio.disconnect()
 
 
 Bot.loaded_sites.add(SexChatHU)

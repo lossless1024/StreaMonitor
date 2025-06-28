@@ -10,3 +10,4 @@ m3u8
 curl_cffi
 fake-useragent
 python-environ
+python-socketio==4.6.1
