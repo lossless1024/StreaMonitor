@@ -141,7 +141,7 @@ class StripChat(ChatCollectingMixin, Bot):
                                 except Exception as e:
                                     self.log(f"Error processing message callback: {e}")
 
-        def on_close(conn):
+        def on_close(conn, arg1, arg2):
             self.log('Chat logger disconnected')
 
         self._chat_websocket = WebSocketApp(

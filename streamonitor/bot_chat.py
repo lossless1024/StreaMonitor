@@ -120,6 +120,7 @@ class ChatCollectingMixin:
 
         self.prepareChatLog(handle_chat_message)
         self.log("Starting chat logger")
+        start_timestamp = datetime.datetime.now().timestamp()
         chat_thread = Thread(target=self.startChatLog)
         chat_thread.start()
 
