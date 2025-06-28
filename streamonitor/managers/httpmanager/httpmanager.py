@@ -160,6 +160,7 @@ class HTTPManager(Manager):
             video = request.args.get("play_video")
             sort_by_size = bool(request.args.get("sorted", False))
             streamer = cast(Union[Bot, None], self.getStreamer(user, site))
+            streamer.cache_file_list()
             context = get_streamer_context(streamer, sort_by_size, video, request.headers.get('User-Agent'))
             status_code = 500 if context['has_error'] else 200
             if video is None and streamer.recording and len(context['videos']) > 1:

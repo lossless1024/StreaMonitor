@@ -193,6 +193,10 @@ class Bot(Thread):
                             self.cache_file_list()
                 except Exception as e:
                     self.logger.exception(e)
+                    try:
+                        self.cache_file_list()
+                    except Exception as e:
+                        self.logger.exception(e)
                     self.log(self.status())
                     self._sleep(self.sleep_on_error)
                     continue
