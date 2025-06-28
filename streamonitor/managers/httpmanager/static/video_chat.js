@@ -17,7 +17,8 @@ const chatLoader = function(chatUrl){
 
     const visibleMessages = chatElements.filter(c => c.element.classList.contains('visible'));
     if (visibleMessages.length > 3) {
-      const lastVisible = visibleMessages[visibleMessages.length - 1].element;
+      let lastVisible = visibleMessages[visibleMessages.length - 1].element;
+      for (let i = 0; i < 3; i++) if (lastVisible.nextSibling) lastVisible = lastVisible.nextSibling
       lastVisible.scrollIntoView({behavior: 'smooth', block: 'end'});
     } else {
       chatContainer.scrollTop = 0;
@@ -40,6 +41,7 @@ const chatLoader = function(chatUrl){
       `;
       chatContainer.appendChild(div);
       chatElements.push({element: div, videoTime: entry.videoTime});
+      updateChatVisibility(0);
     });
 
     video.addEventListener('timeupdate', async () => {
