@@ -1,6 +1,15 @@
 <h4 class="playing-video">Playing {{ video_to_play.shortname }}</h4>
-<video preload="auto" controls="controls">
-    <source src="/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}" type="{{ video_to_play.mimetype }}" />
-</video>
+<div id="video-container">
+    <video id="video" preload="auto" controls="controls">
+        <source src="/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}" type="{{ video_to_play.mimetype }}" />
+    </video>
+    <div id="chat-container">
+        <div>Chat</div>
+        <table id="chat-messages"></table>
+    </div>
+</div>
 <a href="/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}" download>Download <i class="icon feather icon-download"></i></a>
 <input type="hidden" name="play_video" id="play_video" class="streamer-context" value="{{ video_to_play.filename }}">
+<script>
+    document.addEventListener('DOMContentLoaded', chatLoader('/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}/chat'));
+</script>

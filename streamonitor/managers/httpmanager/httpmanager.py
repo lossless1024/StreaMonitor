@@ -1,3 +1,5 @@
+import datetime
+import time
 from itertools import islice
 from typing import cast, Union
 
@@ -178,6 +180,33 @@ class HTTPManager(Manager):
                 os.path.abspath(streamer.outputFolder),
                 filename
             )
+
+        @app.route('/video/<user>/<site>/<path:filename>/chat', methods=['GET'])
+        def get_chat(user, site, filename):
+            streamer = cast(Union[Bot, None], self.getStreamer(user, site))
+            messages = []
+            response = make_response()
+            response.headers['Content-Type'] = 'application/json'
+            path = os.path.abspath(os.path.join(streamer.outputFolder, os.path.splitext(filename)[0] + '_chat.log'))
+            if not os.path.exists(path):
+                response.data = '[]'
+                return response
+            with open(path, 'r') as chat_data_file:
+                for message in chat_data_file.readlines():
+                    meta, text = message.split(': ', maxsplit=1)
+                    real_time, video_time, username = meta.split(' - ', maxsplit=2)
+                    video_time_parts = [int(v) for v in video_time.split(':')]
+                    video_time_seconds = sum(
+                        int(part) * multiplier for part, multiplier in
+                        zip(reversed(video_time_parts), (60 ** i for i in range(len(video_time_parts)))))
+                    messages.append({
+                        'realTime': datetime.datetime.fromtimestamp(float(real_time)).isoformat(),
+                        'videoTime': video_time_seconds,
+                        'username': username,
+                        'message': text.strip()
+                    })
+            response.data = json.dumps(messages)
+            return response
 
         @app.route('/videos/watch/<user>/<site>/<path:play_video>', methods=['GET'])
         @login_required

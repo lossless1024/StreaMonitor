@@ -780,16 +780,66 @@ a {
         margin-bottom: 1.5rem;
     }
 
-    & video {
-        display: block;
+    & #video-container {
+        display: flex;
         margin-left: auto;
         margin-right: auto;
         max-width: 100%;
         margin-bottom: 0.5rem;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
-        aspect-ratio: 16/9;
+        padding-bottom: 1rem;
         height: calc(100% - 9.625rem);
+
+        & video {
+            flex: 1;
+            aspect-ratio: 16/9;
+        }
+
+        & #chat-container {
+            margin-left: 20px;
+            padding: 20px;
+            overflow-y: auto;
+            box-sizing: border-box;
+            background-color: #111;
+            width: 32vw;
+
+            & > div {
+                padding-bottom: 20px;
+            }
+
+            .chat-message {
+                display: block;
+                transition: background-color 0.3s ease;
+                vertical-align: baseline;
+            }
+
+            .future {
+                color: #666;
+                filter: opacity(0.6) saturate(0.5);
+            }
+
+            .visible {
+                color: #aaa;
+            }
+
+            .timestamp {
+                font-size: 0.8em;
+            }
+
+            .username {
+                font-weight: bold;
+                text-align: right;
+                color: brown;
+                padding-right: 1rem;
+                padding-left: 1rem;
+            }
+
+            .message {
+                text-align: left;
+            }
+        }
+
     }
 }
 
