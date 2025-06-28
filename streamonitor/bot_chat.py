@@ -4,6 +4,8 @@ import time
 from textwrap import wrap
 from threading import Thread
 
+from parameters import COLLECT_CHAT
+
 
 class _ChatLogFile:
     EXTENSION = None
@@ -97,6 +99,9 @@ class ChatCollectingMixin:
         pass
 
     def getVideoWrapper(self, url, filename):
+        if not COLLECT_CHAT:
+            return super().getVideoWrapper(url, filename)
+
         start_timestamp = datetime.datetime.now().timestamp()
 
         chat_log_files = []
@@ -118,7 +123,10 @@ class ChatCollectingMixin:
         chat_thread = Thread(target=self.startChatLog)
         chat_thread.start()
 
-        super().getVideoWrapper(url, filename)
+        ret = super().getVideoWrapper(url, filename)
+
         self.log("Stopping chat logger")
         self.stopChatLog()
         del chat_log_files[:]
+
+        return ret

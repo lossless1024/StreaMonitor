@@ -27,6 +27,9 @@ WANTED_RESOLUTION = env.int("STRMNTR_RESOLUTION", 1080)
 # Beware of the exact policy. Nothing gets downloaded if the wanted resolution is not available
 WANTED_RESOLUTION_PREFERENCE = env.str("STRMNTR_RESOLUTION_PREF", 'closest')
 
+# Collect chat log or not
+COLLECT_CHAT = env.bool("STRMNTR_COLLECT_CHAT", True)
+
 # Specify output container here
 # Suggested values are 'mkv' or 'mp4'
 CONTAINER = env.str("STRMNTR_CONTAINER", 'mp4')
