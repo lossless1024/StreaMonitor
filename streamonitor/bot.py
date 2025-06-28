@@ -198,6 +198,7 @@ class Bot(Thread):
                     except Exception as e:
                         self.logger.exception(e)
                     self.log(self.status())
+                    self.recording = False
                     self._sleep(self.sleep_on_error)
                     continue
 
