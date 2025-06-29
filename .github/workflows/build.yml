@@ -14,13 +14,12 @@ jobs:
       - name: Set image tag
         id: tag
         run: |
-          echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-          if [ "${BRANCH_NAME}" = "master" ]; then
-            echo "IMAGE_TAG=latest" >> $GITHUB_ENV
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          if [ "$BRANCH_NAME" = "master" ]; then
+            echo "IMAGE_TAG=latest" >> $GITHUB_OUTPUT
           else
-            # sanitize branch name for docker tag (replace / with -)
             SAFE_BRANCH_NAME=${BRANCH_NAME//\//-}
-            echo "IMAGE_TAG=$SAFE_BRANCH_NAME" >> $GITHUB_ENV
+            echo "IMAGE_TAG=$SAFE_BRANCH_NAME" >> $GITHUB_OUTPUT
           fi
 
       - name: Log in to GitHub Container Registry
@@ -35,4 +34,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/streamonitor:${{ env.IMAGE_TAG }}
+          tags: ghcr.io/${{ github.repository_owner }}/streamonitor:${{ steps.tag.outputs.IMAGE_TAG }}
