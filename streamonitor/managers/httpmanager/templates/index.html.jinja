@@ -34,6 +34,7 @@
             hx-swap="innerHTML settle:3s"
             hx-sync="#streamers:replace"
             hx-disabled-elt=".modify-streamers"
+            hx-on:htmx:after-request="this.querySelector('.input-username').value = ''"
             id="add-streamer-form">
             <label class="add-streamer-label username-field">
                 <span class="add-streamer-label-text">username:</span>
