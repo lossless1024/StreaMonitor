@@ -139,6 +139,9 @@ class Chaturbate(ChatCollectingMixin, Bot):
                         timestamp = message_data['ts']
                         username = message_data['from_user']['username']
                         text = message_data['message']
+                        text = ' '.join(text.split('%%%')[::2]).strip()
+                        if text == '':
+                            continue
                         try:
                             message_callback(username, text, timestamp=timestamp)
                         except Exception as e:
