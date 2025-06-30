@@ -1,27 +1,52 @@
-{% if streamers|length > 0 %}
+{% macro sortable_header(col_key, col_label, extra_classes, sort_by, sort_dir, username_filter, site_filter, status_filter) %}
+  {% set is_sorted = (sort_by == col_key) %}
+  {% set next_dir = "desc" if is_sorted and sort_dir == "asc" else "asc" %}
+  <th class="header-{{ col_key|replace('_', '-') }} {{ extra_classes }}">
+    <a
+      class="sortable-header"
+      hx-get="/refresh/streamers"
+      hx-target="#streamers"
+      hx-swap="innerHTML"
+      hx-vals='{
+        "sort_by": "{{ col_key }}",
+        "sort_dir": "{{ next_dir }}"
+      }'
+      hx-include=".filter-streamers-state:valid"
+    >
+      {{ col_label }}
+      {% if is_sorted %}
+        {{ "▲" if sort_dir == "asc" else "▼" }}
+      {% endif %}
+    </a>
+  </th>
+{% endmacro %}
+
+<input type="hidden" name="sort_by" id="sort_by" class="filter-streamers-state" value="{{ sort_by or '' }}">
+<input type="hidden" name="sort_dir" id="sort_dir" class="filter-streamers-state" value="{{ sort_dir or '' }}">
 <table class="streamers-list">
     <thead><tr>
         <th></th>
-        <th class="header-site left-align">Site</th>
-        <th class="header-streamer-name left-align">Username</th>
-        <th class="header-running">Running</th>
-        <th class="header-status">Status</th>
-        <th class="right-align">Total Size</th>
-        <th class="right-align">Videos count</th>
+        {{ sortable_header("site", "Site", 'left-align', sort_by, sort_dir, username_filter, site_filter, status_filter) }}
+        {{ sortable_header("username", "Username", 'left-align', sort_by, sort_dir, username_filter, site_filter, status_filter) }}
+        {{ sortable_header("running", "Running", 'center', sort_by, sort_dir, username_filter, site_filter, status_filter) }}
+        {{ sortable_header("status", "Status", 'center', sort_by, sort_dir, username_filter, site_filter, status_filter) }}
+        {{ sortable_header("video_files_total_size", "Total Size", 'right-align', sort_by, sort_dir, username_filter, site_filter, status_filter) }}
+        {{ sortable_header("video_files_count", "Videos count", 'right-align', sort_by, sort_dir, username_filter, site_filter, status_filter) }}
         <th class="header-remove">Refresh</th>
         <th class="header-remove">Remove</th>
     </tr></thead>
     <tbody>
+{% if streamers|length > 0 %}
     {% for streamer in streamers %}
         {% set streamer_has_error = False %}
         {% set streamer_error_message = '' %}
         {% include 'streamer_record.html.jinja' ignore missing with context %}
     {% endfor %}
+{% else %}
+    <tr><td colspan=99 class="full-width center">No Streamers Found</td></tr>
+{% endif %}
     </tbody>
 </table>
-{% else %}
-    <p class="full-width center">No Streamers Found</p>
-{% endif %}
 {% if toast_status != "hide" %}
 <div id="toast-notifications" hx-swap-oob="true">
     <div class="toast {{ toast_status }}">
