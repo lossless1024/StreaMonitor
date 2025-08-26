@@ -7,6 +7,5 @@ beautifulsoup4
 websocket-client
 ffmpy
 m3u8
-curl_cffi
 fake-useragent
 python-environ
