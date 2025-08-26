@@ -1,5 +1,4 @@
-from curl_cffi import requests
-from fake_useragent import UserAgent
+import requests
 from streamonitor.bot import Bot
 from streamonitor.enums import Status
 
@@ -16,30 +15,30 @@ class CamSoda(Bot):
         return "https://www.camsoda.com/" + self.username
 
     def getVideoUrl(self):
-        audio_params = "multitrack=true&filter=tracks:v4v3v2v1a1a2"
-        v = "https://" + self.lastInfo["edge_servers"][0] + "/" + self.lastInfo["stream_name"] + \
-            "_v1/index.ll.m3u8?" + audio_params + "&token=" + self.lastInfo["token"]
-        return self.getWantedResolutionPlaylist(v)
+        audio_params = "filter.tracks=v4v3v2v1a1a2&multitrack=true"
+        server = self.lastInfo['stream']['edge_servers'][0]
+        stream_name = self.lastInfo['stream']['stream_name']
+        token = self.lastInfo['stream']['token']
+        return f"https://{server}/{stream_name}_v1/tracks-v3a2/index.ll.m3u8?{audio_params}&token={token}"
 
     def getStatus(self):
-        headers = self.headers | {
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "User-Agent": UserAgent().chrome,  # Override user agent from config with a chrome user agent
-        }
-
-        r = requests.get('https://www.camsoda.com/api/v1/video/vtoken/' + self.username, headers=headers, impersonate='chrome')
+        r = requests.get('https://www.camsoda.com/api/v1/chat/react/' + self.username, headers=self.headers)
         if r.status_code != 200:
             return Status.UNKNOWN
 
         self.lastInfo = r.json()
 
-        if "message" in self.lastInfo and self.lastInfo["message"] == "No broadcaster found":
+        if "error" in self.lastInfo and self.lastInfo["error"] == "No username found.":
             return Status.NOTEXIST
-        elif "edge_servers" in self.lastInfo and len(self.lastInfo["edge_servers"]) > 0:
+        if "stream" not in self.lastInfo:
+            return Status.UNKNOWN
+
+        stream_data = self.lastInfo["stream"]
+        if "edge_servers" in stream_data and len(stream_data["edge_servers"]) > 0:
             return Status.PUBLIC
-        elif "private_servers" in self.lastInfo and len(self.lastInfo["private_servers"]) > 0:
+        elif "private_servers" in stream_data and len(stream_data["private_servers"]) > 0:
             return Status.PRIVATE
-        elif "token" in self.lastInfo:
+        if "token" in stream_data:
             return Status.OFFLINE
         return Status.UNKNOWN
 
