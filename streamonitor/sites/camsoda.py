@@ -15,11 +15,12 @@ class CamSoda(Bot):
         return "https://www.camsoda.com/" + self.username
 
     def getVideoUrl(self):
-        audio_params = "filter.tracks=v4v3v2v1a1a2&multitrack=true"
+        track_params = "filter=tracks:v4v3v2v1a1a2&multitrack=true"
         server = self.lastInfo['stream']['edge_servers'][0]
         stream_name = self.lastInfo['stream']['stream_name']
         token = self.lastInfo['stream']['token']
-        return f"https://{server}/{stream_name}_v1/tracks-v3a2/index.ll.m3u8?{audio_params}&token={token}"
+        url = f"https://{server}/{stream_name}_v1/index.ll.m3u8?{track_params}&token={token}"
+        return self.getWantedResolutionPlaylist(url)
 
     def getStatus(self):
         r = requests.get('https://www.camsoda.com/api/v1/chat/react/' + self.username, headers=self.headers)
