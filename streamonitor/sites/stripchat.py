@@ -4,10 +4,6 @@ from streamonitor.downloaders.hls import getVideoNativeHLS
 from streamonitor.enums import Status
 
 
-def _getVideo(self, url, filename):
-    return getVideoNativeHLS(self, url, filename, StripChat.m3u_decoder)
-
-
 class StripChat(Bot):
     site = 'StripChat'
     siteslug = 'SC'
@@ -16,7 +12,7 @@ class StripChat(Bot):
         super().__init__(username)
         self.vr = False
         self.url = self.getWebsiteURL()
-        self.getVideo = _getVideo
+        self.getVideo = lambda _, url, filename: getVideoNativeHLS(self, url, filename, StripChat.m3u_decoder)
         self.psch = None
         self.pkey = None
 
