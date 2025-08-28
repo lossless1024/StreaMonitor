@@ -23,14 +23,11 @@ if not _http_lib:
     raise ImportError("Please install requests or pycurl package to proceed")
 
 
-def getVideoNativeHLS(self, url, filename):
+def getVideoNativeHLS(self, url, filename, m3u_processor=None):
     self.stopDownloadFlag = False
     error = False
     tmpfilename = filename[:-len('.' + CONTAINER)] + '.tmp.ts'
     session = requests.Session()
-
-    def debug_(message):
-        self.debug(message, filename + '.log')
 
     def execute():
         nonlocal error
@@ -39,16 +36,19 @@ def getVideoNativeHLS(self, url, filename):
             did_download = False
             while not self.stopDownloadFlag:
                 r = requests.get(url, headers=self.headers, cookies=self.cookies)
-                chunklist = m3u8.loads(r.content.decode("utf-8"))
+                content = r.content.decode("utf-8")
+                if m3u_processor:
+                    content = m3u_processor(content)
+                chunklist = m3u8.loads(content)
                 if len(chunklist.segments) == 0:
                     return
-                for chunk in chunklist.segments:
+                for chunk in chunklist.segment_map + chunklist.segments:
                     if chunk.uri in downloaded_list:
                         continue
                     did_download = True
                     downloaded_list.append(chunk.uri)
                     chunk_uri = chunk.uri
-                    debug_('Downloading ' + chunk_uri)
+                    self.debug('Downloading ' + chunk_uri)
                     if not chunk_uri.startswith("https://"):
                         chunk_uri = '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + chunk_uri
                     m = session.get(chunk_uri, headers=self.headers, cookies=self.cookies)
