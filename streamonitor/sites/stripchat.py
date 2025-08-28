@@ -1,5 +1,6 @@
 import requests
 from streamonitor.bot import Bot
+from streamonitor.downloaders.stripchat import getVideoStriptChatHLS
 from streamonitor.enums import Status
 
 
@@ -10,6 +11,7 @@ class StripChat(Bot):
     def __init__(self, username):
         super().__init__(username)
         self.vr = False
+        self.getVideo = getVideoStriptChatHLS
         self.url = self.getWebsiteURL()
 
     def getWebsiteURL(self):
