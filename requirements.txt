@@ -9,3 +9,5 @@ ffmpy
 m3u8
 fake-useragent
 python-environ
+pycurl
+pycurl-requests

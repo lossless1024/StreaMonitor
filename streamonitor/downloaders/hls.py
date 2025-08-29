@@ -1,17 +1,33 @@
 import m3u8
 import os
-import requests
 import subprocess
 from threading import Thread
 from ffmpy import FFmpeg, FFRuntimeError
 from time import sleep
 from parameters import DEBUG, CONTAINER, SEGMENT_TIME, FFMPEG_PATH
 
+_http_lib = None
+if not _http_lib:
+    try:
+        import pycurl_requests as requests
+        _http_lib = 'pycurl'
+    except ImportError:
+        pass
+if not _http_lib:
+    try:
+        import requests
+        _http_lib = 'requests'
+    except ImportError:
+        pass
+if not _http_lib:
+    raise ImportError("Please install requests or httpx package to proceed")
+
 
 def getVideoNativeHLS(self, url, filename, m3u_processor=None):
     self.stopDownloadFlag = False
     error = False
     tmpfilename = filename[:-len('.' + CONTAINER)] + '.tmp.ts'
+    session = requests.Session()
 
     def execute():
         nonlocal error
@@ -19,7 +35,7 @@ def getVideoNativeHLS(self, url, filename, m3u_processor=None):
         with open(tmpfilename, 'wb') as outfile:
             did_download = False
             while not self.stopDownloadFlag:
-                r = requests.get(url, headers=self.headers, cookies=self.cookies)
+                r = session.get(url, headers=self.headers, cookies=self.cookies)
                 content = r.content.decode("utf-8")
                 if m3u_processor:
                     content = m3u_processor(content)
@@ -35,7 +51,7 @@ def getVideoNativeHLS(self, url, filename, m3u_processor=None):
                     self.debug('Downloading ' + chunk_uri)
                     if not chunk_uri.startswith("https://"):
                         chunk_uri = '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + chunk_uri
-                    m = requests.get(chunk_uri, headers=self.headers, cookies=self.cookies)
+                    m = session.get(chunk_uri, headers=self.headers, cookies=self.cookies)
                     if m.status_code != 200:
                         return
                     outfile.write(m.content)
