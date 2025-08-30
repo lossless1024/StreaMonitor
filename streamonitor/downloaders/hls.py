@@ -78,7 +78,7 @@ def getVideoNativeHLS(self, url, filename, m3u_processor=None):
         stderr = open(filename + '.postprocess_stderr.log', 'w+') if DEBUG else subprocess.DEVNULL
         output_str = '-c:a copy -c:v copy'
         if SEGMENT_TIME is not None:
-            output_str += f' -f segment -reset_timestamps 1 -segment_time {str(SEGMENT_TIME)}',
+            output_str += f' -f segment -reset_timestamps 1 -segment_time {str(SEGMENT_TIME)}'
             filename = filename[:-len('.' + CONTAINER)] + '_%03d.' + CONTAINER
         ff = FFmpeg(executable=FFMPEG_PATH, inputs={tmpfilename: None}, outputs={filename: output_str})
         ff.run(stdout=stdout, stderr=stderr)
