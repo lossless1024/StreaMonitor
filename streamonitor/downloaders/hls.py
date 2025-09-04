@@ -35,7 +35,7 @@ def getVideoNativeHLS(self, url, filename, m3u_processor=None):
         with open(tmpfilename, 'wb') as outfile:
             did_download = False
             while not self.stopDownloadFlag:
-                r = requests.get(url, headers=self.headers, cookies=self.cookies)
+                r = session.get(url, headers=self.headers, cookies=self.cookies)
                 content = r.content.decode("utf-8")
                 if m3u_processor:
                     content = m3u_processor(content)

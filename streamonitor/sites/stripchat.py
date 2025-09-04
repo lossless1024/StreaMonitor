@@ -3,6 +3,8 @@ import time
 import datetime
 import json
 import requests
+import base64
+import hashlib
 from websocket import WebSocketApp
 
 from streamonitor.bot import Bot
@@ -69,9 +71,6 @@ class StripChat(ChatCollectingMixin, Bot):
 
     @classmethod
     def m3u_decoder(cls, content):
-        import base64
-        import hashlib
-
         def _decode(encrypted_b64: str, key: str) -> str:
             if cls._cached_keys is None:
                 cls._cached_keys = {}
@@ -133,10 +132,11 @@ class StripChat(ChatCollectingMixin, Bot):
         return self.getWantedResolutionPlaylist(None)
 
     def getPlaylistVariants(self, url):
-        url = "https://edge-hls.{host}/hls/{id}{vr}/master/{id}{vr}_auto.m3u8".format(
+        url = "https://edge-hls.{host}/hls/{id}{vr}/master/{id}{vr}{auto}.m3u8".format(
                 host='doppiocdn.com',
                 id=self.lastInfo["cam"]["streamName"],
                 vr='_vr' if self.vr else '',
+                auto='_auto' if not self.vr else ''
             )
         result = requests.get(url, headers=self.headers, cookies=self.cookies)
         m3u8_doc = result.content.decode("utf-8")
