@@ -120,10 +120,11 @@ class StripChat(Bot):
         return self.getWantedResolutionPlaylist(None)
 
     def getPlaylistVariants(self, url):
-        url = "https://edge-hls.{host}/hls/{id}{vr}/master/{id}{vr}_auto.m3u8".format(
+        url = "https://edge-hls.{host}/hls/{id}{vr}/master/{id}{vr}{auto}.m3u8".format(
                 host='doppiocdn.com',
                 id=self.lastInfo["cam"]["streamName"],
                 vr='_vr' if self.vr else '',
+                auto='_auto' if not self.vr else ''
             )
         result = requests.get(url, headers=self.headers, cookies=self.cookies)
         m3u8_doc = result.content.decode("utf-8")
