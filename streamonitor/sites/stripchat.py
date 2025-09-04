@@ -1,6 +1,8 @@
 import re
 import time
 import requests
+import base64
+import hashlib
 
 from streamonitor.bot import Bot
 from streamonitor.downloaders.hls import getVideoNativeHLS
@@ -57,9 +59,6 @@ class StripChat(Bot):
 
     @classmethod
     def m3u_decoder(cls, content):
-        import base64
-        import hashlib
-
         def _decode(encrypted_b64: str, key: str) -> str:
             if cls._cached_keys is None:
                 cls._cached_keys = {}
