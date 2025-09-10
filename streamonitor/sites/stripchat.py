@@ -135,10 +135,18 @@ class StripChat(Bot):
 
     def getStatus(self):
         r = requests.get('https://stripchat.com/api/vr/v2/models/username/' + self.username, headers=self.headers)
-        if r.status_code != 200:
+
+        try:
+            self.lastInfo = r.json()
+        except requests.exceptions.JSONDecodeError:
             return Status.UNKNOWN
 
-        self.lastInfo = r.json()
+        if 'model' not in self.lastInfo:
+            if 'error' in self.lastInfo:
+                if self.lastInfo.get('error') == 'Not Found':
+                    return Status.NOTEXIST
+                self.logger.warn(f'Status returned error: {self.lastInfo["error"]}')
+            return Status.UNKNOWN
 
         if self.lastInfo["model"]["status"] == "public" and self.lastInfo["isCamAvailable"] and self.lastInfo['cam']["isCamActive"]:
             return Status.PUBLIC
