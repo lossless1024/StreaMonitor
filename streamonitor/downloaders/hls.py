@@ -72,6 +72,13 @@ def getVideoNativeHLS(self, url, filename, m3u_processor=None):
     if error:
         return False
 
+    if not os.path.exists(tmpfilename):
+        return False
+
+    if os.path.getsize(tmpfilename) == 0:
+        os.remove(tmpfilename)
+        return False
+
     # Post-processing
     try:
         stdout = open(filename + '.postprocess_stdout.log', 'w+') if DEBUG else subprocess.DEVNULL
