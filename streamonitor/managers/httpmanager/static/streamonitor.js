@@ -45,11 +45,16 @@ async function init() {
 	fillSiteLists(json.sites);
 	fillStatusFilter(json.status);
 	addGlobalEventListener("click", "#reload", () => {
+		const reloadIcon = qs("#reload i");
+		reloadIcon.classList.add("fa-spin");
 		loadStreamers();
+		setTimeout(() => {
+			reloadIcon.classList.remove("fa-spin");
+		}, 1000);
 	});
 
 	addGlobalEventListener("click", ".streamer_delete", (e) => {
-		const streamer = e.target.closest(".streamer");
+		const streamer = e.target.closest(".streamer-card");
 		let deleteConfirm = confirm(
 			"Do you really want to delete " +
 				streamer.getAttribute("username") +
@@ -68,7 +73,7 @@ async function init() {
 	});
 
 	addGlobalEventListener("click", ".streamer_start", (e) => {
-		const streamer = e.target.closest(".streamer");
+		const streamer = e.target.closest(".streamer-card");
 		let command =
 			"start " +
 			streamer.getAttribute("username") +
@@ -78,7 +83,7 @@ async function init() {
 	});
 
 	addGlobalEventListener("click", ".streamer_stop", (e) => {
-		const streamer = e.target.closest(".streamer");
+		const streamer = e.target.closest(".streamer-card");
 		let command =
 			"stop " +
 			streamer.getAttribute("username") +
@@ -88,13 +93,14 @@ async function init() {
 	});
 
 	addGlobalEventListener("click", ".streamer_edit", (e) => {
-		const streamer = e.target.closest(".streamer");
+		const streamer = e.target.closest(".streamer-card");
 
 		qs("#streamerModal_username").disabled = true;
 		qs("#streamerModal_username").value = streamer.getAttribute("username");
 		qs("#streamerModal_site").disabled = true;
 		qs("#streamerModal_site").value = streamer.getAttribute("site");
-		qs("#streamerModal").classList.add("show");
+		const modal = new bootstrap.Modal(qs("#streamerModal"));
+		modal.show();
 	});
 
 	loadStreamers();
@@ -104,7 +110,7 @@ async function init() {
 }
 
 function filterStreamers() {
-	const streamer = qsa(".streamer");
+	const streamer = qsa(".streamer-card");
 	const streamerFilter = qs("#streamerFilter").value;
 	const siteFilter = qs("#siteFilter").value;
 	const statusFilter = qs("#statusFilter").value;
@@ -141,6 +147,9 @@ function filterStreamers() {
 		if (statusFilter == "private") {
 			showElem = showElem && streamerElem.classList.contains("private");
 		}
+		if (statusFilter == "recording") {
+			showElem = showElem && streamerElem.classList.contains("recording");
+		}
 		count++;
 		if (showElem) {
 			streamerElem.style.display = "block";
@@ -154,7 +163,7 @@ function filterStreamers() {
 		} else {
 			counterText = `${countVisible} of ${count}`;
 		}
-		qs("#countStreamer").innerText = "[" + counterText + "]";
+		qs("#countStreamer").innerText = counterText;
 	});
 }
 
@@ -208,26 +217,40 @@ function updateOrCreateStreamers(streamers) {
 				streamerTemplate.content,
 				true
 			);
-			streamerNode = qs(".streamer", streamerImportNode);
+			streamerNode = qs(".streamer-card", streamerImportNode);
 			streamerNode.setAttribute("id", streamerID);
 			streamerNode.setAttribute("site", streamer.site);
 			streamerNode.setAttribute("username", streamer.username);
+			
+			// Add Bootstrap column classes for responsive grid
+			streamerNode.classList.add("col-lg-4", "col-md-6", "col-sm-12");
+			
 			qs("#streamerGrid").appendChild(streamerNode);
 		}
+		
+		// Clear existing status classes
+		streamerNode.classList.remove("inactive", "downloading", "notDownloading", "onlineButNotDownlading", "private", "online", "offline", "recording");
+		
+		// Add status classes
 		streamerNode.classList.toggle("inactive", !streamer.running);
-		streamerNode.classList.toggle(
-			"downloading",
-			streamer.sc == 200 && streamer.gStat == 1
-		);
-		streamerNode.classList.toggle(
-			"notDownloading",
-			streamer.sc != 200 || streamer.gStat == 0
-		);
-		streamerNode.classList.toggle(
-			"onlineButNotDownlading",
-			streamer.sc == 200 && streamer.gStat == 0
-		);
+		streamerNode.classList.toggle("downloading", streamer.sc == 200 && streamer.gStat == 1);
+		streamerNode.classList.toggle("notDownloading", streamer.sc != 200 || streamer.gStat == 0);
+		streamerNode.classList.toggle("onlineButNotDownlading", streamer.sc == 200 && streamer.gStat == 0);
 		streamerNode.classList.toggle("private", streamer.sc == 403);
+		streamerNode.classList.toggle("recording", streamer.running && streamer.recording);
+		
+		// Add additional status classes for styling
+		if (streamer.running && streamer.recording) {
+			streamerNode.classList.add("recording");
+		} else if (streamer.sc == 200 && streamer.gStat == 1) {
+			streamerNode.classList.add("downloading");
+		} else if (streamer.sc == 200) {
+			streamerNode.classList.add("online");
+		} else if (streamer.sc == 403) {
+			streamerNode.classList.add("private");
+		} else {
+			streamerNode.classList.add("offline");
+		}
 
 		streamerNode.classList.add("site_" + streamer.site);
 		qs(".streamer_name", streamerNode).innerText = streamer.username;
@@ -241,10 +264,33 @@ function updateOrCreateStreamers(streamers) {
 			"title",
 			streamonitorSettings.sites[streamer.site]
 		);
-		qs(".streamer_status", streamerNode).innerText = streamer.status;
+		
+		// Format status with badge
+		const statusElement = qs(".streamer_status", streamerNode);
+		let statusClass = "status-offline";
+		let statusText = streamer.status;
+		
+		if (streamer.running && streamer.recording) {
+			statusClass = "status-recording";
+			statusText = "🔴 Recording";
+		} else if (streamer.sc == 200 && streamer.gStat == 1) {
+			statusClass = "status-downloading";
+			statusText = "🔴 Downloading";
+		} else if (streamer.sc == 200) {
+			statusClass = "status-online";
+			statusText = "🟡 Online";
+		} else if (streamer.sc == 403) {
+			statusClass = "status-private";
+			statusText = "🔒 Private";
+		} else if (streamer.sc >= 400) {
+			statusClass = "status-error";
+			statusText = "❌ Error";
+		}
+		
+		statusElement.innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
 	}
 
-	qsa(".streamer").forEach((streamer) => {
+	qsa(".streamer-card").forEach((streamer) => {
 		if (!listOfStreamer.includes(streamer.id)) {
 			streamer.remove();
 		}
@@ -325,10 +371,12 @@ function createStreamerElement(streamer) {
 }
 
 function createStreamer() {
-	qs("#streamerModal").classList.add("show");
+	const modal = new bootstrap.Modal(qs("#streamerModal"));
 	qs("#streamerModal_username").disabled = false;
 	qs("#streamerModal_username").value = "";
 	qs("#streamerModal_site").disabled = false;
+	qs("#streamerModal_site").selectedIndex = 0;
+	modal.show();
 }
 
 function saveStreamer() {
@@ -336,11 +384,14 @@ function saveStreamer() {
 	let site = qs("#streamerModal_site").value;
 	let command = "add " + username + " " + site;
 	sendCommand(command);
-	closeStreamerModal();
+	
+	const modal = bootstrap.Modal.getInstance(qs("#streamerModal"));
+	modal.hide();
 }
 
 function closeStreamerModal() {
-	qs("#streamerModal").classList.remove("show");
+	const modal = bootstrap.Modal.getInstance(qs("#streamerModal"));
+	modal.hide();
 }
 
 function startStreamers() {
@@ -361,7 +412,7 @@ function sendMultiCommand(command, streamers) {
 
 function getVisibleStreamers() {
 	let streamer = [];
-	qsa(".streamer").forEach((streamerNode) => {
+	qsa(".streamer-card").forEach((streamerNode) => {
 		if (streamerNode.style.display != "none") {
 			streamer.push(streamerNode);
 		}
@@ -370,16 +421,19 @@ function getVisibleStreamers() {
 }
 
 function showSnackbarMessage(message, onlyAddWhenNoMessage = false) {
-	window.clearTimeout(window.snackbarTimeout);
-	let snackbar = qs("#snackbar");
-	if (snackbar.innerHTML == "" || !onlyAddWhenNoMessage) {
-		snackbar.innerHTML = snackbar.innerHTML + message + "<br />";
+	const toastElement = qs("#snackbar");
+	const toastBody = toastElement.querySelector(".toast-body");
+	
+	if (toastBody.innerHTML.trim() === "" || !onlyAddWhenNoMessage) {
+		toastBody.innerHTML = message;
+		
+		const toast = new bootstrap.Toast(toastElement, {
+			autohide: true,
+			delay: 3000
+		});
+		
+		toast.show();
 	}
-	snackbar.className = "show";
-	window.snackbarTimeout = setTimeout(function () {
-		snackbar.innerHTML = "";
-		snackbar.className = snackbar.className.replace("show", "");
-	}, 5000);
 }
 
 function deleteFilter() {
