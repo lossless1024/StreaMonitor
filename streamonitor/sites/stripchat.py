@@ -133,8 +133,8 @@ class StripChat(ChatCollectingMixin, Bot):
 
     def getPlaylistVariants(self, url):
         url = "https://edge-hls.{host}/hls/{id}{vr}/master/{id}{vr}{auto}.m3u8".format(
-                host='doppiocdn.com',
-                id=self.lastInfo["cam"]["streamName"],
+                host='doppiocdn.org',
+                id=self._model_id,
                 vr='_vr' if self.vr else '',
                 auto='_auto' if not self.vr else ''
             )
@@ -145,31 +145,46 @@ class StripChat(ChatCollectingMixin, Bot):
         return [variant | {'url': f'{variant["url"]}{"&" if "?" in variant["url"] else "?"}psch={psch}&pkey={pkey}'}
                 for variant in variants]
 
+    @staticmethod
+    def uniq():
+        chars = ''.join(chr(i) for i in range(ord('a'), ord('z')+1))
+        chars += ''.join(chr(i) for i in range(ord('0'), ord('9')+1))
+        import random
+        return ''.join(random.choice(chars) for _ in range(16))
+
     def getStatus(self):
-        r = requests.get('https://stripchat.com/api/vr/v2/models/username/' + self.username, headers=self.headers)
+        r = requests.get(
+            f'https://stripchat.com/api/front/v1/broadcasts/{self.username}?uniq={StripChat.uniq()}',
+            headers=self.headers
+        )
 
         try:
             self.lastInfo = r.json()
         except requests.exceptions.JSONDecodeError:
+            self.log('Failed to parse JSON response')
             return Status.UNKNOWN
 
-        if 'model' not in self.lastInfo:
-            if 'error' in self.lastInfo:
-                if self.lastInfo.get('error') == 'Not Found':
+        if 'item' not in self.lastInfo:
+            if 'description' in self.lastInfo:
+                description = self.lastInfo['description']
+                if description == "Access forbidden: reason=geoBan":
+                    return Status.RESTRICTED
+                if description == 'Entity "Model" not found':
                     return Status.NOTEXIST
                 self.logger.warn(f'Status returned error: {self.lastInfo["error"]}')
             return Status.UNKNOWN
 
         if self._model_id is None:
-            self._model_id = self.lastInfo["model"]['id']
+            self._model_id = self.lastInfo["item"]['modelId']
 
-        if self.lastInfo["model"]["status"] == "public" and self.lastInfo["isCamAvailable"] and self.lastInfo['cam']["isCamActive"]:
+        status = self.lastInfo['item']["status"]
+        if status in ["public"]:
             return Status.PUBLIC
-        if self.lastInfo["model"]["status"] in ["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"]:
+        if status in ["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"]:
             return Status.PRIVATE
-        if self.lastInfo["model"]["status"] in ["off", "idle"]:
+        if status in ["off", "idle"]:
             return Status.OFFLINE
-        self.logger.warn(f'Got unknown status: {self.lastInfo["model"]["status"]}')
+        self.logger.warn(f'Got unknown status: {status}')
         return Status.UNKNOWN
 
     def prepareChatLog(self, message_callback):
@@ -192,7 +207,7 @@ class StripChat(ChatCollectingMixin, Bot):
 
             try:
                 req = requests.get(
-                    f"https://hu.stripchat.com/api/front/v2/models/username/{self.username}/chat?source=regular",
+                    f"https://stripchat.com/api/front/v2/models/username/{self.username}/chat?source=regular",
                     headers=self.headers
                 )
                 if req.status_code != 200:
