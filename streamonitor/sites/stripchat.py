@@ -1,3 +1,4 @@
+import random
 import re
 import time
 import datetime
@@ -133,7 +134,7 @@ class StripChat(ChatCollectingMixin, Bot):
 
     def getPlaylistVariants(self, url):
         url = "https://edge-hls.{host}/hls/{id}{vr}/master/{id}{vr}{auto}.m3u8".format(
-                host='doppiocdn.org',
+                host='doppiocdn.' + random.choice(['org', 'com', 'net']),
                 id=self._model_id,
                 vr='_vr' if self.vr else '',
                 auto='_auto' if not self.vr else ''
@@ -149,7 +150,6 @@ class StripChat(ChatCollectingMixin, Bot):
     def uniq():
         chars = ''.join(chr(i) for i in range(ord('a'), ord('z')+1))
         chars += ''.join(chr(i) for i in range(ord('0'), ord('9')+1))
-        import random
         return ''.join(random.choice(chars) for _ in range(16))
 
     def getStatus(self):
