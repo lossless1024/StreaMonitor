@@ -159,7 +159,7 @@ class StripChat(Bot):
                     return Status.RESTRICTED
                 if description == 'Entity "Model" not found':
                     return Status.NOTEXIST
-                self.logger.warn(f'Status returned error: {self.lastInfo["error"]}')
+                self.logger.warn(f'Status returned error: {description}')
             return Status.UNKNOWN
 
         status = self.lastInfo['item']["status"]
