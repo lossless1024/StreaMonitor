@@ -1,3 +1,4 @@
+import random
 import re
 import time
 import requests
@@ -121,7 +122,7 @@ class StripChat(Bot):
 
     def getPlaylistVariants(self, url):
         url = "https://edge-hls.{host}/hls/{id}{vr}/master/{id}{vr}{auto}.m3u8".format(
-                host='doppiocdn.org',
+                host='doppiocdn.' + random.choice(['org', 'com', 'net']),
                 id=self.lastInfo['item']["modelId"],
                 vr='_vr' if self.vr else '',
                 auto='_auto' if not self.vr else ''
@@ -137,7 +138,6 @@ class StripChat(Bot):
     def uniq():
         chars = ''.join(chr(i) for i in range(ord('a'), ord('z')+1))
         chars += ''.join(chr(i) for i in range(ord('0'), ord('9')+1))
-        import random
         return ''.join(random.choice(chars) for _ in range(16))
 
     def getStatus(self):
