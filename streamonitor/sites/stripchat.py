@@ -123,7 +123,7 @@ class StripChat(Bot):
     def getPlaylistVariants(self, url):
         url = "https://edge-hls.{host}/hls/{id}{vr}/master/{id}{vr}{auto}.m3u8".format(
                 host='doppiocdn.' + random.choice(['org', 'com', 'net']),
-                id=self.lastInfo['item']["modelId"],
+                id=self.lastInfo["cam"]["streamName"],
                 vr='_vr' if self.vr else '',
                 auto='_auto' if not self.vr else ''
             )
@@ -142,7 +142,7 @@ class StripChat(Bot):
 
     def getStatus(self):
         r = requests.get(
-            f'https://stripchat.com/api/front/v1/broadcasts/{self.username}?uniq={StripChat.uniq()}',
+            f'https://stripchat.com/api/vr/v2/models/username/{self.username}?uniq={StripChat.uniq()}',
             headers=self.headers
         )
 
@@ -152,24 +152,20 @@ class StripChat(Bot):
             self.log('Failed to parse JSON response')
             return Status.UNKNOWN
 
-        if 'item' not in self.lastInfo:
-            if 'description' in self.lastInfo:
-                description = self.lastInfo['description']
-                if description == "Access forbidden: reason=geoBan":
-                    return Status.RESTRICTED
-                if description == 'Entity "Model" not found':
+        if 'model' not in self.lastInfo:
+            if 'error' in self.lastInfo:
+                if self.lastInfo.get('error') == 'Not Found':
                     return Status.NOTEXIST
-                self.logger.warn(f'Status returned error: {description}')
+                self.logger.warn(f'Status returned error: {self.lastInfo["error"]}')
             return Status.UNKNOWN
 
-        status = self.lastInfo['item']["status"]
-        if status in ["public"]:
+        if self.lastInfo["model"]["status"] == "public" and self.lastInfo["isCamAvailable"] and self.lastInfo['cam']["isCamActive"]:
             return Status.PUBLIC
-        if status in ["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"]:
+        if self.lastInfo["model"]["status"] in ["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"]:
             return Status.PRIVATE
-        if status in ["off", "idle"]:
+        if self.lastInfo["model"]["status"] in ["off", "idle"]:
             return Status.OFFLINE
-        self.logger.warn(f'Got unknown status: {status}')
+        self.logger.warn(f'Got unknown status: {self.lastInfo["model"]["status"]}')
         return Status.UNKNOWN
 
 
