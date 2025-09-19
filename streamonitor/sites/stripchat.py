@@ -11,8 +11,8 @@ from streamonitor.enums import Status
 
 
 class StripChat(Bot):
-    site = 'StripChat'
-    siteslug = 'SC'
+    site = "StripChat"
+    siteslug = "SC"
 
     _static_data = None
     _main_js_data = None
@@ -33,30 +33,38 @@ class StripChat(Bot):
         super().__init__(username)
         self.vr = False
         self.url = self.getWebsiteURL()
-        self.getVideo = lambda _, url, filename: getVideoNativeHLS(self, url, filename, StripChat.m3u_decoder)
+        self.getVideo = lambda _, url, filename: getVideoNativeHLS(
+            self, url, filename, StripChat.m3u_decoder
+        )
 
     @classmethod
     def getInitialData(cls):
-        r = requests.get('https://hu.stripchat.com/api/front/v3/config/static', headers=cls.headers)
+        r = requests.get(
+            "https://hu.stripchat.com/api/front/v3/config/static", headers=cls.headers
+        )
         if r.status_code != 200:
             raise Exception("Failed to fetch static data from StripChat")
-        StripChat._static_data = r.json().get('static')
+        StripChat._static_data = r.json().get("static")
 
-        mmp_origin = StripChat._static_data['features']['MMPExternalSourceOrigin']
-        mmp_version = StripChat._static_data['featuresV2']['playerModuleExternalLoading']['mmpVersion']
+        mmp_origin = StripChat._static_data["features"]["MMPExternalSourceOrigin"]
+        mmp_version = StripChat._static_data["featuresV2"][
+            "playerModuleExternalLoading"
+        ]["mmpVersion"]
         mmp_base = f"{mmp_origin}/v{mmp_version}"
 
         r = requests.get(f"{mmp_base}/main.js", headers=cls.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch main.js from StripChat")
-        StripChat._main_js_data = r.content.decode('utf-8')
+        StripChat._main_js_data = r.content.decode("utf-8")
 
-        doppio_js_name = re.findall('require[(]"./(Doppio.*?[.]js)"[)]', StripChat._main_js_data)[0]
+        doppio_js_name = re.findall(
+            'require[(]"./(Doppio.*?[.]js)"[)]', StripChat._main_js_data
+        )[0]
 
         r = requests.get(f"{mmp_base}/{doppio_js_name}", headers=cls.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch doppio.js from StripChat")
-        StripChat._doppio_js_data = r.content.decode('utf-8')
+        StripChat._doppio_js_data = r.content.decode("utf-8")
 
     @classmethod
     def m3u_decoder(cls, content):
@@ -105,10 +113,14 @@ class StripChat(Bot):
 
     @staticmethod
     def _getMouflonFromM3U(m3u8_doc):
-        if '#EXT-X-MOUFLON:' in m3u8_doc:
-            _mouflon_start = m3u8_doc.find('#EXT-X-MOUFLON:')
+        if "#EXT-X-MOUFLON:" in m3u8_doc:
+            _mouflon_start = m3u8_doc.find("#EXT-X-MOUFLON:")
             if _mouflon_start > 0:
-                _mouflon = m3u8_doc[_mouflon_start:m3u8_doc.find('\n', _mouflon_start)].strip().split(':')
+                _mouflon = (
+                    m3u8_doc[_mouflon_start : m3u8_doc.find("\n", _mouflon_start)]
+                    .strip()
+                    .split(":")
+                )
                 psch = _mouflon[2]
                 pkey = _mouflon[3]
                 return psch, pkey
@@ -122,55 +134,79 @@ class StripChat(Bot):
 
     def getPlaylistVariants(self, url):
         url = "https://edge-hls.{host}/hls/{id}{vr}/master/{id}{vr}{auto}.m3u8".format(
-                host='doppiocdn.' + random.choice(['org', 'com', 'net']),
-                id=self.lastInfo['item']["modelId"],
-                vr='_vr' if self.vr else '',
-                auto='_auto' if not self.vr else ''
-            )
+            host="doppiocdn." + random.choice(["org", "com", "net"]),
+            id=self.lastInfo["item"]["modelId"],
+            vr="_vr" if self.vr else "",
+            auto="_auto" if not self.vr else "",
+        )
         result = requests.get(url, headers=self.headers, cookies=self.cookies)
         m3u8_doc = result.content.decode("utf-8")
         psch, pkey = StripChat._getMouflonFromM3U(m3u8_doc)
         variants = super().getPlaylistVariants(m3u_data=m3u8_doc)
-        return [variant | {'url': f'{variant["url"]}{"&" if "?" in variant["url"] else "?"}psch={psch}&pkey={pkey}'}
-                for variant in variants]
+        return [
+            variant
+            | {
+                "url": f'{variant["url"]}{"&" if "?" in variant["url"] else "?"}psch={psch}&pkey={pkey}'
+            }
+            for variant in variants
+        ]
 
     @staticmethod
     def uniq():
-        chars = ''.join(chr(i) for i in range(ord('a'), ord('z')+1))
-        chars += ''.join(chr(i) for i in range(ord('0'), ord('9')+1))
-        return ''.join(random.choice(chars) for _ in range(16))
+        chars = "".join(chr(i) for i in range(ord("a"), ord("z") + 1))
+        chars += "".join(chr(i) for i in range(ord("0"), ord("9") + 1))
+        return "".join(random.choice(chars) for _ in range(16))
 
     def getStatus(self):
+
+        # headers = {
+        #     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:138.0) Gecko/20100101 Firefox/138.0",
+        #     "Origin": "https://stripchat.com",
+        #     "Referer": f"https://stripchat.com/",
+        # }
+
         r = requests.get(
-            f'https://stripchat.com/api/front/v1/broadcasts/{self.username}?uniq={StripChat.uniq()}',
-            headers=self.headers
+            f"https://stripchat.com/api/front/v1/broadcasts/{self.username}?uniq={StripChat.uniq()}",
+            headers=self.headers,
         )
 
         try:
             self.lastInfo = r.json()
         except requests.exceptions.JSONDecodeError:
-            self.log('Failed to parse JSON response')
+            self.log("Failed to parse JSON response")
             return Status.UNKNOWN
 
-        if 'item' not in self.lastInfo:
-            if 'description' in self.lastInfo:
-                description = self.lastInfo['description']
+        if "item" not in self.lastInfo:
+            if "description" in self.lastInfo:
+                description = self.lastInfo["description"]
                 if description == "Access forbidden: reason=geoBan":
                     return Status.RESTRICTED
                 if description == 'Entity "Model" not found':
                     return Status.NOTEXIST
-                self.logger.warn(f'Status returned error: {description}')
+                self.logger.warn(f"Status returned error: {description}")
             return Status.UNKNOWN
 
-        status = self.lastInfo['item']["status"]
+        status = self.lastInfo["item"]["status"]
         if status in ["public"]:
             return Status.PUBLIC
         if status in ["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"]:
             return Status.PRIVATE
         if status in ["off", "idle"]:
             return Status.OFFLINE
-        self.logger.warn(f'Got unknown status: {status}')
+        self.logger.warn(f"Got unknown status: {status}")
         return Status.UNKNOWN
+
+    def getLoadCam(self):
+
+        r = requests.get(
+            f"https://stripchat.com/api/front/v2/models/username/{self.username}/cam?triggerRequest=loadCam",
+            headers=self.headers,
+        )
+
+        try:
+            self.loadcam = r.json()
+        except requests.exceptions.JSONDecodeError:
+            self.log("Failed to parse JSON response")
 
 
 Bot.loaded_sites.add(StripChat)

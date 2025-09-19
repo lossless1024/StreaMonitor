@@ -10,7 +10,7 @@ class ZMQManager(Manager):
 
     def run(self):
         with zmq.Context.instance().socket(zmq.REP) as socket:
-            socket.bind("tcp://*:6969")
+            socket.bind("tcp://*:6970")
             while True:
                 line = socket.recv_string()
                 self.logger.info("[ZMQ] " + line)
@@ -18,4 +18,4 @@ class ZMQManager(Manager):
                 if type(reply) is str:
                     socket.send_string(reply)
                 else:
-                    socket.send_string('')
+                    socket.send_string("")
