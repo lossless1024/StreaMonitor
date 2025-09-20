@@ -101,69 +101,93 @@ def getVideoNativeHLS(self, url, filename, m3u_processor=None):
             if DEBUG
             else subprocess.DEVNULL
         )
-        output_str = "-c:a copy -c:v copy"
+
+        # Output opts: copy everything and map all streams
+        output_str = "-map 0 -c copy"
+        # If you prefer being explicit:
+        # output_str = "-map 0 -c:v copy -c:a copy -c:s copy"
+
         if SEGMENT_TIME is not None:
+            # Keep your segmentation flags
             output_str += (
                 f" -f segment -reset_timestamps 1 -segment_time {str(SEGMENT_TIME)}"
             )
             filename = filename[: -len("." + CONTAINER)] + "_%03d." + CONTAINER
+
         ff = FFmpeg(
             executable=FFMPEG_PATH,
-            inputs={tmpfilename: None},
+            # These are your global flags: -hide_banner -nostdin
+            global_options=["-hide_banner", "-nostdin"],
+            # Force the input demuxer and shrink probing to start instantly
+            inputs={tmpfilename: "-f mp4 -probesize 32 -analyzeduration 0"},
             outputs={filename: output_str},
         )
+
         ff.run(stdout=stdout, stderr=stderr)
         os.remove(tmpfilename)
+
     except FFRuntimeError as e:
         if e.exit_code and e.exit_code != 255:
+            self.logger.error("FFmpeg error: " + str(e))
             return False
 
-    # -------- Move processed file(s) --------
-    import shutil
-    from datetime import datetime
+    try:
+        # -------- Move processed file(s) --------
+        import shutil
+        from datetime import datetime
 
-    today_str = datetime.now().strftime("%Y%m%d")
-    target_dir = f"/Volumes/T7 2TB/opnemen/klaar/{today_str}"
-    os.makedirs(target_dir, exist_ok=True)
+        today_str = datetime.now().strftime("%Y%m%d")
+        target_dir = f"/Volumes/T7 2TB/opnemen/klaar/{today_str}"
+        os.makedirs(target_dir, exist_ok=True)
 
-    if SEGMENT_TIME is not None:
-        import glob
+        if SEGMENT_TIME is not None:
+            import glob
 
-        segment_pattern = filename[: -len("_%03d." + CONTAINER)] + "_*." + CONTAINER
-        for segfile in glob.glob(segment_pattern):
-            shutil.move(segfile, os.path.join(target_dir, os.path.basename(segfile)))
-    else:
-
-        # Match pattern
-        pattern = re.compile(
-            r"^(.*?)-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.mkv$"
-        )
-        match = pattern.match(filename)
-
-        if match:
-            prefix, year, month, day, hour, minute, second = match.groups()
-
-            # Build datetime object
-            dt = datetime(
-                int(year), int(month), int(day), int(hour), int(minute), int(second)
-            )
-
-            # Example adjustment (customize as needed)
-            dt = dt - timedelta(hours=3) + timedelta(seconds=11)
-
-            # New name
-            newFilename = f"{prefix}_{dt.strftime('%Y-%m-%d_%H-%M-%S')}_Stripchat.mkv"
-
-            shutil.move(
-                filename, os.path.join(target_dir, os.path.basename(newFilename))
-            )
-
+            segment_pattern = filename[: -len("_%03d." + CONTAINER)] + "_*." + CONTAINER
+            for segfile in glob.glob(segment_pattern):
+                shutil.move(
+                    segfile, os.path.join(target_dir, os.path.basename(segfile))
+                )
         else:
-            print("Filename does not match expected pattern.")
 
-            shutil.move(filename, os.path.join(target_dir, os.path.basename(filename)))
+            # Match pattern
+            pattern = re.compile(
+                r"^(.*?)-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.mkv$"
+            )
+            match = pattern.match(filename)
 
-    return True
+            if match:
+                prefix, year, month, day, hour, minute, second = match.groups()
+
+                # Build datetime object
+                dt = datetime(
+                    int(year), int(month), int(day), int(hour), int(minute), int(second)
+                )
+
+                # Example adjustment (customize as needed)
+                dt = dt - timedelta(hours=3) + timedelta(seconds=11)
+
+                # New name
+                newFilename = (
+                    f"{prefix}_{dt.strftime('%Y-%m-%d_%H-%M-%S')}_Stripchat.mkv"
+                )
+
+                shutil.move(
+                    filename, os.path.join(target_dir, os.path.basename(newFilename))
+                )
+
+            else:
+                print("Filename does not match expected pattern.")
+
+                shutil.move(
+                    filename, os.path.join(target_dir, os.path.basename(filename))
+                )
+
+        return True
+
+    except Exception as e:
+        print(f"Error during file move: {e}")
+        return True
 
 
 # ...existing code...
