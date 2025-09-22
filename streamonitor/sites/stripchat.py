@@ -160,7 +160,9 @@ class StripChat(Bot):
                 self.logger.warn(f'Status returned error: {error}')
             return Status.UNKNOWN
 
-        self.lastInfo = data['cam'] | {'model': data['user']['user']}
+        self.lastInfo = {'model': data['user']['user']}
+        if isinstance(data['cam'], dict):
+            self.lastInfo |= data['cam']
 
         status = self.lastInfo['model'].get('status')
         if status == "public" and self.lastInfo["isCamAvailable"] and self.lastInfo["isCamActive"]:
