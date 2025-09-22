@@ -172,7 +172,9 @@ class StripChat(ChatCollectingMixin, Bot):
                 self.logger.warn(f'Status returned error: {error}')
             return Status.UNKNOWN
 
-        self.lastInfo = data['cam'] | {'model': data['user']['user']}
+        self.lastInfo = {'model': data['user']['user']}
+        if isinstance(data['cam'], dict):
+            self.lastInfo |= data['cam']
 
         if self._model_id is None:
             self._model_id = self.lastInfo["model"]['id']
