@@ -1,3 +1,4 @@
+import itertools
 import random
 import re
 import time
@@ -18,7 +19,7 @@ class StripChat(Bot):
     _main_js_data = None
     _doppio_js_data = None
     _mouflon_keys: dict = None
-    _cached_keys: dict = None
+    _cached_keys: dict[str, bytes] = None
 
     def __init__(self, username):
         if StripChat._static_data is None:
@@ -60,48 +61,38 @@ class StripChat(Bot):
 
     @classmethod
     def m3u_decoder(cls, content):
+        _mouflon_file_attr = "#EXT-X-MOUFLON:FILE:"
+        _mouflon_filename = 'media.mp4'
+
         def _decode(encrypted_b64: str, key: str) -> str:
             if cls._cached_keys is None:
                 cls._cached_keys = {}
-            if key not in cls._cached_keys:
-                cls._cached_keys[key] = hashlib.sha256(key.encode("utf-8")).digest()
-            hash_bytes = cls._cached_keys[key]
-            hash_len = len(hash_bytes)
-
+            hash_bytes = cls._cached_keys[key] if key in cls._cached_keys \
+                else cls._cached_keys.setdefault(key, hashlib.sha256(key.encode("utf-8")).digest())
             encrypted_data = base64.b64decode(encrypted_b64 + "==")
-
-            decrypted_bytes = bytearray()
-            for i, cipher_byte in enumerate(encrypted_data):
-                key_byte = hash_bytes[i % hash_len]
-                decrypted_byte = cipher_byte ^ key_byte
-                decrypted_bytes.append(decrypted_byte)
-
-            plaintext = decrypted_bytes.decode("utf-8")
-            return plaintext
+            return bytes(a ^ b for (a, b) in zip(encrypted_data, itertools.cycle(hash_bytes))).decode("utf-8")
 
         _, pkey = StripChat._getMouflonFromM3U(content)
 
-        decoded = []
+        decoded = ''
         lines = content.splitlines()
-        for idx, line in enumerate(lines):
-            if line.startswith("#EXT-X-MOUFLON:FILE:"):
-                dec = _decode(line[20:], cls.getMouflonDecKey(pkey))
-                decoded.append(lines[idx + 1].replace("media.mp4", dec))
+        last_decoded_file = None
+        for line in lines:
+            if line.startswith(_mouflon_file_attr):
+                last_decoded_file = _decode(line[len(_mouflon_file_attr):], cls.getMouflonDecKey(pkey))
+            elif line.endswith(_mouflon_filename) and last_decoded_file:
+                decoded += (line.replace(_mouflon_filename, last_decoded_file)) + '\n'
+                last_decoded_file = None
             else:
-                decoded.append(line)
-        return "\n".join(decoded)
+                decoded += line + '\n'
+        return decoded
 
     @classmethod
     def getMouflonDecKey(cls, pkey):
-        if not cls._mouflon_keys:
+        if cls._mouflon_keys is None:
             cls._mouflon_keys = {}
-
-        if pkey in cls._mouflon_keys:
-            return cls._mouflon_keys[pkey]
-
-        key = re.findall(f'"{pkey}:(.*?)"', cls._doppio_js_data)[0]
-        cls._mouflon_keys[pkey] = key
-        return key
+        return cls._mouflon_keys[pkey] if pkey in cls._mouflon_keys \
+            else cls._mouflon_keys.setdefault(pkey, re.findall(f'"{pkey}:(.*?)"', cls._doppio_js_data)[0])
 
     @staticmethod
     def _getMouflonFromM3U(m3u8_doc):
@@ -135,10 +126,10 @@ class StripChat(Bot):
                 for variant in variants]
 
     @staticmethod
-    def uniq():
+    def uniq(length=16):
         chars = ''.join(chr(i) for i in range(ord('a'), ord('z')+1))
         chars += ''.join(chr(i) for i in range(ord('0'), ord('9')+1))
-        return ''.join(random.choice(chars) for _ in range(16))
+        return ''.join(random.choice(chars) for _ in range(length))
 
     def getStatus(self):
         r = requests.get(
