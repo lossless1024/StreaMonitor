@@ -1,22 +1,20 @@
-<button id="toggle-streamer" class="toggle-streamer-btn {{'pause-btn' if streamer.running else 'record-btn' }}" 
+<button id="toggle-streamer" class="btn {{'btn-warning' if streamer.running else 'btn-success'}}" 
     hx-patch="/toggle/{{ streamer.username }}/{{ streamer.site }}/recording"
     hx-trigger="click"
     hx-target="#toggle-streamer"
     hx-swap="outerHTML"
     hx-disabled-elt="this">
     {% if streamer.running %}
-        <span>Pause</span>
-        <i class="icon feather icon-pause-circle"></i>
+        <i class="bi bi-pause-circle me-2"></i>Pause
     {% else %}
-        <span>Resume</span>
-        <i class="icon feather icon-play-circle"></i>
+        <i class="bi bi-play-circle me-2"></i>Resume
     {% endif %}
 </button>
 {% if streamer_has_error %}
 <div hx-swap-oob="beforeend:#content">
-    <div class="error-modal">
-        <span>{{ streamer_error_message }}</span>
-        <button hx-delete="/clear" hx-swap="outerHTML" hx-target="closest .error-modal" hx-trigger="click">dismiss</button>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>{{ streamer_error_message }}
+        <button type="button" class="btn-close" hx-delete="/clear" hx-swap="outerHTML" hx-target="closest .alert" hx-trigger="click" aria-label="Close"></button>
     </div>
 </div>
 {% endif %}
