@@ -18,7 +18,6 @@ class StripChatVR(StripChat):
         super().__init__(username)
         self.stopDownloadFlag = False
         self.vr = True
-        self.url = self.getWebsiteURL()
 
     @property
     def filename_extra_suffix(self):

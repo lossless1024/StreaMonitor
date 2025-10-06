@@ -7,10 +7,6 @@ class CamsCom(Bot):
     site = 'CamsCom'
     siteslug = 'CC'
 
-    def __init__(self, username):
-        super().__init__(username)
-        self.url = self.getWebsiteURL()
-
     def getWebsiteURL(self):
         return "https://cams.com/" + self.username
 

@@ -14,7 +14,6 @@ class Flirt4Free(Bot):
     def __init__(self, username, room_id=None):
         self.room_id = room_id if room_id else self.getRoomId(username)
         super().__init__(username)
-        self.url = self.getWebsiteURL()
 
     def getWebsiteURL(self):
         return "https://www.flirt4free.com/?model=" + self.username

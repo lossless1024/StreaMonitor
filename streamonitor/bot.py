@@ -19,13 +19,10 @@ from streamonitor.models import VideoData
 
 class Bot(Thread):
     loaded_sites = set()
-    username = None
     site = None
     siteslug = None
     aliases = []
     ratelimit = False
-    url = "javascript:void(0)"
-    recording = False
 
     sleep_on_private = 5
     sleep_on_offline = 5
@@ -33,7 +30,6 @@ class Bot(Thread):
     sleep_on_error = 20
     sleep_on_ratelimit = 180
     long_offline_timeout = 600
-    previous_status = None
 
     headers = {
         "User-Agent": HTTP_USER_AGENT
@@ -67,12 +63,14 @@ class Bot(Thread):
         self.running = False
         self.quitting = False
         self.sc: Status = Status.NOTRUNNING  # Status code
+        self.previous_status = None
         self.getVideo = getVideoFfmpeg
         self.stopDownload = None
         self.recording = False
         self.video_files = []
         self.video_files_total_size = 0
         self.cache_file_list()
+        self.url = self.getWebsiteURL()
 
     def getLogger(self):
         return log.Logger("[" + self.siteslug + "] " + self.username).get_logger()

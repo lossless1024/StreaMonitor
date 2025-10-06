@@ -83,7 +83,7 @@ class HTTPManager(Manager):
                     "running": streamer.running,
                     "sc": streamer.sc.value,
                     "status": streamer.status(),
-                    "url": streamer.getWebsiteURL(),
+                    "url": streamer.url,
                     "username": streamer.username
                 }
                 json_streamer.append(json_stream)
