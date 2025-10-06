@@ -63,8 +63,8 @@ class Manager(Thread):
                 streamer.restart()
                 self.saveConfig()
                 return "Added [" + streamer.siteslug + "] " + streamer.username
-            except:
-                return "Failed to add"
+            except Exception as e:
+                return f"Failed to add: {e}"
         else:
             return "Missing value(s)"
 

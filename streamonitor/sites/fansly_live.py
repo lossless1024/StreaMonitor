@@ -1,8 +1,8 @@
-from streamonitor.bot import Bot, RoomIdMixin
+from streamonitor.bot import Bot, RoomIdBot
 from streamonitor.enums import Status
 
 
-class FanslyLive(RoomIdMixin, Bot):
+class FanslyLive(RoomIdBot):
     site = 'FanslyLive'
     siteslug = 'FL'
 
@@ -12,18 +12,27 @@ class FanslyLive(RoomIdMixin, Bot):
     def getVideoUrl(self):
         return self.getWantedResolutionPlaylist(self.lastInfo['stream']['playbackUrl'])
 
-    def getRoomId(self):
-        r = self.session.get(f'https://apiv3.fansly.com/api/v1/account?usernames={self.username}&ngsw-bypass=true')
+    def getUsernameFromRoomId(self, room_id):
+        r = self.session.get(f'https://apiv3.fansly.com/api/v1/account?ids={room_id}&ngsw-bypass=true')
         data = r.json()
         for streamer in data.get('response', []):
-            if streamer.get('username').lower() == self.username.lower():
+            if streamer.get('id') == room_id:
+                self.username = streamer['username']
+                return streamer.get('username')
+        return None
+
+    def getRoomIdFromUsername(self, username):
+        r = self.session.get(f'https://apiv3.fansly.com/api/v1/account?usernames={username}&ngsw-bypass=true')
+        data = r.json()
+        for streamer in data.get('response', []):
+            if streamer.get('username').lower() == username.lower():
                 self.username = streamer['username']
                 return streamer.get('id')
         return None
 
     def getStatus(self):
         if self.room_id is None:
-            self.room_id = self.getRoomId()
+            self.room_id = self.getRoomIdFromUsername(self.username)
         if self.room_id is None:
             return Status.NOTEXIST
 

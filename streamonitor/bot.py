@@ -72,7 +72,15 @@ class Bot(Thread):
         self.cache_file_list()
         self.url = self.getWebsiteURL()
 
+    def setUsername(self, username):
+        self.username = username
+        self.logger = self.getLogger()
+        self.cache_file_list()
+        self.url = self.getWebsiteURL()
+
     def getLogger(self):
+        if hasattr(self, 'logger') and self.logger:
+            self.logger.removeHandler(self.logger.handlers[0])
         return log.Logger("[" + self.siteslug + "] " + self.username).get_logger()
 
     def restart(self):
@@ -324,6 +332,12 @@ class Bot(Thread):
         filename = os.path.join(folder, f'{self.username}-{timestamp}.{CONTAINER}')
         return filename
 
+    @classmethod
+    def fromConfig(cls, data):
+        instance = cls(username=data['username'])
+        instance.running = data.get('running', True)
+        return instance
+
     def export(self):
         return {"site": self.site, "username": self.username, "running": self.running}
 
@@ -344,20 +358,45 @@ class Bot(Thread):
         return None
 
 
-class RoomIdMixin:
+class RoomIdBot(Bot):
     def __init__(self, username, room_id=None):
+        self.room_id = None
         super().__init__(username)
-        if room_id:
+
+        if room_id and username:
             self.room_id = room_id
-        elif username.isnumeric():
-            self.room_id = username
-        else:
-            self.room_id = self.getRoomId()
+
+        if self.room_id is None and username.isnumeric():  # Username might be the room ID
+            username_real = self.getUsernameFromRoomId(username)
+            if username_real is not None:  # Username might not be the room ID even though it is numeric
+                self.logger.debug(f'Found username: {username_real}')
+                self.room_id = username
+                self.setUsername(username_real)
+
+        if self.room_id is None:  # We need to get the room ID
+            self.room_id = self.getRoomIdFromUsername(username)
+            self.logger.debug(f'Found room ID: {self.room_id}')
+
+        if self.room_id is None:  # Still no room ID, streamer probably does not exist
+            self.logger.warning(f'Room ID not found')
+            self.sc = Status.NOTEXIST
+
+        self.logger = self.getLogger()
+        self.url = self.getWebsiteURL()
+
+    @classmethod
+    def fromConfig(cls, data):
+        instance = cls(username=data['username'], room_id=data.get('room_id'))
+        instance.running = data.get('running', True)
+        return instance
 
     def export(self):
         data = super().export()
         data['room_id'] = self.room_id
         return data
 
-    def getRoomId(self):
+    def getRoomIdFromUsername(self, username):
+        raise NotImplementedError()
+
+    def getUsernameFromRoomId(self, room_id):
         raise NotImplementedError()
