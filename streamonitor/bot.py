@@ -57,6 +57,8 @@ class Bot(Thread):
         self.username = username
         self.logger = self.getLogger()
 
+        self.session = requests.Session()
+        self.session.headers.update(self.headers)
         self.cookies = None
         self.cookieUpdater = None
         self.cookie_update_interval = 0
@@ -342,3 +344,22 @@ class Bot(Thread):
         if site:
             return Bot.str2site(site)(username)
         return None
+
+
+class RoomIdMixin:
+    def __init__(self, username, room_id=None):
+        super().__init__(username)
+        if room_id:
+            self.room_id = room_id
+        elif username.isnumeric():
+            self.room_id = username
+        else:
+            self.room_id = self.getRoomId()
+
+    def export(self):
+        data = super().export()
+        data['room_id'] = self.room_id
+        return data
+
+    def getRoomId(self):
+        raise NotImplementedError()
