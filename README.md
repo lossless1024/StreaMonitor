@@ -13,6 +13,7 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 | Chaturbate    | `CB`         |                             |                        | Yes                   |
 | DreamCam      | `DC`         |                             |                        | No                    |
 | DreamCam VR   | `DCVR`       |                             | for VR videos          | No                    |
+| FanslyLive    | `FL`         |                             |                        | Yes                   |
 | Flirt4Free    | `F4F`        |                             |                        | Yes                   |
 | MyFreeCams    | `MFC`        |                             |                        | Yes                   |
 | SexChat.hu    | `SCHU`       |                             | use the id as username | No                    |

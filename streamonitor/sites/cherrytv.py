@@ -7,10 +7,6 @@ class CherryTV(Bot):
     site = 'Cherry.tv'
     siteslug = 'CHTV'
 
-    def __init__(self, username):
-        super().__init__(username)
-        self.url = self.getWebsiteURL()
-
     def getWebsiteURL(self):
         return "https://www.cherry.tv/" + self.username
 
@@ -32,6 +28,3 @@ class CherryTV(Bot):
         if self.lastInfo['broadcast']['showStatus'] == 'Public':
             return Status.PUBLIC
         return Status.UNKNOWN
-
-
-Bot.loaded_sites.add(CherryTV)

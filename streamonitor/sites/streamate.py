@@ -8,10 +8,6 @@ class StreaMate(Bot):
     siteslug = 'SM'
     aliases = ['pornhublive']
 
-    def __init__(self, username):
-        super().__init__(username)
-        self.url = self.getWebsiteURL()
-
     def getWebsiteURL(self):
         return "https://streamate.com/cam/" + self.username
 
@@ -41,6 +37,3 @@ class StreaMate(Bot):
         if r.status_code == 200:
             self.lastInfo = r.json()
         return Status(r.status_code)
-
-
-Bot.loaded_sites.add(StreaMate)

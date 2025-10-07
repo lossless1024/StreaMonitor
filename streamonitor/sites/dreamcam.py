@@ -32,6 +32,3 @@ class DreamCam(Bot):
             return Status.OFFLINE
         self.logger.warn(f'Got unknown status: {self.lastInfo["broadcastStatus"]}')
         return Status.UNKNOWN
-
-
-Bot.loaded_sites.add(DreamCam)

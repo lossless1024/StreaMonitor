@@ -57,6 +57,3 @@ class ManyVids(Bot):
             return Status.PUBLIC
 
         return Status.UNKNOWN
-
-
-Bot.loaded_sites.add(ManyVids)

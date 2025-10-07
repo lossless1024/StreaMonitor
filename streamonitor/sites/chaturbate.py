@@ -12,7 +12,6 @@ class Chaturbate(Bot):
         super().__init__(username)
         self.sleep_on_offline = 30
         self.sleep_on_error = 60
-        self.url = self.getWebsiteURL()
     
     def getWebsiteURL(self):
         return "https://www.chaturbate.com/" + self.username
@@ -44,6 +43,3 @@ class Chaturbate(Bot):
 
         self.ratelimit = status == Status.RATELIMIT
         return status
-
-
-Bot.loaded_sites.add(Chaturbate)

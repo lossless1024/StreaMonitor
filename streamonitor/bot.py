@@ -16,16 +16,14 @@ from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTIO
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 from streamonitor.models import VideoData
 
+LOADED_SITES = set()
+
 
 class Bot(Thread):
-    loaded_sites = set()
-    username = None
     site = None
     siteslug = None
     aliases = []
     ratelimit = False
-    url = "javascript:void(0)"
-    recording = False
 
     sleep_on_private = 5
     sleep_on_offline = 5
@@ -33,7 +31,6 @@ class Bot(Thread):
     sleep_on_error = 20
     sleep_on_ratelimit = 180
     long_offline_timeout = 600
-    previous_status = None
 
     headers = {
         "User-Agent": HTTP_USER_AGENT
@@ -52,11 +49,20 @@ class Bot(Thread):
         Status.RESTRICTED: "Model is restricted, maybe geo-block"
     }
 
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        if cls.site:
+            global LOADED_SITES
+            LOADED_SITES.add(cls)
+
     def __init__(self, username):
         super().__init__()
         self.username = username
         self.logger = self.getLogger()
 
+        self.session = requests.Session()
+        self.session.headers.update(self.headers)
         self.cookies = None
         self.cookieUpdater = None
         self.cookie_update_interval = 0
@@ -65,14 +71,24 @@ class Bot(Thread):
         self.running = False
         self.quitting = False
         self.sc: Status = Status.NOTRUNNING  # Status code
+        self.previous_status = None
         self.getVideo = getVideoFfmpeg
         self.stopDownload = None
         self.recording = False
         self.video_files = []
         self.video_files_total_size = 0
         self.cache_file_list()
+        self.url = self.getWebsiteURL()
+
+    def setUsername(self, username):
+        self.username = username
+        self.logger = self.getLogger()
+        self.cache_file_list()
+        self.url = self.getWebsiteURL()
 
     def getLogger(self):
+        if hasattr(self, 'logger') and self.logger:
+            self.logger.removeHandler(self.logger.handlers[0])
         return log.Logger("[" + self.siteslug + "] " + self.username).get_logger()
 
     def restart(self):
@@ -324,13 +340,19 @@ class Bot(Thread):
         filename = os.path.join(folder, f'{self.username}-{timestamp}.{CONTAINER}')
         return filename
 
+    @classmethod
+    def fromConfig(cls, data):
+        instance = cls(username=data['username'])
+        instance.running = data.get('running', True)
+        return instance
+
     def export(self):
         return {"site": self.site, "username": self.username, "running": self.running}
 
     @staticmethod
     def str2site(site: str):
         site = site.lower()
-        for sitecls in Bot.loaded_sites:
+        for sitecls in LOADED_SITES:
             if site == sitecls.site.lower() or \
                     site == sitecls.siteslug.lower() or \
                     site in sitecls.aliases:
@@ -341,4 +363,49 @@ class Bot(Thread):
     def createInstance(username: str, site: str = None):
         if site:
             return Bot.str2site(site)(username)
+        return None
+
+
+class RoomIdBot(Bot):
+    def __init__(self, username, room_id=None):
+        self.room_id = None
+        super().__init__(username)
+
+        if room_id and username:
+            self.room_id = room_id
+
+        if self.room_id is None and username.isnumeric():  # Username might be the room ID
+            username_real = self.getUsernameFromRoomId(username)
+            if username_real is not None:  # Username might not be the room ID even though it is numeric
+                self.logger.debug(f'Found username: {username_real}')
+                self.room_id = username
+                self.setUsername(username_real)
+
+        if self.room_id is None:  # We need to get the room ID
+            self.room_id = self.getRoomIdFromUsername(username)
+            if self.room_id:
+                self.logger.debug(f'Found room ID: {self.room_id}')
+
+        if self.room_id is None:  # Still no room ID, streamer probably does not exist
+            self.logger.warning(f'Room ID not found')
+            self.sc = Status.NOTEXIST
+
+        self.logger = self.getLogger()
+        self.url = self.getWebsiteURL()
+
+    @classmethod
+    def fromConfig(cls, data):
+        instance = cls(username=data['username'], room_id=data.get('room_id'))
+        instance.running = data.get('running', True)
+        return instance
+
+    def export(self):
+        data = super().export()
+        data['room_id'] = self.room_id
+        return data
+
+    def getRoomIdFromUsername(self, username):
+        return None
+
+    def getUsernameFromRoomId(self, room_id):
         return None

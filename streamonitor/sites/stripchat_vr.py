@@ -1,7 +1,6 @@
 from parameters import VR_FORMAT_SUFFIX
 from streamonitor.enums import Status
 from streamonitor.sites.stripchat import StripChat
-from streamonitor.bot import Bot
 
 
 class StripChatVR(StripChat):
@@ -18,7 +17,6 @@ class StripChatVR(StripChat):
         super().__init__(username)
         self.stopDownloadFlag = False
         self.vr = True
-        self.url = self.getWebsiteURL()
 
     @property
     def filename_extra_suffix(self):
@@ -44,6 +42,3 @@ class StripChatVR(StripChat):
                 return Status.PUBLIC
             return Status.OFFLINE
         return status
-
-
-Bot.loaded_sites.add(StripChatVR)
