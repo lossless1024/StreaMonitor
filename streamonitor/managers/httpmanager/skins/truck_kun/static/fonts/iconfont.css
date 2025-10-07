@@ -1,8 +1,8 @@
 
 @font-face {
   font-family: "feather";
-  src: url('./feather.woff?t=1525787366991') format('woff'), /* chrome, firefox */
-  url('./feather.ttf?t=1525787366991') format('truetype'); /* chrome, firefox, opera, Safari, Android, iOS 4.2+*/
+  src: url('feather.woff?t=1525787366991') format('woff'), /* chrome, firefox */
+  url('feather.ttf?t=1525787366991') format('truetype'); /* chrome, firefox, opera, Safari, Android, iOS 4.2+*/
 }
 
 .feather {

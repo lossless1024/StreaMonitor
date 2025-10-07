@@ -30,7 +30,13 @@ class HTTPManager(Manager):
         self.loaded_site_names.sort()
 
     def run(self):
-        app = Flask(__name__, "")
+        app = Flask(
+            __name__,
+            static_url_path='',
+            static_folder='skins/truck_kun/static',
+            template_folder='skins/truck_kun/templates'
+        )
+        
         werkzeug_logger = logging.getLogger('werkzeug')
         werkzeug_logger.disabled = True
 
