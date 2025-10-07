@@ -87,6 +87,7 @@ class HTTPManager(Manager):
                 json_stream = {
                     "site": streamer.siteslug,
                     "running": streamer.running,
+                    "recording": streamer.recording,
                     "sc": streamer.sc.value,
                     "status": streamer.status(),
                     "url": streamer.url,

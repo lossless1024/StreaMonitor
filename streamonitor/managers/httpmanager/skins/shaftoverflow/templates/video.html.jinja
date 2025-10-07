@@ -1,0 +1,18 @@
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-play-circle me-2"></i>Playing {{ video_to_play.shortname }}
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <video preload="auto" controls="controls" class="w-100">
+            <source src="/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}" type="{{ video_to_play.mimetype }}" />
+        </video>
+    </div>
+    <div class="card-footer">
+        <a href="/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}" download class="btn btn-primary">
+            <i class="bi bi-download me-2"></i>Download
+        </a>
+        <input type="hidden" name="play_video" id="play_video" class="streamer-context" value="{{ video_to_play.filename }}">
+    </div>
+</div>

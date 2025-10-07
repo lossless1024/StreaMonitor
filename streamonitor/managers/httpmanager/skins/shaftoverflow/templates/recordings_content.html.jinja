@@ -1,0 +1,10 @@
+<div id="video-area" {{'class="theater-mode"' if theater_mode}}>
+    {% if video_to_play is not none %}
+        {% set user = streamer.username %}
+        {% set site = streamer.site %}
+        {% include 'video.html.jinja' with context %}
+    {% endif %}
+</div>
+<div id="video-list">
+    {% include 'video_list.html.jinja' ignore missing with context %}
+</div>

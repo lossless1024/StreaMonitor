@@ -1,0 +1,77 @@
+{% macro sortable_header(col_key, col_label, icon, sort_by, sort_dir, username_filter, site_filter, status_filter) %}
+  {% set is_sorted = (sort_by == col_key) %}
+  {% set next_dir = "desc" if is_sorted and sort_dir == "asc" else "asc" %}
+  <button
+    class="btn btn-sm btn-outline-secondary {{ 'active' if is_sorted }}"
+    hx-get="/refresh/streamers"
+    hx-target="#streamers"
+    hx-swap="innerHTML"
+    hx-vals='{
+      "sort_by": "{{ col_key }}",
+      "sort_dir": "{{ next_dir }}"
+    }'
+    hx-include=".filter-streamers-state:valid"
+  >
+    <i class="bi bi-{{ icon }} me-1"></i>
+    {{ col_label }}
+    {% if is_sorted %}
+      <i class="bi bi-sort-{{ 'down' if sort_dir == 'asc' else 'up' }} ms-1"></i>
+    {% endif %}
+  </button>
+{% endmacro %}
+
+<input type="hidden" name="sort_by" id="sort_by" class="filter-streamers-state" value="{{ sort_by or '' }}">
+<input type="hidden" name="sort_dir" id="sort_dir" class="filter-streamers-state" value="{{ sort_dir or '' }}">
+
+<!-- Sort Controls -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="btn-group" role="group">
+        {{ sortable_header("username", "Name", "person-fill", sort_by, sort_dir, username_filter, site_filter, status_filter) }}
+        {{ sortable_header("site", "Site", "globe", sort_by, sort_dir, username_filter, site_filter, status_filter) }}
+        {{ sortable_header("running", "Running", "play-fill", sort_by, sort_dir, username_filter, site_filter, status_filter) }}
+        {{ sortable_header("status", "Status", "info-circle", sort_by, sort_dir, username_filter, site_filter, status_filter) }}
+    </div>
+    <div class="text-muted">
+        <small>{{ streamers|length }} streamer{{ 's' if streamers|length != 1 else ''}}</small>
+    </div>
+</div>
+
+<!-- Streamers Grid -->
+<div class="row g-3">
+{% if streamers|length > 0 %}
+    {% for streamer in streamers %}
+        {% set streamer_has_error = False %}
+        {% set streamer_error_message = '' %}
+        <div class="col-lg-4 col-md-6 col-sm-12">
+            {% include 'streamer_record.html.jinja' ignore missing with context %}
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="col-12">
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle me-2"></i>
+            No Streamers Found
+        </div>
+    </div>
+{% endif %}
+</div>
+{% if toast_status != "hide" %}
+<div id="toast-notifications" hx-swap-oob="true">
+    <div class="toast {{ toast_status }}">
+        {{ toast_message }}
+    </div>
+</div>
+{% endif %}
+{% if toast_status == "warning" and error_message %}
+<div id="error-container" hx-swap-oob="true">
+    <div class="error-modal">
+        <span>{{ error_message }}</span>
+        <button hx-delete="/clear" hx-swap="outerHTML" hx-target="closest .error-modal" hx-trigger="click">dismiss</button>
+    </div>
+</div>
+{% endif %}
+{% if update_filter_site_options %}
+    <select hx-swap-oob="innerHTML:#filter-site">
+        {% include 'filter_site_options.html.jinja' ignore missing with context %}
+    </select>
+{% endif %}

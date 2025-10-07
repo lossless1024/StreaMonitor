@@ -1,0 +1,25 @@
+{% set refresh_interval = 'hx-swap="outerHTML" hx-get="/recording/nav/{user}/{site}" hx-sync="#video-list:abort" hx-include=".streamer-context" hx-trigger="every {interval}s"'.format(interval=refresh_freq, user=streamer.username, site=streamer.site) %}
+{% set icon = streamer | status_icon_class %}
+<nav id="nav-bar" class="navbar navbar-dark bg-dark {{ 'border border-danger' if has_error }}" {{ refresh_interval if refresh_freq and refresh_freq > 0}}>
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/#streamer-{{ streamer.siteslug|lower }}-{{ streamer.username }}">
+            <i class="bi bi-house-door me-2"></i>Home
+        </a>
+        <div class="d-flex align-items-center">
+            <h1 class="navbar-brand mb-0 h1">{{ streamer.username }}</h1>
+            <a href="{{ streamer.url }}" target="_blank" class="ms-3" title="{{ streamer.sc | status_text }}">
+                <span class="badge bg-{{ 'success' if icon == 'check-circle' else 'warning' if icon == 'pause-circle' else 'secondary' }}">
+                    <i class="bi bi-{{icon}} me-1"></i>{{ streamer.sc | status_text }}
+                </span>
+            </a>
+        </div>
+        <div>
+            <input type="hidden" name="prev_state" class="streamer-context play-video-context sorted-context" value="{{ streamer.sc }}">
+        </div>
+    </div>
+</nav>
+{% if update_content %}
+    <div hx-swap-oob="innerHTML:#video-list">
+        {% include 'video_list.html.jinja' ignore missing with context %}
+    </div>
+{% endif %}

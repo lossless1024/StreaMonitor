@@ -1,0 +1,4 @@
+<option value="" {{ 'selected="selected"' if not site_filter }}></option>
+{% for site in unique_sites %}
+    <option value="{{ site }}" {{ 'selected="selected"' if site_filter == site }}>{{ site }}</option>
+{% endfor %}
