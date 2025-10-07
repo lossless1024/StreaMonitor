@@ -383,7 +383,8 @@ class RoomIdBot(Bot):
 
         if self.room_id is None:  # We need to get the room ID
             self.room_id = self.getRoomIdFromUsername(username)
-            self.logger.debug(f'Found room ID: {self.room_id}')
+            if self.room_id:
+                self.logger.debug(f'Found room ID: {self.room_id}')
 
         if self.room_id is None:  # Still no room ID, streamer probably does not exist
             self.logger.warning(f'Room ID not found')
@@ -404,7 +405,7 @@ class RoomIdBot(Bot):
         return data
 
     def getRoomIdFromUsername(self, username):
-        raise NotImplementedError()
+        return None
 
     def getUsernameFromRoomId(self, room_id):
-        raise NotImplementedError()
+        return None
