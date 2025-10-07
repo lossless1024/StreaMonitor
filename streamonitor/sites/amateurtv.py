@@ -45,6 +45,4 @@ class AmateurTV(Bot):
                 return Status.PRIVATE
         if self.lastInfo.get('status') == 'offline':
             return Status.OFFLINE
-
-
-Bot.loaded_sites.add(AmateurTV)
+        return Status.UNKNOWN

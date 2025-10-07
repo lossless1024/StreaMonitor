@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="htmx-config" content='{"useTemplateFragments":"true", "responseHandling": [{"code": "[45]..", "swap": true, "error": true}, {"code": "...", "swap": true}], "methodsThatUseUrlParams": ["get", "delete", "patch"]}'>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="/static/bootstrap@5.3.0/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="/static/bootstrap-icons@1.13.1/bootstrap-icons.min.css">
+    
+    <link rel="stylesheet" type="text/css" href="/static/streamonitor@shaftoverflow/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <title>{% block title %}StreaMonitor{% endblock %}</title>
+    {% block head %}
+    <script src="/static/htmx@2.0.4/htmx.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='fonts/iconfont.css') }}">
+    {% endblock %}
+</head>
+<body>
+    {% block nav %}{% endblock %}
+    <div id="content">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Bootstrap 5 JS Bundle with Popper -->
+    <script src="/static/bootstrap@5.3.0/bootstrap.bundle.min.js"></script>
+</body>
+</html>

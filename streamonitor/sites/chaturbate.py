@@ -19,7 +19,6 @@ class Chaturbate(ChatCollectingMixin, Bot):
         super().__init__(username)
         self.sleep_on_offline = 30
         self.sleep_on_error = 60
-        self.url = self.getWebsiteURL()
         self._chat_websocket = None
 
     def getWebsiteURL(self):
@@ -166,6 +165,3 @@ class Chaturbate(ChatCollectingMixin, Bot):
     def stopChatLog(self):
         if self._chat_websocket:
             self._chat_websocket.close()
-
-
-Bot.loaded_sites.add(Chaturbate)

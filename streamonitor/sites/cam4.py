@@ -7,10 +7,6 @@ class Cam4(Bot):
     site = 'Cam4'
     siteslug = 'C4'
 
-    def __init__(self, username):
-        super().__init__(username)
-        self.url = self.getWebsiteURL()
-
     def getWebsiteURL(self):
         return "https://hu.cam4.com/" + self.username
     
@@ -50,6 +46,3 @@ class Cam4(Bot):
             return Status.PUBLIC
 
         return Status.UNKNOWN
-
-
-Bot.loaded_sites.add(Cam4)

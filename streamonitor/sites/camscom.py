@@ -7,10 +7,6 @@ class CamsCom(Bot):
     site = 'CamsCom'
     siteslug = 'CC'
 
-    def __init__(self, username):
-        super().__init__(username)
-        self.url = self.getWebsiteURL()
-
     def getWebsiteURL(self):
         return "https://cams.com/" + self.username
 
@@ -31,9 +27,6 @@ class CamsCom(Bot):
             return Status.PRIVATE
             
         return Status.UNKNOWN
-
-
-Bot.loaded_sites.add(CamsCom)
 
 # Known online flag states:
 # 0: Offline

@@ -1,0 +1,124 @@
+{% if streamer is not none %}
+<div id="streamer-{{ streamer.siteslug|lower }}-{{ streamer.username }}" class="streamer-card card h-100 {% if streamer.running and streamer.recording %}border-danger{% elif streamer.running %}border-success{% else %}border-secondary{% endif %}">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <div class="me-3">
+                <span class="badge bg-light rounded-pill streamer-site">{{ streamer.siteslug }}</span>
+            </div>
+            <div>
+                <h6 class="mb-0">{{ streamer.username }}</h6>
+                <small class="text-muted">{{ streamer.site }}</small>
+            </div>
+        </div>
+        <div class="d-flex align-items-center">
+            <div title="{{ streamer.sc | status_text }}" class="me-2">
+                {% set status_class = "bg-secondary" %}
+                {% set status_icon = "circle" %}
+                {% if streamer.running and streamer.recording %}
+                    {% set status_class = "bg-danger" %}
+                    {% set status_icon = "record-circle" %}
+                {% elif streamer.running %}
+                    {% set status_class = "bg-success" %}
+                    {% set status_icon = "play-circle" %}
+                {% endif %}
+                <i class="bi bi-{{ status_icon }} text-{{ status_class.replace('bg-', '') }}"></i>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item" href="{{ streamer.url }}" target="_blank">
+                            <i class="bi bi-box-arrow-up-right me-2"></i>Open Site
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="/recordings/{{ streamer.username }}/{{ streamer.site }}">
+                            <i class="bi bi-folder me-2"></i>View Recordings
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <button class="dropdown-item {% if streamer.running and streamer.recording %}text-danger{% elif streamer.running %}text-warning{% else %}text-success{% endif %}"
+                            hx-patch="/toggle/{{ streamer.username }}/{{ streamer.site }}"
+                            hx-trigger="click"
+                            hx-target="closest .streamer-card"
+                            hx-sync="closest .streamer-card:replace"
+                            hx-swap="outerHTML"
+                            hx-disabled-elt="this">
+                            {% if streamer.running and streamer.recording %}
+                                <i class="bi bi-stop-circle me-2"></i>Stop Recording
+                            {% elif streamer.running %}
+                                <i class="bi bi-pause-circle me-2"></i>Pause
+                            {% else %}
+                                <i class="bi bi-play-circle me-2"></i>Resume
+                            {% endif %}
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item text-info"
+                            hx-get="/streamer-info/{{ streamer.username }}/{{ streamer.site }}"
+                            hx-trigger="click"
+                            hx-target="closest .streamer-card"
+                            hx-sync="closest .streamer-card:replace"
+                            hx-swap="outerHTML"
+                            hx-disabled-elt="this">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+                        </button>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <button class="dropdown-item text-danger"
+                            hx-delete="/remove/{{ streamer.username }}/{{ streamer.site }}"
+                            hx-trigger="click"
+                            hx-target="closest .col-lg-4"
+                            hx-sync="closest .col-lg-4:replace"
+                            hx-swap="outerHTML"
+                            {{ 'hx-confirm="Are you sure you want to remove {streamer}?"'.format(streamer=streamer.username) if confirm_deletes }}
+                            hx-disabled-elt="this">
+                            <i class="bi bi-trash me-2"></i>Remove
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="badge {% if streamer.running and streamer.recording %}bg-danger{% elif streamer.running %}bg-success{% else %}bg-secondary{% endif %}">
+                {% if streamer.running and streamer.recording %}
+                    <i class="bi bi-record-fill me-1"></i>Recording
+                {% elif streamer.running %}
+                    <i class="bi bi-play-fill me-1"></i>Running
+                {% else %}
+                    <i class="bi bi-pause-fill me-1"></i>Paused
+                {% endif %}
+            </span>
+            <span class="badge {% if streamer.sc == 1 %}bg-success{% else %}bg-secondary{% endif %}">
+                {{ streamer.sc | status_text }}
+            </span>
+        </div>
+        <div class="small text-muted">
+            <div class="row">
+                <div class="col-6">
+                    <i class="bi bi-hdd me-1"></i>
+                    {{ streamer.video_files_total_size | tohumanfilesize(fix_decimals=2) }}
+                </div>
+                <div class="col-6">
+                    <i class="bi bi-file-earmark me-1"></i>
+                    {{ streamer.video_files | count }} files
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% if streamer_has_error %}
+<div id="error-container" hx-swap-oob="true">
+    <div class="error-modal">
+        <span>{{ streamer_error_message }}</span>
+        <button hx-delete="/clear" hx-swap="outerHTML" hx-target="closest .error-modal" hx-trigger="click">dismiss</button>
+    </div>
+</div>
+{% endif %}

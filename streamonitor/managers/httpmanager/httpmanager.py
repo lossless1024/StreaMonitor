@@ -8,11 +8,12 @@ import os
 import json
 import logging
 
-from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD, WEB_LIST_FREQUENCY, WEB_STATUS_FREQUENCY
+from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD, WEB_LIST_FREQUENCY, WEB_STATUS_FREQUENCY, \
+    WEBSERVER_SKIN
 import streamonitor.log as log
 from functools import wraps
 from secrets import compare_digest
-from streamonitor.bot import Bot
+from streamonitor.bot import Bot, LOADED_SITES
 from streamonitor.enums import Status
 from streamonitor.manager import Manager
 from streamonitor.managers.outofspace_detector import OOSDetector
@@ -28,11 +29,21 @@ class HTTPManager(Manager):
     def __init__(self, streamers):
         super().__init__(streamers)
         self.logger = log.Logger("manager")
-        self.loaded_site_names = [site.site for site in Bot.loaded_sites]
+        self.loaded_site_names = [site.site for site in LOADED_SITES]
         self.loaded_site_names.sort()
 
+        skin = WEBSERVER_SKIN
+        if skin in os.listdir(os.path.join(os.path.dirname(__file__), 'skins')):
+            self.skin = skin
+        else:
+            raise ValueError(f'Invalid skin name: {skin}')
+
     def run(self):
-        app = Flask(__name__, "")
+        app = Flask(
+            __name__,
+            template_folder=f'skins/{self.skin}/templates'
+        )
+        
         werkzeug_logger = logging.getLogger('werkzeug')
         werkzeug_logger.disabled = True
 
@@ -65,7 +76,7 @@ class HTTPManager(Manager):
         @login_required
         def apiBaseSettings():
             json_sites = {}
-            for site in Bot.loaded_sites:
+            for site in LOADED_SITES:
                 json_sites[site.siteslug] = site.site
             json_status = {}
             for status in Status:
@@ -83,9 +94,10 @@ class HTTPManager(Manager):
                 json_stream = {
                     "site": streamer.siteslug,
                     "running": streamer.running,
+                    "recording": streamer.recording,
                     "sc": streamer.sc.value,
                     "status": streamer.status(),
-                    "url": streamer.getWebsiteURL(),
+                    "url": streamer.url,
                     "username": streamer.username
                 }
                 json_streamer.append(json_stream)
@@ -126,7 +138,7 @@ class HTTPManager(Manager):
             streamers, filter_context = streamer_list(self.streamers, request)
             context = {
                 'streamers': streamers,
-                'sites': Bot.loaded_sites,
+                'sites': LOADED_SITES,
                 'refresh_freq': WEB_LIST_FREQUENCY,
                 'toast_status': "hide",
                 'toast_message': "",

@@ -1,0 +1,13 @@
+{% extends "layout.html.jinja" %}
+{% block title %}StreaMonitor - {{ streamer.username }}{% endblock %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block nav %}
+    {% set has_error = False %}
+    {% set update_content = False %}
+    {% include 'streamer_nav_bar.html.jinja' ignore missing with context %}
+{% endblock %}
+{% block content %}
+    {% include 'recordings_content.html.jinja' ignore missing with context %}
+{% endblock %}
