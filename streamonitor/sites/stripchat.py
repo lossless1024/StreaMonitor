@@ -161,6 +161,8 @@ class StripChat(Bot):
             return Status.PRIVATE
         if status in ["off", "idle"]:
             return Status.OFFLINE
+        if self.lastInfo['model'].get('isDeleted') is True:
+            return Status.NOTEXIST
         if data['user'].get('isGeoBanned') is True:
             return Status.RESTRICTED
         self.logger.warn(f'Got unknown status: {status}')
