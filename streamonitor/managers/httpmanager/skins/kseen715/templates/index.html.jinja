@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>StreaMonitor Web</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="/static/bootstrap@5.3.0/bootstrap.min.css" rel="stylesheet"/>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="/static/bootstrap-icons@1.11.0/bootstrap-icons.css"/>
+    <!-- FontAwesome -->
+    <link href="/static/fontawesome@6.2.1/css/fontawesome.css" rel="stylesheet"/>
+    <link href="/static/fontawesome@6.2.1/css/brands.css" rel="stylesheet"/>
+    <link href="/static/fontawesome@6.2.1/css/solid.css" rel="stylesheet"/>
+    
+    <script src="/static/streamonitor@kseen715/streamonitor.js" defer></script>
+    <link href="/static/streamonitor@kseen715/streamonitor.css" rel="stylesheet"/>
+</head>
+<body>
+<template id="template_streamer">
+    <div class="card streamer-card h-100">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <span class="streamer_site badge bg-primary rounded-pill me-2"></span>
+                <h6 class="streamer_name mb-0"></h6>
+            </div>
+            <div class="d-flex align-items-center">
+                <a class="streamer_url btn btn-sm btn-outline-secondary me-2" href="#" target="_blank">
+                    <i class="fas fa-external-link-alt"></i>
+                </a>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item streamer_delete" href="#"><i class="fas fa-trash me-2"></i>Delete</a></li>
+                        <li><a class="dropdown-item streamer_stop" href="#"><i class="fas fa-stop me-2"></i>Stop</a></li>
+                        <li><a class="dropdown-item streamer_start" href="#"><i class="fas fa-play me-2"></i>Start</a></li>
+                        <li><a class="dropdown-item streamer_edit" href="#"><i class="fas fa-edit me-2"></i>Edit</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="streamer_status"></div>
+        </div>
+    </div>
+</template>
+<div id="snackbar" class="toast align-items-center text-white bg-secondary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+        <div class="toast-body"></div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+</div>
+
+<!-- Streamer Modal -->
+<div class="modal fade" id="streamerModal" tabindex="-1" aria-labelledby="streamerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="streamerModalLabel">Create new Streamer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="streamerModal_form">
+                    <div class="mb-3">
+                        <label for="streamerModal_username" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="streamerModal_username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="streamerModal_site" class="form-label">Site</label>
+                        <select id="streamerModal_site" class="form-select" required></select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Close
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveStreamer()">
+                    <i class="fas fa-save me-2"></i>Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Free Space Indicator -->
+<div class="position-fixed top-0 end-0 p-3 z-index-1000">
+    <div class="card bg-dark text-white">
+        <div class="card-body py-2">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-hdd me-2"></i>
+                <span>Free space: <span id="freeSpaceAbsolute"></span> / <span id="freeSpacePercentage"></span>%</span>
+                <button id="reload" class="btn btn-sm btn-outline-light ms-2">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid py-4">
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>Filter
+            </h5>
+            <button onclick="deleteFilter()" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-trash me-2"></i>Clear Filter
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="streamerFilter" class="form-label">Name</label>
+                    <input type="text" class="form-control" id="streamerFilter" oninput="filterStreamers()" onchange="filterStreamers()" placeholder="Search streamers...">
+                </div>
+                <div class="col-md-3">
+                    <label for="siteFilter" class="form-label">Site</label>
+                    <select id="siteFilter" class="form-select" onchange="filterStreamers()">
+                        <option value="" selected>All Sites</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="statusFilter" class="form-label">Status</label>
+                    <select id="statusFilter" class="form-select" onchange="filterStreamers()">
+                        <option value="" selected>All Status</option>
+                        <option value="downloading">Downloading</option>
+                        <option value="notDownloading">Not downloading</option>
+                        <option value="onlineButNotDownlading">Online but not downloading</option>
+                        <option value="private">Private</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="realStatusFilter" class="form-label">Real Status</label>
+                    <select id="realStatusFilter" class="form-select" onchange="filterStreamers()">
+                        <option value="" selected>All</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+  <!-- Streamers Section -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>Streamers: <span id="countStreamer" class="badge bg-primary">0</span>
+                </h5>
+            </div>
+            <div class="btn-group" role="group">
+                <button onclick="createStreamer()" class="btn btn-success">
+                    <i class="fas fa-plus me-2"></i>Add Streamer
+                </button>
+                <button onclick="startStreamers()" class="btn btn-primary">
+                    <i class="fas fa-play me-2"></i>Start All
+                </button>
+                <button onclick="stopStreamers()" class="btn btn-danger">
+                    <i class="fas fa-stop me-2"></i>Stop All
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="streamerGrid" class="row g-3"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5 JS Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

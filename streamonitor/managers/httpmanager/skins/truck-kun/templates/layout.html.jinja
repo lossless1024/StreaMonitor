@@ -4,13 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="htmx-config" content='{"useTemplateFragments":"true", "responseHandling": [{"code": "[45]..", "swap": true, "error": true}, {"code": "...", "swap": true}], "methodsThatUseUrlParams": ["get", "delete", "patch"]}'>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" type="text/css" href="/static/streamonitor@truck-kun/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
     <title>{% block title %}StreaMonitor{% endblock %}</title>
     {% block head %}
-        <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+        <script src="/static/htmx@2.0.4/htmx.min.js"></script>
         <link rel="stylesheet" href="{{ url_for('static', filename='fonts/iconfont.css') }}">
     {% endblock %}
 </head>

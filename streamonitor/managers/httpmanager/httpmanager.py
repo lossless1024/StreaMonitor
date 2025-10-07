@@ -6,7 +6,8 @@ import os
 import json
 import logging
 
-from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD, WEB_LIST_FREQUENCY, WEB_STATUS_FREQUENCY
+from parameters import WEBSERVER_HOST, WEBSERVER_PORT, WEBSERVER_PASSWORD, WEB_LIST_FREQUENCY, WEB_STATUS_FREQUENCY, \
+    WEBSERVER_SKIN
 import streamonitor.log as log
 from functools import wraps
 from secrets import compare_digest
@@ -29,8 +30,18 @@ class HTTPManager(Manager):
         self.loaded_site_names = [site.site for site in LOADED_SITES]
         self.loaded_site_names.sort()
 
+        skin = WEBSERVER_SKIN
+        if skin in os.listdir(os.path.join(os.path.dirname(__file__), 'skins')):
+            self.skin = skin
+        else:
+            raise ValueError(f'Invalid skin name: {skin}')
+
     def run(self):
-        app = Flask(__name__, "")
+        app = Flask(
+            __name__,
+            template_folder=f'skins/{self.skin}/templates'
+        )
+        
         werkzeug_logger = logging.getLogger('werkzeug')
         werkzeug_logger.disabled = True
 
@@ -81,6 +92,7 @@ class HTTPManager(Manager):
                 json_stream = {
                     "site": streamer.siteslug,
                     "running": streamer.running,
+                    "recording": streamer.recording,
                     "sc": streamer.sc.value,
                     "status": streamer.status(),
                     "url": streamer.url,

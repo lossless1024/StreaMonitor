@@ -55,6 +55,13 @@ SEGMENT_TIME = env.str("STRMNTR_SEGMENT_TIME", None)
 WEBSERVER_HOST = env.str("STRMNTR_HOST", "127.0.0.1")
 WEBSERVER_PORT = env.int("STRMNTR_PORT", 5000)
 
+# Web UI skin
+# Available options:
+# - kseen715 - 2nd skin, currently broken
+# - truck-kun (default) - 3rd skin, row oriented
+# - shaftoverflow - 4th skin, card layout, links in menus
+WEBSERVER_SKIN = env.str("STRMNTR_SKIN", "truck-kun")
+
 # set frequency in seconds of how often the streamer list will update
 WEB_LIST_FREQUENCY = env.int("STRMNTR_LIST_FREQ", 30)
 

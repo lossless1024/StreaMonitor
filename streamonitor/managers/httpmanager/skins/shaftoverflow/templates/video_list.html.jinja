@@ -1,0 +1,81 @@
+{% if videos is none or videos|length == 0 %}
+    <div class="alert alert-info text-center">
+        <i class="bi bi-info-circle me-2"></i>No recordings
+    </div>
+    <div class="text-center mb-3">
+        {% include 'streamer_toggle.html.jinja' ignore missing with context %}
+    </div>
+{% else %}
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-folder me-2"></i>Files
+            </h5>
+            <button class="btn btn-outline-secondary btn-sm"
+                hx-get="/videos/{{ streamer.username }}/{{ streamer.site }}"
+                hx-trigger="click"
+                hx-target="#video-list"
+                hx-sync="#video-list:queue last"
+                hx-swap="innerHTML"
+                {{ 'hx-vals=\'{"sorted": "True"}\''|safe if not sort_by_size }}
+                hx-include=".play-video-context"
+                title="Sort by {{'timestamp' if sort_by_size else 'file size'}}"
+                hx-disabled-elt="this">
+                    <i class="bi {{'bi-clock' if sort_by_size else 'bi-bar-chart'}} me-1"></i>
+                    Sort by {{'timestamp' if sort_by_size else 'file size'}}
+                    {% if sort_by_size %}
+                        <input type="hidden" name="sorted" {{ 'disabled' if not sort_by_size }} id="sorted" readonly class="streamer-context sorted-context" value="{{ sort_by_size }}">
+                    {% endif %}
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    {% include 'streamer_toggle.html.jinja' ignore missing with context %}
+                </div>
+                <span class="badge bg-secondary">
+                    <i class="bi bi-hdd me-1"></i>Total Space: {{ total_size | tohumanfilesize }}
+                </span>
+            </div>
+            <div class="list-group">
+            {% for video in videos.values() %}
+                {% set disable_delete = video.filename == video_to_play.filename and videos|length > 1 %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <a href="/videos/watch/{{ streamer.username }}/{{ streamer.site }}/{{ video.filename }}"
+                    class="text-decoration-none flex-grow-1 me-3"
+                    hx-get="/videos/watch/{{ streamer.username }}/{{ streamer.site }}/{{ video.filename }}"
+                    hx-trigger="click"
+                    hx-include=".sorted-context"
+                    hx-target="#content"
+                    hx-sync="#video-list:replace"
+                    hx-swap="innerHTML">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold">{{ video.shortname }}</span>
+                            <span class="badge bg-primary">{{ video.human_readable_filesize }}</span>
+                        </div>
+                    </a>
+                    <button hx-delete="/videos/{{ streamer.username }}/{{ streamer.site }}/{{ video.filename }}"
+                        hx-trigger="click"
+                        hx-target="#video-list"
+                        hx-sync="#video-list:replace"
+                        hx-include=".streamer-context"
+                        hx-swap="innerHTML"
+                        hx-disabled-elt="this"
+                        {{ "disabled" if disable_delete }}
+                        {{ 'hx-confirm="Are you sure you want to delete {filename}?"'.format(filename=video.filename) if confirm_deletes }}
+                        title="{{ 'you cannot remove a video currently loaded' if disable_delete else 'remove video' }}"
+                        class="btn btn-outline-danger btn-sm {{ 'disabled' if disable_delete }}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% if has_error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>{{ recordings_error_message }}
+        <button type="button" class="btn-close" hx-delete="/clear" hx-swap="outerHTML" hx-target="closest .alert" hx-trigger="click" aria-label="Close"></button>
+    </div>
+{% endif %}
