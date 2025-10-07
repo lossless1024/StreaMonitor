@@ -40,6 +40,3 @@ class CamSoda(Bot):
         if "token" in stream_data:
             return Status.OFFLINE
         return Status.UNKNOWN
-
-
-Bot.loaded_sites.add(CamSoda)

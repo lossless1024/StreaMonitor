@@ -43,6 +43,3 @@ class Chaturbate(Bot):
 
         self.ratelimit = status == Status.RATELIMIT
         return status
-
-
-Bot.loaded_sites.add(Chaturbate)

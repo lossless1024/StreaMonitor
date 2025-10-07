@@ -65,5 +65,3 @@ class XLoveCam(Bot):
         if self.lastInfo.get('online') == 0:
             return Status.OFFLINE
         return Status.UNKNOWN
-
-Bot.loaded_sites.add(XLoveCam)

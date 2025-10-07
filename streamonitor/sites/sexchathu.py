@@ -1,6 +1,6 @@
 import time
 import requests
-from streamonitor.bot import Bot, RoomIdBot
+from streamonitor.bot import RoomIdBot
 from streamonitor.enums import Status
 
 
@@ -61,6 +61,3 @@ class SexChatHU(RoomIdBot):
         elif self.lastInfo["onlineStatus"] == "offline":
             return Status.OFFLINE
         return Status.UNKNOWN
-
-
-Bot.loaded_sites.add(SexChatHU)

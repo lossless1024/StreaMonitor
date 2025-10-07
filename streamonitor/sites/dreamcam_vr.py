@@ -1,7 +1,6 @@
 from urllib.parse import urlparse, parse_qs
 
 from parameters import VR_FORMAT_SUFFIX
-from streamonitor.bot import Bot
 
 from streamonitor.downloaders.fmp4s_wss import getVideoWSSVR
 from streamonitor.sites.dreamcam import DreamCam
@@ -39,6 +38,3 @@ class DreamCamVR(DreamCam):
             vr_angle = query["horizontalAngle"][0]
             vr_suffix += f'_{vr_frame_format}{vr_angle}'
         return vr_suffix
-
-
-Bot.loaded_sites.add(DreamCamVR)

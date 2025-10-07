@@ -37,6 +37,3 @@ class StreaMate(Bot):
         if r.status_code == 200:
             self.lastInfo = r.json()
         return Status(r.status_code)
-
-
-Bot.loaded_sites.add(StreaMate)

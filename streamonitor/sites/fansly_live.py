@@ -1,4 +1,4 @@
-from streamonitor.bot import Bot, RoomIdBot
+from streamonitor.bot import RoomIdBot
 from streamonitor.enums import Status
 
 
@@ -55,6 +55,3 @@ class FanslyLive(RoomIdBot):
             else:
                 return Status.PRIVATE
         return Status.UNKNOWN
-
-
-Bot.loaded_sites.add(FanslyLive)

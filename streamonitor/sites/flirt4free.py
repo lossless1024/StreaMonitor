@@ -69,6 +69,3 @@ class Flirt4Free(Bot):
                 return Status.OFFLINE
 
         return Status.UNKNOWN
-
-
-Bot.loaded_sites.add(Flirt4Free)

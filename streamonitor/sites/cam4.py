@@ -46,6 +46,3 @@ class Cam4(Bot):
             return Status.PUBLIC
 
         return Status.UNKNOWN
-
-
-Bot.loaded_sites.add(Cam4)

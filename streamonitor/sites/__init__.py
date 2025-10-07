@@ -1,7 +1,18 @@
-import os
-__all__ = []
-for file in os.listdir(os.path.dirname(__file__)):
-    if not file.startswith("__"):
-        __all__.append(file.split('.')[0])
-
-from . import *
+from .amateurtv import AmateurTV
+from .bongacams import BongaCams
+from .cam4 import Cam4
+from .camscom import CamsCom
+from .camsoda import CamSoda
+from .chaturbate import Chaturbate
+from .cherrytv import CherryTV
+from .dreamcam import DreamCam
+from .dreamcam_vr import DreamCamVR
+from .fansly_live import FanslyLive
+from .flirt4free import Flirt4Free
+from .manyvids import ManyVids
+from .myfreecams import MyFreeCams
+from .sexchathu import SexChatHU
+from .streamate import StreaMate
+from .stripchat import StripChat
+from .stripchat_vr import StripChatVR
+from .xlovecam import XLoveCam

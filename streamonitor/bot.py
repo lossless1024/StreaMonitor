@@ -16,9 +16,10 @@ from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTIO
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 from streamonitor.models import VideoData
 
+LOADED_SITES = set()
+
 
 class Bot(Thread):
-    loaded_sites = set()
     site = None
     siteslug = None
     aliases = []
@@ -47,6 +48,13 @@ class Bot(Thread):
         Status.ERROR: "Error on downloading",
         Status.RESTRICTED: "Model is restricted, maybe geo-block"
     }
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        if cls.site:
+            global LOADED_SITES
+            LOADED_SITES.add(cls)
 
     def __init__(self, username):
         super().__init__()
@@ -344,7 +352,7 @@ class Bot(Thread):
     @staticmethod
     def str2site(site: str):
         site = site.lower()
-        for sitecls in Bot.loaded_sites:
+        for sitecls in LOADED_SITES:
             if site == sitecls.site.lower() or \
                     site == sitecls.siteslug.lower() or \
                     site in sitecls.aliases:

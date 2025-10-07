@@ -43,6 +43,3 @@ class BongaCams(Bot):
             else:
                 return Status.OFFLINE
         return Status.UNKNOWN
-
-
-Bot.loaded_sites.add(BongaCams)

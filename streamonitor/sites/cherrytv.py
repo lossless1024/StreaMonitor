@@ -28,6 +28,3 @@ class CherryTV(Bot):
         if self.lastInfo['broadcast']['showStatus'] == 'Public':
             return Status.PUBLIC
         return Status.UNKNOWN
-
-
-Bot.loaded_sites.add(CherryTV)

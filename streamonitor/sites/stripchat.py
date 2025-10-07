@@ -165,6 +165,3 @@ class StripChat(Bot):
             return Status.RESTRICTED
         self.logger.warn(f'Got unknown status: {status}')
         return Status.UNKNOWN
-
-
-Bot.loaded_sites.add(StripChat)

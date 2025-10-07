@@ -58,6 +58,3 @@ class MyFreeCams(Bot):
                 return Status.PRIVATE
         else:
             return Status.OFFLINE
-
-
-Bot.loaded_sites.add(MyFreeCams)
