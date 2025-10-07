@@ -32,8 +32,6 @@ class HTTPManager(Manager):
     def run(self):
         app = Flask(
             __name__,
-            static_url_path='',
-            static_folder='skins/truck_kun/static',
             template_folder='skins/truck_kun/templates'
         )
         
