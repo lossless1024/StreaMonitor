@@ -71,14 +71,14 @@ class StripChat(Bot):
             encrypted_data = base64.b64decode(encrypted_b64 + "==")
             return bytes(a ^ b for (a, b) in zip(encrypted_data, itertools.cycle(hash_bytes))).decode("utf-8")
 
-        _, pkey = StripChat._getMouflonFromM3U(content)
+        psch, pkey, pdkey = StripChat._getMouflonFromM3U(content)
 
         decoded = ''
         lines = content.splitlines()
         last_decoded_file = None
         for line in lines:
             if line.startswith(_mouflon_file_attr):
-                last_decoded_file = _decode(line[len(_mouflon_file_attr):], cls.getMouflonDecKey(pkey))
+                last_decoded_file = _decode(line[len(_mouflon_file_attr):], pdkey)
             elif line.endswith(_mouflon_filename) and last_decoded_file:
                 decoded += (line.replace(_mouflon_filename, last_decoded_file)) + '\n'
                 last_decoded_file = None
@@ -90,19 +90,29 @@ class StripChat(Bot):
     def getMouflonDecKey(cls, pkey):
         if cls._mouflon_keys is None:
             cls._mouflon_keys = {}
-        return cls._mouflon_keys[pkey] if pkey in cls._mouflon_keys \
-            else cls._mouflon_keys.setdefault(pkey, re.findall(f'"{pkey}:(.*?)"', cls._doppio_js_data)[0])
+        if pkey in cls._mouflon_keys:
+            return cls._mouflon_keys[pkey]
+        else:
+            _pdks = re.findall(f'"{pkey}:(.*?)"', cls._doppio_js_data)
+            if len(_pdks) > 0:
+                return cls._mouflon_keys.setdefault(pkey, _pdks[0])
+        return None
 
     @staticmethod
     def _getMouflonFromM3U(m3u8_doc):
-        if '#EXT-X-MOUFLON:' in m3u8_doc:
-            _mouflon_start = m3u8_doc.find('#EXT-X-MOUFLON:')
+        _start = 0
+        _needle = '#EXT-X-MOUFLON:'
+        while _needle in (_doc := m3u8_doc[_start:]):
+            _mouflon_start = _doc.find(_needle)
             if _mouflon_start > 0:
-                _mouflon = m3u8_doc[_mouflon_start:m3u8_doc.find('\n', _mouflon_start)].strip().split(':')
+                _mouflon = _doc[_mouflon_start:m3u8_doc.find('\n', _mouflon_start)].strip().split(':')
                 psch = _mouflon[2]
                 pkey = _mouflon[3]
-                return psch, pkey
-        return None, None
+                pdkey = StripChat.getMouflonDecKey(pkey)
+                if pdkey:
+                    return psch, pkey, pdkey
+            _start += _mouflon_start + len(_needle)
+        return None, None, None
 
     def getWebsiteURL(self):
         return "https://stripchat.com/" + self.username
@@ -119,7 +129,7 @@ class StripChat(Bot):
             )
         result = requests.get(url, headers=self.headers, cookies=self.cookies)
         m3u8_doc = result.content.decode("utf-8")
-        psch, pkey = StripChat._getMouflonFromM3U(m3u8_doc)
+        psch, pkey, pdkey = StripChat._getMouflonFromM3U(m3u8_doc)
         variants = super().getPlaylistVariants(m3u_data=m3u8_doc)
         return [variant | {'url': f'{variant["url"]}{"&" if "?" in variant["url"] else "?"}psch={psch}&pkey={pkey}'}
                 for variant in variants]
