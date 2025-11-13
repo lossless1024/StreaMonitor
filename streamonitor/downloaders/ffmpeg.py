@@ -30,8 +30,8 @@ def getVideoFfmpeg(self, url, filename):
         '-seg_max_retry', '20',
         '-m3u8_hold_counters', '20',
         '-i', url,
-        '-c:a', 'copy',
-        '-c:v', 'copy',
+        '-c', 'copy',
+        '-timestamp', 'now',
     ])
 
     suffix = ''
