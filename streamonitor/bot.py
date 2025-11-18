@@ -27,6 +27,7 @@ class Bot(Thread):
 
     sleep_on_private = 5
     sleep_on_offline = 5
+    sleep_on_online = 5
     sleep_on_long_offline = 300
     sleep_on_error = 20
     sleep_on_ratelimit = 180
@@ -38,10 +39,15 @@ class Bot(Thread):
 
     status_messages = {
         Status.UNKNOWN: "Unknown error",
-        Status.PUBLIC: "Channel online",
-        Status.OFFLINE: "No stream",
-        Status.LONG_OFFLINE: "No stream for a while",
+        Status.PUBLIC: "Public show",
+        Status.AWAY: "Away",
+        Status.CONNECTED: "Connected",
+        Status.OFFLINE: "Offline",
+        Status.LONG_OFFLINE: "Offline for a while",
         Status.PRIVATE: "Private show",
+        Status.EXCLUSIVE: "Exclusive show",
+        Status.HIDDEN: "Hidden show",
+        Status.GROUP: "Group show",
         Status.RATELIMIT: "Rate limited",
         Status.NOTEXIST: "Nonexistent user",
         Status.NOTRUNNING: "Not running",
@@ -152,6 +158,41 @@ class Bot(Thread):
             if self.quitting or not self.running:
                 return
 
+    def onPublicShow(self):
+        if self.cookie_update_interval > 0 and self.cookieUpdater is not None:
+            def update_cookie():
+                while self.sc == Status.PUBLIC and not self.quitting and self.running:
+                    self._sleep(self.cookie_update_interval)
+                    ret = self.cookieUpdater()
+                    if ret:
+                        self.debug('Updated cookies')
+                    else:
+                        self.logger.warning('Failed to update cookies')
+            cookie_update_process = Thread(target=update_cookie)
+            cookie_update_process.start()
+
+        video_url = self.getVideoUrl()
+        if video_url is None:
+            self.sc = Status.ERROR
+            self.logger.error(self.status())
+            self._sleep(self.sleep_on_error)
+            return
+        self.log('Started downloading show')
+        self.recording = True
+        file = self.genOutFilename()
+        ret = self.getVideo(self, video_url, file)
+        if not ret:
+            self.sc = Status.ERROR
+            self.log(self.status())
+            self._sleep(self.sleep_on_error)
+            return
+        self.recording = False
+        self.log('Recording ended')
+        self.cache_file_list()
+
+    def onPrivateShow(self):
+        pass
+
     def run(self):
         while not self.quitting:
             while not self.running and not self.quitting:
@@ -174,39 +215,18 @@ class Bot(Thread):
                         offline_time += self.sleep_on_offline
                         if offline_time > self.long_offline_timeout:
                             self.sc = Status.LONG_OFFLINE
-                    elif self.sc == Status.PUBLIC or self.sc == Status.PRIVATE:
+                    if self.sc in [Status.CONNECTED, Status.AWAY]:
                         offline_time = 0
-                        if self.sc == Status.PUBLIC:
-                            if self.cookie_update_interval > 0 and self.cookieUpdater is not None:
-                                def update_cookie():
-                                    while self.sc == Status.PUBLIC and not self.quitting and self.running:
-                                        self._sleep(self.cookie_update_interval)
-                                        ret = self.cookieUpdater()
-                                        if ret:
-                                            self.debug('Updated cookies')
-                                        else:
-                                            self.logger.warning('Failed to update cookies')
-                                cookie_update_process = Thread(target=update_cookie)
-                                cookie_update_process.start()
-
-                            video_url = self.getVideoUrl()
-                            if video_url is None:
-                                self.sc = Status.ERROR
-                                self.logger.error(self.status())
-                                self._sleep(self.sleep_on_error)
-                                continue
-                            self.log('Started downloading show')
-                            self.recording = True
-                            file = self.genOutFilename()
-                            ret = self.getVideo(self, video_url, file)
-                            if not ret:
-                                self.sc = Status.ERROR
-                                self.log(self.status())
-                                self._sleep(self.sleep_on_error)
-                                continue
-                            self.recording = False
-                            self.log('Recording ended')
-                            self.cache_file_list()
+                        self._sleep(self.sleep_on_online)
+                    elif self.sc in [Status.PRIVATE, Status.HIDDEN]:
+                        offline_time = 0
+                        self.onPrivateShow()
+                    elif self.sc == Status.EXCLUSIVE:
+                        offline_time = 0
+                        self._sleep(self.sleep_on_online)
+                    elif self.sc == Status.PUBLIC:
+                        offline_time = 0
+                        self.onPublicShow()
                 except Exception as e:
                     self.logger.exception(e)
                     try:

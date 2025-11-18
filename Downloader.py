@@ -33,11 +33,11 @@ def main():
         console_manager = CLIManager(streamers)
         console_manager.start()
 
-    zmq_manager = ZMQManager(streamers)
-    zmq_manager.start()
+#    zmq_manager = ZMQManager(streamers)
+#    zmq_manager.start()
 
-    http_manager = HTTPManager(streamers)
-    http_manager.start()
+#    http_manager = HTTPManager(streamers)
+#    http_manager.start()
 
 
 main()
