@@ -5,6 +5,8 @@ import time
 import requests
 import base64
 import hashlib
+from parameters import HTTP_USER_AGENT
+import logging
 
 from streamonitor.bot import Bot
 from streamonitor.downloaders.hls import getVideoNativeHLS
@@ -22,10 +24,15 @@ class StripChat(Bot):
     _cached_keys: dict[str, bytes] = None
 
     def __init__(self, username):
+        logging.basicConfig(
+            filename='my_log_file.log',  # Log file name
+            level=logging.DEBUG,         # Minimum level to log
+            format='%(asctime)s - %(levelname)s - %(message)s'
+        )
         if StripChat._static_data is None:
             StripChat._static_data = {}
             try:
-                self.getInitialData()
+                self.getStaticData()
             except Exception as e:
                 StripChat._static_data = None
                 raise e
@@ -34,10 +41,12 @@ class StripChat(Bot):
         super().__init__(username)
         self.vr = False
         self.getVideo = lambda _, url, filename: getVideoNativeHLS(self, url, filename, StripChat.m3u_decoder)
+        self.modelId = None
+        self.viewerId = None
 
     @classmethod
-    def getInitialData(cls):
-        r = requests.get('https://hu.stripchat.com/api/front/v3/config/static', headers=cls.headers)
+    def getStaticData(self):
+        r = requests.get('https://hu.stripchat.com/api/front/v3/config/static', headers=self.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch static data from StripChat")
         StripChat._static_data = r.json().get('static')
@@ -46,14 +55,14 @@ class StripChat(Bot):
         mmp_version = StripChat._static_data['featuresV2']['playerModuleExternalLoading']['mmpVersion']
         mmp_base = f"{mmp_origin}/v{mmp_version}"
 
-        r = requests.get(f"{mmp_base}/main.js", headers=cls.headers)
+        r = requests.get(f"{mmp_base}/main.js", headers=self.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch main.js from StripChat")
         StripChat._main_js_data = r.content.decode('utf-8')
 
         doppio_js_name = re.findall('require[(]"./(Doppio.*?[.]js)"[)]', StripChat._main_js_data)[0]
 
-        r = requests.get(f"{mmp_base}/{doppio_js_name}", headers=cls.headers)
+        r = requests.get(f"{mmp_base}/{doppio_js_name}", headers=self.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch doppio.js from StripChat")
         StripChat._doppio_js_data = r.content.decode('utf-8')
@@ -118,7 +127,9 @@ class StripChat(Bot):
         return "https://stripchat.com/" + self.username
 
     def getVideoUrl(self):
-        return self.getWantedResolutionPlaylist(None)
+        url = self.getWantedResolutionPlaylist(None)
+        self.debug(f"Stream URL: {url}")
+        return url
 
     def getPlaylistVariants(self, url):
         url = "https://edge-hls.{host}/hls/{id}{vr}/master/{id}{vr}{auto}.m3u8".format(
@@ -127,7 +138,13 @@ class StripChat(Bot):
                 vr='_vr' if self.vr else '',
                 auto='_auto' if not self.vr else ''
             )
-        result = requests.get(url, headers=self.headers, cookies=self.cookies)
+
+        result = requests.get(
+            url,
+            headers=self.headers,
+            cookies=self.cookies
+        )
+        
         m3u8_doc = result.content.decode("utf-8")
         psch, pkey, pdkey = StripChat._getMouflonFromM3U(m3u8_doc)
         variants = super().getPlaylistVariants(m3u_data=m3u8_doc)
@@ -140,6 +157,17 @@ class StripChat(Bot):
         chars += ''.join(chr(i) for i in range(ord('0'), ord('9')+1))
         return ''.join(random.choice(chars) for _ in range(length))
 
+    @staticmethod
+    def getUserId(user):
+        headers = {
+            'User-Agent': HTTP_USER_AGENT
+        }
+        response = requests.get(f'https://stripchat.com/api/front/v2/users/username/{user}', headers=headers)
+        if response.status_code == 200:
+            return response.json()['item']['id']
+        else:
+            raise RuntimeError(f'Problem retrieving user {user} data.')
+    
     def getStatus(self):
         r = requests.get(
             f'https://stripchat.com/api/front/v2/models/username/{self.username}/cam?uniq={StripChat.uniq()}',
@@ -167,9 +195,19 @@ class StripChat(Bot):
         status = self.lastInfo['model'].get('status')
         if status == "public" and self.lastInfo["isCamAvailable"] and self.lastInfo["isCamActive"]:
             return Status.PUBLIC
-        if status in ["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"]:
+        if status in ["private"]:
             return Status.PRIVATE
-        if status in ["off", "idle"]:
+        if status in ["p2p", "p2pVoice"]:
+            return Status.EXCLUSIVE
+        if status in ["virtualPrivate"]:
+            return Status.HIDDEN
+        if status in ["groupShow"]:
+            return Status.GROUP
+        if status == "off" and self.lastInfo["model"]["isOnline"] == True:
+            return Status.CONNECTED
+        if status in ["idle"]:
+            return Status.AWAY
+        if status in ["off"]:
             return Status.OFFLINE
         if self.lastInfo['model'].get('isDeleted') is True:
             return Status.NOTEXIST

@@ -34,8 +34,12 @@ class Chaturbate(Bot):
 
             if self.lastInfo["room_status"] == "public":
                 status = Status.PUBLIC
-            elif self.lastInfo["room_status"] in ["private", "hidden"]:
+            elif self.lastInfo["room_status"] in ["private"]:
                 status = Status.PRIVATE
+            elif self.lastInfo["room_status"] in ["hidden"]:
+                status = Status.HIDDEN
+            elif self.lastInfo["room_status"] in ["away"]:
+                status = Status.AWAY
             else:
                 status = Status.OFFLINE
         except:
