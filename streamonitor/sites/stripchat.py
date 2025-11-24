@@ -51,9 +51,15 @@ class StripChat(Bot):
             raise Exception("Failed to fetch main.js from StripChat")
         StripChat._main_js_data = r.content.decode('utf-8')
 
-        doppio_js_name = re.findall('require[(]"./(Doppio.*?[.]js)"[)]', StripChat._main_js_data)[0]
+        doppio_js_index = re.findall('([0-9]+):"Doppio"', StripChat._main_js_data)[0]
+        doppio_js_hash = re.findall(
+            f'{doppio_js_index}:\\"([a-zA-Z0-9]{{20}})\\"', StripChat._main_js_data
+        )[0]
 
-        r = requests.get(f"{mmp_base}/{doppio_js_name}", headers=cls.headers)
+
+        r = requests.get(
+            f"{mmp_base}/chunk-Doppio-{doppio_js_hash}.js", headers=cls.headers
+        )
         if r.status_code != 200:
             raise Exception("Failed to fetch doppio.js from StripChat")
         StripChat._doppio_js_data = r.content.decode('utf-8')
