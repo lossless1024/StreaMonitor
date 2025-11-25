@@ -65,8 +65,6 @@ class StripChat(Bot):
 
         if r.status_code != 200:
             raise Exception("Failed to fetch doppio.js from StripChat")
-        with open("doppio.js", "w") as f:
-            f.writelines(r.content.decode("utf-8"))
         StripChat._doppio_js_data = r.content.decode("utf-8")
 
     @classmethod
