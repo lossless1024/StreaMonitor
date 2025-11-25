@@ -171,24 +171,16 @@ class StripChat(Bot):
         return "".join(random.choice(chars) for _ in range(length))
 
     def getStatus(self):
-        data: dict
-        retry = 2
-        while retry:
-            r = requests.get(
-                f"https://stripchat.com/api/front/v2/models/username/{self.username}/cam?uniq={StripChat.uniq()}",
-                headers=self.headers,
-            )
+        r = requests.get(
+            f"https://stripchat.com/api/front/v2/models/username/{self.username}/cam?uniq={StripChat.uniq()}",
+            headers=self.headers,
+        )
 
-            try:
-                data = r.json()
-                break
-            except requests.exceptions.JSONDecodeError:
-                self.log(f"Failed to parse JSON response {r.status}")
-                self.debug(f"Error parsing {r.text}")
-                if retry == 0:
-                    return Status.UNKNOWN
-
-            retry -= 1
+        try:
+            data = r.json()
+        except requests.exceptions.JSONDecodeError:
+            self.log(f"Failed to parse JSON response")
+            return Status.UNKNOWN
 
         if "cam" not in data:
             if "error" in data:
