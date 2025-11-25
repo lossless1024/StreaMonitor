@@ -18,7 +18,7 @@ class StripChat(Bot):
     _static_data = None
     _main_js_data = None
     _doppio_js_data = None
-    _mouflon_keys: dict = None
+    _mouflon_keys: dict = {"Zeechoej4aleeshi": "ubahjae7goPoodi6"}
     _cached_keys: dict[str, bytes] = None
 
     def __init__(self, username):
