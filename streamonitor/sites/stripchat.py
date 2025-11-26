@@ -6,6 +6,8 @@ import requests
 import base64
 import hashlib
 
+from requests.adapters import HTTPAdapter
+
 from streamonitor.bot import Bot
 from streamonitor.downloaders.hls import getVideoNativeHLS
 from streamonitor.enums import Status
@@ -37,7 +39,9 @@ class StripChat(Bot):
 
     @classmethod
     def getInitialData(cls):
-        r = requests.get('https://hu.stripchat.com/api/front/v3/config/static', headers=cls.headers)
+        s = requests.Session()
+        s.mount('https://', HTTPAdapter(max_retries=cls.retries))
+        r = s.get('https://hu.stripchat.com/api/front/v3/config/static', headers=cls.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch static data from StripChat")
         StripChat._static_data = r.json().get('static')
@@ -46,14 +50,14 @@ class StripChat(Bot):
         mmp_version = StripChat._static_data['featuresV2']['playerModuleExternalLoading']['mmpVersion']
         mmp_base = f"{mmp_origin}/v{mmp_version}"
 
-        r = requests.get(f"{mmp_base}/main.js", headers=cls.headers)
+        r = s.get(f"{mmp_base}/main.js", headers=cls.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch main.js from StripChat")
         StripChat._main_js_data = r.content.decode('utf-8')
 
         doppio_js_name = re.findall('require[(]"./(Doppio.*?[.]js)"[)]', StripChat._main_js_data)[0]
 
-        r = requests.get(f"{mmp_base}/{doppio_js_name}", headers=cls.headers)
+        r = s.get(f"{mmp_base}/{doppio_js_name}", headers=cls.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch doppio.js from StripChat")
         StripChat._doppio_js_data = r.content.decode('utf-8')
@@ -66,8 +70,11 @@ class StripChat(Bot):
         def _decode(encrypted_b64: str, key: str) -> str:
             if cls._cached_keys is None:
                 cls._cached_keys = {}
-            hash_bytes = cls._cached_keys[key] if key in cls._cached_keys \
+            hash_bytes = (
+                cls._cached_keys[key]
+                if key in cls._cached_keys
                 else cls._cached_keys.setdefault(key, hashlib.sha256(key.encode("utf-8")).digest())
+            )
             encrypted_data = base64.b64decode(encrypted_b64 + "==")
             return bytes(a ^ b for (a, b) in zip(encrypted_data, itertools.cycle(hash_bytes))).decode("utf-8")
 
@@ -78,7 +85,7 @@ class StripChat(Bot):
         last_decoded_file = None
         for line in lines:
             if line.startswith(_mouflon_file_attr):
-                last_decoded_file = _decode(line[len(_mouflon_file_attr):], pdkey)
+                last_decoded_file = _decode(line[len(_mouflon_file_attr) :], pdkey)
             elif line.endswith(_mouflon_filename) and last_decoded_file:
                 decoded += (line.replace(_mouflon_filename, last_decoded_file)) + '\n'
                 last_decoded_file = None
@@ -105,7 +112,7 @@ class StripChat(Bot):
         while _needle in (_doc := m3u8_doc[_start:]):
             _mouflon_start = _doc.find(_needle)
             if _mouflon_start > 0:
-                _mouflon = _doc[_mouflon_start:m3u8_doc.find('\n', _mouflon_start)].strip().split(':')
+                _mouflon = _doc[_mouflon_start : m3u8_doc.find('\n', _mouflon_start)].strip().split(':')
                 psch = _mouflon[2]
                 pkey = _mouflon[3]
                 pdkey = StripChat.getMouflonDecKey(pkey)
@@ -122,28 +129,30 @@ class StripChat(Bot):
 
     def getPlaylistVariants(self, url):
         url = "https://edge-hls.{host}/hls/{id}{vr}/master/{id}{vr}{auto}.m3u8".format(
-                host='doppiocdn.' + random.choice(['org', 'com', 'net']),
-                id=self.lastInfo["streamName"],
-                vr='_vr' if self.vr else '',
-                auto='_auto' if not self.vr else ''
-            )
-        result = requests.get(url, headers=self.headers, cookies=self.cookies)
+            host='doppiocdn.' + random.choice(['org', 'com', 'net']),
+            id=self.lastInfo["streamName"],
+            vr='_vr' if self.vr else '',
+            auto='_auto' if not self.vr else '',
+        )
+        result = self.session.get(url, headers=self.headers, cookies=self.cookies)
         m3u8_doc = result.content.decode("utf-8")
         psch, pkey, pdkey = StripChat._getMouflonFromM3U(m3u8_doc)
         variants = super().getPlaylistVariants(m3u_data=m3u8_doc)
-        return [variant | {'url': f'{variant["url"]}{"&" if "?" in variant["url"] else "?"}psch={psch}&pkey={pkey}'}
-                for variant in variants]
+        return [
+            variant | {'url': f'{variant["url"]}{"&" if "?" in variant["url"] else "?"}psch={psch}&pkey={pkey}'}
+            for variant in variants
+        ]
 
     @staticmethod
     def uniq(length=16):
-        chars = ''.join(chr(i) for i in range(ord('a'), ord('z')+1))
-        chars += ''.join(chr(i) for i in range(ord('0'), ord('9')+1))
+        chars = ''.join(chr(i) for i in range(ord('a'), ord('z') + 1))
+        chars += ''.join(chr(i) for i in range(ord('0'), ord('9') + 1))
         return ''.join(random.choice(chars) for _ in range(length))
 
     def getStatus(self):
-        r = requests.get(
+        r = self.session.get(
             f'https://stripchat.com/api/front/v2/models/username/{self.username}/cam?uniq={StripChat.uniq()}',
-            headers=self.headers
+            headers=self.headers,
         )
 
         try:

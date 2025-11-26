@@ -8,7 +8,8 @@ from datetime import datetime
 from threading import Thread
 
 import requests
-import requests.cookies
+from requests.adapters import HTTPAdapter
+from urllib3 import Retry
 
 from streamonitor.enums import Status
 import streamonitor.log as log
@@ -32,9 +33,9 @@ class Bot(Thread):
     sleep_on_ratelimit = 180
     long_offline_timeout = 600
 
-    headers = {
-        "User-Agent": HTTP_USER_AGENT
-    }
+    headers = {"User-Agent": HTTP_USER_AGENT}
+
+    retries = Retry(total=10, connect=3, read=3, status_forcelist=range(500, 599), backoff_factor=3, backoff_jitter=3)
 
     status_messages = {
         Status.UNKNOWN: "Unknown error",
@@ -46,7 +47,7 @@ class Bot(Thread):
         Status.NOTEXIST: "Nonexistent user",
         Status.NOTRUNNING: "Not running",
         Status.ERROR: "Error on downloading",
-        Status.RESTRICTED: "Model is restricted, maybe geo-block"
+        Status.RESTRICTED: "Model is restricted, maybe geo-block",
     }
 
     def __init_subclass__(cls, **kwargs):
@@ -63,6 +64,8 @@ class Bot(Thread):
 
         self.session = requests.Session()
         self.session.headers.update(self.headers)
+        self.session.mount('http://', HTTPAdapter(max_retries=Bot.retries))
+        self.session.mount('https://', HTTPAdapter(max_retries=Bot.retries))
         self.cookies = None
         self.cookieUpdater = None
         self.cookie_update_interval = 0
@@ -178,6 +181,7 @@ class Bot(Thread):
                         offline_time = 0
                         if self.sc == Status.PUBLIC:
                             if self.cookie_update_interval > 0 and self.cookieUpdater is not None:
+
                                 def update_cookie():
                                     while self.sc == Status.PUBLIC and not self.quitting and self.running:
                                         self._sleep(self.cookie_update_interval)
@@ -186,6 +190,7 @@ class Bot(Thread):
                                             self.debug('Updated cookies')
                                         else:
                                             self.logger.warning('Failed to update cookies')
+
                                 cookie_update_process = Thread(target=update_cookie)
                                 cookie_update_process.start()
 
@@ -253,7 +258,7 @@ class Bot(Thread):
                 'url': playlist.uri,
                 'resolution': resolution,
                 'frame_rate': stream_info.frame_rate,
-                'bandwidth': stream_info.bandwidth
+                'bandwidth': stream_info.bandwidth,
             })
 
         if not variant_m3u8.is_variant and len(sources) >= 1:
@@ -308,7 +313,9 @@ class Bot(Thread):
                 frame_rate = ''
                 if selected_source['frame_rate'] is not None and selected_source['frame_rate'] != 0:
                     frame_rate = f" {selected_source['frame_rate']}fps"
-                self.logger.info(f"Selected {selected_source['resolution'][0]}x{selected_source['resolution'][1]}{frame_rate} resolution")
+                self.logger.info(
+                    f"Selected {selected_source['resolution'][0]}x{selected_source['resolution'][1]}{frame_rate} resolution"
+                )
             selected_source_url = selected_source['url']
             if selected_source_url.startswith("https://"):
                 return selected_source_url
@@ -353,9 +360,7 @@ class Bot(Thread):
     def str2site(site: str):
         site = site.lower()
         for sitecls in LOADED_SITES:
-            if site == sitecls.site.lower() or \
-                    site == sitecls.siteslug.lower() or \
-                    site in sitecls.aliases:
+            if site == sitecls.site.lower() or site == sitecls.siteslug.lower() or site in sitecls.aliases:
                 return sitecls
         return None
 

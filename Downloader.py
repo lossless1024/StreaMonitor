@@ -1,14 +1,17 @@
 import os
 import sys
+import parameters
 import streamonitor.config as config
+import http.client
 from streamonitor.managers.httpmanager import HTTPManager
 from streamonitor.managers.climanager import CLIManager
 from streamonitor.managers.zmqmanager import ZMQManager
 from streamonitor.managers.outofspace_detector import OOSDetector
 from streamonitor.clean_exit import CleanExit
+import streamonitor.log
 import streamonitor.sites  # must have
 
-        
+
 def is_docker():
     path = '/proc/self/cgroup'
     return (
@@ -23,6 +26,14 @@ def main():
         sys.exit(1)
 
     streamers = config.loadStreamers()
+
+    if parameters.HTTP_DEBUG
+        import logging
+
+        http.client.HTTPConnection.debuglevel = 1
+        http_log = logging.getLogger("requests.packages.urllib3")
+        http_log.setLevel(logging.DEBUG)
+        http_log.addHandler(logging.StreamHandler())
 
     clean_exit = CleanExit(streamers)
 
