@@ -37,7 +37,8 @@ class StripChat(Bot):
 
     @classmethod
     def getInitialData(cls):
-        r = requests.get('https://hu.stripchat.com/api/front/v3/config/static', headers=cls.headers)
+        session = requests.Session()
+        r = session.get('https://hu.stripchat.com/api/front/v3/config/static', headers=cls.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch static data from StripChat")
         StripChat._static_data = r.json().get('static')
@@ -46,14 +47,15 @@ class StripChat(Bot):
         mmp_version = StripChat._static_data['featuresV2']['playerModuleExternalLoading']['mmpVersion']
         mmp_base = f"{mmp_origin}/v{mmp_version}"
 
-        r = requests.get(f"{mmp_base}/main.js", headers=cls.headers)
+        r = session.get(f"{mmp_base}/main.js", headers=cls.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch main.js from StripChat")
         StripChat._main_js_data = r.content.decode('utf-8')
 
-        doppio_js_name = re.findall('require[(]"./(Doppio.*?[.]js)"[)]', StripChat._main_js_data)[0]
+        doppio_js_index = re.findall('([0-9]+):"Doppio"', StripChat._main_js_data)[0]
+        doppio_js_hash = re.findall(f'{doppio_js_index}:\\"([a-zA-Z0-9]{{20}})\\"', StripChat._main_js_data)[0]
 
-        r = requests.get(f"{mmp_base}/{doppio_js_name}", headers=cls.headers)
+        r = session.get(f"{mmp_base}/chunk-Doppio-{doppio_js_hash}.js", headers=cls.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch doppio.js from StripChat")
         StripChat._doppio_js_data = r.content.decode('utf-8')
@@ -127,7 +129,7 @@ class StripChat(Bot):
                 vr='_vr' if self.vr else '',
                 auto='_auto' if not self.vr else ''
             )
-        result = requests.get(url, headers=self.headers, cookies=self.cookies)
+        result = self.session.get(url, headers=self.headers, cookies=self.cookies)
         m3u8_doc = result.content.decode("utf-8")
         psch, pkey, pdkey = StripChat._getMouflonFromM3U(m3u8_doc)
         variants = super().getPlaylistVariants(m3u_data=m3u8_doc)
@@ -141,7 +143,7 @@ class StripChat(Bot):
         return ''.join(random.choice(chars) for _ in range(length))
 
     def getStatus(self):
-        r = requests.get(
+        r = self.session.get(
             f'https://stripchat.com/api/front/v2/models/username/{self.username}/cam?uniq={StripChat.uniq()}',
             headers=self.headers
         )

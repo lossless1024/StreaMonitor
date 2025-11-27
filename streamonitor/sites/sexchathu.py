@@ -15,7 +15,7 @@ class SexChatHU(RoomIdBot):
     def _getBabesList(self):
         if SexChatHU._performers_list_cache_timestamp < time.time() - 60 * 60 or \
                 SexChatHU._performers_list_cache is None:  # Cache for 1 hour
-            req = requests.get('https://sexchat.hu/ajax/api/roomList/babes', headers=self.headers)
+            req = self.session.get('https://sexchat.hu/ajax/api/roomList/babes', headers=self.headers)
             SexChatHU._performers_list_cache = req.json()
             SexChatHU._performers_list_cache_timestamp = time.time()
         return SexChatHU._performers_list_cache
@@ -46,7 +46,7 @@ class SexChatHU(RoomIdBot):
         if self.room_id is None:
             return Status.NOTEXIST
 
-        r = requests.get('https://chat.a.apn2.com/chat-api/index.php/room/getRoom?tokenID=guest&roomID=' + self.room_id, headers=self.headers)
+        r = self.session.get('https://chat.a.apn2.com/chat-api/index.php/room/getRoom?tokenID=guest&roomID=' + self.room_id, headers=self.headers)
         if r.status_code != 200:
             return Status.UNKNOWN
 

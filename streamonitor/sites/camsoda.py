@@ -19,7 +19,7 @@ class CamSoda(Bot):
         return self.getWantedResolutionPlaylist(url)
 
     def getStatus(self):
-        r = requests.get('https://www.camsoda.com/api/v1/chat/react/' + self.username, headers=self.headers)
+        r = self.session.get('https://www.camsoda.com/api/v1/chat/react/' + self.username, headers=self.headers)
         if r.status_code == 403:
             return Status.RATELIMIT
         if r.status_code != 200:

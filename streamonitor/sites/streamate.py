@@ -31,7 +31,7 @@ class StreaMate(Bot):
             'Content-Type': 'application/json',
             'Referer': 'https://streamate.com/'
         }
-        r = requests.get('https://manifest-server.naiadsystems.com/live/s:' + self.username + '.json?last=load&format=mp4-hls',
+        r = self.session.get('https://manifest-server.naiadsystems.com/live/s:' + self.username + '.json?last=load&format=mp4-hls',
                          headers=headers)
 
         if r.status_code == 200:
