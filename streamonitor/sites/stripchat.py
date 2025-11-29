@@ -1,7 +1,8 @@
 import itertools
+import json
+import os.path
 import random
 import re
-import time
 import requests
 import base64
 import hashlib
@@ -18,8 +19,19 @@ class StripChat(Bot):
     _static_data = None
     _main_js_data = None
     _doppio_js_data = None
+    _mouflon_cache_filename = 'stripchat_mouflon_keys.json'
     _mouflon_keys: dict = None
     _cached_keys: dict[str, bytes] = None
+
+    if os.path.exists(_mouflon_cache_filename):
+        with open(_mouflon_cache_filename) as f:
+            try:
+                if not isinstance(_mouflon_keys, dict):
+                    _mouflon_keys = {}
+                _mouflon_keys.update(json.load(f))
+                print('Loaded StripChat mouflon key cache')
+            except Exception as e:
+                print('Error loading mouflon key cache:', e)
 
     def __init__(self, username):
         if StripChat._static_data is None:
@@ -27,10 +39,8 @@ class StripChat(Bot):
             try:
                 self.getInitialData()
             except Exception as e:
-                StripChat._static_data = None
-                raise e
-        while StripChat._static_data == {}:
-            time.sleep(1)
+                print('Error initializing StripChat static data:', e)
+
         super().__init__(username)
         self.vr = False
         self.getVideo = lambda _, url, filename: getVideoNativeHLS(self, url, filename, StripChat.m3u_decoder)
@@ -97,7 +107,10 @@ class StripChat(Bot):
         else:
             _pdks = re.findall(f'"{pkey}:(.*?)"', cls._doppio_js_data)
             if len(_pdks) > 0:
-                return cls._mouflon_keys.setdefault(pkey, _pdks[0])
+                pdk = cls._mouflon_keys.setdefault(pkey, _pdks[0])
+                with open(cls._mouflon_cache_filename, 'w') as f:
+                    json.dump(cls._mouflon_keys, f)
+                return pdk
         return None
 
     @staticmethod
@@ -132,6 +145,9 @@ class StripChat(Bot):
         result = self.session.get(url, headers=self.headers, cookies=self.cookies)
         m3u8_doc = result.content.decode("utf-8")
         psch, pkey, pdkey = StripChat._getMouflonFromM3U(m3u8_doc)
+        if pdkey is None:
+            self.log(f'Failed to get mouflon decryption key')
+            return []
         variants = super().getPlaylistVariants(m3u_data=m3u8_doc)
         return [variant | {'url': f'{variant["url"]}{"&" if "?" in variant["url"] else "?"}psch={psch}&pkey={pkey}'}
                 for variant in variants]
