@@ -1,7 +1,8 @@
 import itertools
+import json
+import os.path
 import random
 import re
-import time
 import requests
 import base64
 import hashlib
@@ -48,6 +49,16 @@ class StripChat(Bot):
     _OFFLINE_STATUSES = frozenset(["off", "idle"])
 
     __slots__ = ('vr',)  # Memory optimization
+
+    if os.path.exists(_mouflon_cache_filename):
+        with open(_mouflon_cache_filename) as f:
+            try:
+                if not isinstance(_mouflon_keys, dict):
+                    _mouflon_keys = {}
+                _mouflon_keys.update(json.load(f))
+                print('Loaded StripChat mouflon key cache')
+            except Exception as e:
+                print('Error loading mouflon key cache:', e)
 
     def __init__(self, username):
         if StripChat._static_data is None:

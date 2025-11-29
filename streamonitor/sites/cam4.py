@@ -21,7 +21,7 @@ class Cam4(Bot):
         }
 
         if self.sc == Status.NOTRUNNING:
-            r = requests.get(f'https://hu.cam4.com/rest/v1.0/profile/{self.username}/info', headers=headers)
+            r = self.session.get(f'https://hu.cam4.com/rest/v1.0/profile/{self.username}/info', headers=headers)
             if r.status_code == 403:
                 return Status.RESTRICTED
             elif r.status_code != 200:
@@ -31,14 +31,14 @@ class Cam4(Bot):
             if not r['online']:
                 return Status.OFFLINE
 
-        r = requests.get(f'https://webchat.cam4.com/requestAccess?roomname={self.username}', headers=headers)
+        r = self.session.get(f'https://webchat.cam4.com/requestAccess?roomname={self.username}', headers=headers)
         if r.status_code != 200:
             return Status.UNKNOWN
         r = r.json()
         if r.get('privateStream', False):
             return Status.PRIVATE
 
-        r = requests.get(f'https://hu.cam4.com/rest/v1.0/profile/{self.username}/streamInfo', headers=headers)
+        r = self.session.get(f'https://hu.cam4.com/rest/v1.0/profile/{self.username}/streamInfo', headers=headers)
         if r.status_code == 204:
             return Status.OFFLINE
         elif r.status_code == 200:
