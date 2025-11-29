@@ -18,7 +18,7 @@ class CherryTV(Bot):
         variables = '{"slug": "' + self.username + '"}'
         extensions = '{"persistedQuery":{"version":1,"sha256Hash":"1fd980c874484de0b139ef4a67c867200a87f44aa51caf54319e93a4108a7510"}}'
 
-        r = requests.get(f'https://api.cherry.tv/graphql?operationName={operationName}&variables={variables}&extensions={extensions}', headers=self.headers)
+        r = self.session.get(f'https://api.cherry.tv/graphql?operationName={operationName}&variables={variables}&extensions={extensions}', headers=self.headers)
         self.lastInfo = r.json()['data']['streamer']
         
         if not self.lastInfo:

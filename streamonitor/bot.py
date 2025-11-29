@@ -181,8 +181,8 @@ class Bot(Thread):
                                 def update_cookie():
                                     while self.sc == Status.PUBLIC and not self.quitting and self.running:
                                         self._sleep(self.cookie_update_interval)
-                                        ret = self.cookieUpdater()
-                                        if ret:
+                                        ret2 = self.cookieUpdater()
+                                        if ret2:
                                             self.debug('Updated cookies')
                                         else:
                                             self.logger.warning('Failed to update cookies')
@@ -240,7 +240,7 @@ class Bot(Thread):
         elif isinstance(m3u_data, str):
             variant_m3u8 = m3u8.loads(m3u_data)
         elif not m3u_data or url:
-            result = requests.get(url, headers=self.headers, cookies=self.cookies)
+            result = self.session.get(url, headers=self.headers, cookies=self.cookies)
             m3u8_doc = result.content.decode("utf-8")
             variant_m3u8 = m3u8.loads(m3u8_doc)
         else:
