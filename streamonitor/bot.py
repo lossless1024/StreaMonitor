@@ -260,7 +260,7 @@ class Bot(Thread):
         elif isinstance(m3u_data, str):
             variant_m3u8 = m3u8.loads(m3u_data)
         elif not m3u_data or url:
-            result = requests.get(url, headers=self.headers, cookies=self.cookies)
+            result = self.session.get(url, headers=self.headers, cookies=self.cookies)
             m3u8_doc = result.content.decode("utf-8")
             variant_m3u8 = m3u8.loads(m3u8_doc)
         else:

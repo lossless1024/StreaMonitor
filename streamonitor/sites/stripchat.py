@@ -1,7 +1,8 @@
 import itertools
+import json
+import os.path
 import random
 import re
-import time
 import requests
 import base64
 import hashlib
@@ -20,8 +21,19 @@ class StripChat(Bot):
     _static_data = None
     _main_js_data = None
     _doppio_js_data = None
+    _mouflon_cache_filename = 'stripchat_mouflon_keys.json'
     _mouflon_keys: dict = None
     _cached_keys: dict[str, bytes] = None
+
+    if os.path.exists(_mouflon_cache_filename):
+        with open(_mouflon_cache_filename) as f:
+            try:
+                if not isinstance(_mouflon_keys, dict):
+                    _mouflon_keys = {}
+                _mouflon_keys.update(json.load(f))
+                print('Loaded StripChat mouflon key cache')
+            except Exception as e:
+                print('Error loading mouflon key cache:', e)
 
     def __init__(self, username):
         logging.basicConfig(
@@ -34,10 +46,8 @@ class StripChat(Bot):
             try:
                 self.getStaticData()
             except Exception as e:
-                StripChat._static_data = None
-                raise e
-        while StripChat._static_data == {}:
-            time.sleep(1)
+                print('Error initializing StripChat static data:', e)
+
         super().__init__(username)
         self.vr = False
         self.getVideo = lambda _, url, filename: getVideoNativeHLS(self, url, filename, StripChat.m3u_decoder)
@@ -45,8 +55,9 @@ class StripChat(Bot):
         self.viewerId = None
 
     @classmethod
-    def getStaticData(self):
-        r = requests.get('https://hu.stripchat.com/api/front/v3/config/static', headers=self.headers)
+    def getStaticData(cls):
+        session = requests.Session()
+        r = session.get('https://hu.stripchat.com/api/front/v3/config/static', headers=cls.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch static data from StripChat")
         StripChat._static_data = r.json().get('static')
@@ -55,14 +66,15 @@ class StripChat(Bot):
         mmp_version = StripChat._static_data['featuresV2']['playerModuleExternalLoading']['mmpVersion']
         mmp_base = f"{mmp_origin}/v{mmp_version}"
 
-        r = requests.get(f"{mmp_base}/main.js", headers=self.headers)
+        r = session.get(f"{mmp_base}/main.js", headers=cls.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch main.js from StripChat")
         StripChat._main_js_data = r.content.decode('utf-8')
 
-        doppio_js_name = re.findall('require[(]"./(Doppio.*?[.]js)"[)]', StripChat._main_js_data)[0]
+        doppio_js_index = re.findall('([0-9]+):"Doppio"', StripChat._main_js_data)[0]
+        doppio_js_hash = re.findall(f'{doppio_js_index}:\\"([a-zA-Z0-9]{{20}})\\"', StripChat._main_js_data)[0]
 
-        r = requests.get(f"{mmp_base}/{doppio_js_name}", headers=self.headers)
+        r = session.get(f"{mmp_base}/chunk-Doppio-{doppio_js_hash}.js", headers=cls.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch doppio.js from StripChat")
         StripChat._doppio_js_data = r.content.decode('utf-8')
@@ -104,7 +116,10 @@ class StripChat(Bot):
         else:
             _pdks = re.findall(f'"{pkey}:(.*?)"', cls._doppio_js_data)
             if len(_pdks) > 0:
-                return cls._mouflon_keys.setdefault(pkey, _pdks[0])
+                pdk = cls._mouflon_keys.setdefault(pkey, _pdks[0])
+                with open(cls._mouflon_cache_filename, 'w') as f:
+                    json.dump(cls._mouflon_keys, f)
+                return pdk
         return None
 
     @staticmethod
@@ -138,15 +153,12 @@ class StripChat(Bot):
                 vr='_vr' if self.vr else '',
                 auto='_auto' if not self.vr else ''
             )
-
-        result = requests.get(
-            url,
-            headers=self.headers,
-            cookies=self.cookies
-        )
-        
+        result = self.session.get(url, headers=self.headers, cookies=self.cookies)
         m3u8_doc = result.content.decode("utf-8")
         psch, pkey, pdkey = StripChat._getMouflonFromM3U(m3u8_doc)
+        if pdkey is None:
+            self.log(f'Failed to get mouflon decryption key')
+            return []
         variants = super().getPlaylistVariants(m3u_data=m3u8_doc)
         return [variant | {'url': f'{variant["url"]}{"&" if "?" in variant["url"] else "?"}psch={psch}&pkey={pkey}'}
                 for variant in variants]
@@ -169,7 +181,7 @@ class StripChat(Bot):
             raise RuntimeError(f'Problem retrieving user {user} data.')
     
     def getStatus(self):
-        r = requests.get(
+        r = self.session.get(
             f'https://stripchat.com/api/front/v2/models/username/{self.username}/cam?uniq={StripChat.uniq()}',
             headers=self.headers
         )
