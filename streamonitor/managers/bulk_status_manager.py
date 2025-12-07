@@ -26,6 +26,8 @@ class BulkStatusManager(Manager):
                 bot_class = streamer.__class__
                 if bot_class not in bulk_bots:
                     continue
+                if not streamer.running:
+                    continue
                 bot_bulk.setdefault(bot_class, set()).add(streamer)
             for bot_class, streamers in bot_bulk.items():
                 try:

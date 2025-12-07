@@ -238,8 +238,6 @@ class StripChat(RoomIdBot):
         for streamer in streamers:
             if not isinstance(streamer, StripChat):
                 continue
-            if not streamer.running:
-                continue
             if streamer.room_id:
                 model_ids[streamer.room_id] = streamer
 
