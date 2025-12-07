@@ -24,6 +24,7 @@ class Bot(Thread):
     siteslug = None
     aliases = []
     ratelimit = False
+    _bulk_update = False
 
     sleep_on_private = 5
     sleep_on_offline = 5
@@ -163,7 +164,8 @@ class Bot(Thread):
             while self.running:
                 try:
                     self.recording = False
-                    self.sc = self.getStatus()
+                    if not self._bulk_update or self.sc == Status.NOTRUNNING:
+                        self.sc = self.getStatus()
                     # Check if the status has changed and log the update if it's different from the previous status
                     if self.sc != self.previous_status:
                         self.log(self.status())
@@ -220,6 +222,8 @@ class Bot(Thread):
 
                 if self.quitting:
                     break
+                elif self._bulk_update:
+                    self._sleep(1)
                 elif self.ratelimit:
                     self._sleep(self.sleep_on_ratelimit)
                 elif offline_time > self.long_offline_timeout:
@@ -231,6 +235,11 @@ class Bot(Thread):
 
             self.sc = Status.NOTRUNNING
             self.log("Stopped")
+
+    def setStatus(self, sc):
+        if self.sc == Status.LONG_OFFLINE and sc == Status.OFFLINE:
+            return
+        self.sc = sc
 
     def getPlaylistVariants(self, url=None, m3u_data=None):
         sources = []
