@@ -28,6 +28,7 @@ services:
     volumes:
       - ./downloads:/app/downloads
       - ./config.json:/app/config.json
+      - ./stripchat_mouflon_keys.json:/app/stripchat_mouflon_keys.json
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
