@@ -6,6 +6,7 @@ from streamonitor.sites.stripchat import StripChat
 class StripChatVR(StripChat):
     site = 'StripChatVR'
     siteslug = 'SCVR'
+    _bulk_update = False
 
     vr_frame_format_map = {
         'FISHEYE': 'F',

@@ -14,7 +14,7 @@ from typing import Optional, Tuple, List, Dict
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from streamonitor.bot import Bot
+from streamonitor.bot import RoomIdBot
 from streamonitor.downloaders.hls import getVideoNativeHLS
 from streamonitor.enums import Status
 
@@ -23,6 +23,7 @@ class StripChat(Bot):
     site = "StripChat"
     siteslug = "SC"
 
+    _bulk_update = True
     _static_data = None
     _main_js_data = None
     _doppio_js_data = None
@@ -51,7 +52,7 @@ class StripChat(Bot):
 
     __slots__ = ('vr',)  # Memory optimization
 
-    def __init__(self, username):
+    def __init__(self, username, room_id=None):
         if StripChat._static_data is None:
             StripChat._static_data = {}
             try:
@@ -327,3 +328,41 @@ class StripChat(Bot):
             return Status.RESTRICTED
         
         return Status.UNKNOWN
+
+    @classmethod
+    def getStatusBulk(cls, streamers):
+        model_ids = {}
+        for streamer in streamers:
+            if not isinstance(streamer, StripChat):
+                continue
+            if streamer.room_id:
+                model_ids[streamer.room_id] = streamer
+
+        url = 'https://hu.stripchat.com/api/front/models/list?'
+        url += '&'.join(f'modelIds[]={model_id}' for model_id in model_ids)
+        session = requests.Session()
+        session.headers.update(cls.headers)
+        r = session.get(url)
+
+        try:
+            data = r.json()
+        except requests.exceptions.JSONDecodeError:
+            print('Failed to parse JSON response')
+            return
+        data_map = {str(model['id']): model for model in data.get('models', [])}
+
+        for model_id, streamer in model_ids.items():
+            model_data = data_map.get(model_id)
+            if not model_data:
+                streamer.setStatus(Status.UNKNOWN)
+                continue
+            status = model_data.get('status')
+            if status == "public" and model_data.get("isOnline"):
+                streamer.setStatus(Status.PUBLIC)
+            elif status in cls._PRIVATE_STATUSES:
+                streamer.setStatus(Status.PRIVATE)
+            elif status in cls._OFFLINE_STATUSES:
+                streamer.setStatus(Status.OFFLINE)
+            else:
+                print(f'[{streamer.siteslug}] {streamer.username}: Bulk update got unknown status: {status}')
+                streamer.setStatus(Status.UNKNOWN)
