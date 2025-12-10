@@ -32,6 +32,7 @@ class Chaturbate(Bot):
         self.last_request_time = 0
         self.min_request_interval = 20
         self.cookies_initialized = False
+        self.hls_failures = 0
 
     def _normalize_cookies(self, jar):
         return cookiejar_from_dict(dict_from_cookiejar(jar))
@@ -53,25 +54,20 @@ class Chaturbate(Bot):
             return []
 
     def getVideoUrl(self):
-        url = self.lastInfo.get('url', '')
+        url = self.lastInfo.get("url", "")
         if not url:
             return None
-
         url = url.replace('\\/', '/')
-
         if self.lastInfo.get('cmaf_edge'):
             url = url.replace('playlist.m3u8', 'playlist_sfm4s.m3u8')
             url = re.sub('live-.+amlst', 'live-c-fhls/amlst', url)
-
         return self.getWantedResolutionPlaylist(url)
 
     def _wait_for_rate_limit(self):
         now = time.time()
         since = now - self.last_request_time
-
         if since < self.min_request_interval:
             time.sleep(self.min_request_interval - since + random.uniform(1, 3))
-
         self.last_request_time = time.time()
 
     def _initialize_cookies(self):
@@ -141,9 +137,20 @@ class Chaturbate(Bot):
             self.lastInfo = r.json()
             status = self.lastInfo.get("room_status", "offline")
 
-            if status == "public" and self.lastInfo.get("url"):
+            if status == "public":
+                url = self.lastInfo.get("url", "")
+                if not url:
+                    self.hls_failures += 1
+                    if self.hls_failures >= 2:
+                        self.cookies_initialized = False
+                        self._initialize_cookies()
+                        self.hls_failures = 0
+                    return Status.ERROR
+
                 if r.cookies:
                     self.cookies = self._normalize_cookies(r.cookies)
+
+                self.hls_failures = 0
                 self.consecutive_errors = 0
                 return Status.PUBLIC
 
