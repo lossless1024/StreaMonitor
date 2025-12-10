@@ -59,7 +59,7 @@ class StripChat(RoomIdBot):
 
         mmp_origin = StripChat._static_data['features']['MMPExternalSourceOrigin']
         mmp_version = StripChat._static_data['featuresV2']['playerModuleExternalLoading']['mmpVersion']
-        mmp_base = f"{mmp_origin}/v{mmp_version}"
+        mmp_base = f"{mmp_origin}/{mmp_version}"
 
         r = session.get(f"{mmp_base}/main.js", headers=cls.headers)
         if r.status_code != 200:
