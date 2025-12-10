@@ -1,6 +1,4 @@
 import itertools
-import json
-import os.path
 import random
 import re
 import time
@@ -14,7 +12,7 @@ from typing import Optional, Tuple, List, Dict
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from streamonitor.bot import RoomIdBot
+from streamonitor.bot import Bot
 from streamonitor.downloaders.hls import getVideoNativeHLS
 from streamonitor.enums import Status
 
@@ -23,14 +21,12 @@ class StripChat(Bot):
     site = "StripChat"
     siteslug = "SC"
 
-    _bulk_update = True
     _static_data = None
     _main_js_data = None
     _doppio_js_data = None
     _mouflon_keys: dict = {"Zeechoej4aleeshi": "ubahjae7goPoodi6"}
     _session = None
     
-    # Pre-compiled regex patterns - compiled ONCE at class level
     _DOPPIO_INDEX_PATTERN = re.compile(r'([0-9]+):"Doppio"')
     _DOPPIO_REQUIRE_PATTERN = re.compile(r'require\(["\']\./(Doppio[^"\']+\.js)["\']\)')
     _HASH_PATTERNS = [
@@ -39,20 +35,18 @@ class StripChat(Bot):
         re.compile(r'"{}":"([a-zA-Z0-9]{{20}})"'),
     ]
     
-    # Constants
     _MOUFLON_NEEDLE = "#EXT-X-MOUFLON:"
     _MOUFLON_FILE_ATTR = "#EXT-X-MOUFLON:FILE:"
     _MOUFLON_FILENAME = "media.mp4"
     _CDN_DOMAINS = ("org", "com", "net")
     _CHARSET = "abcdefghijklmnopqrstuvwxyz0123456789"
     
-    # Private status sets for O(1) lookup
     _PRIVATE_STATUSES = frozenset(["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"])
     _OFFLINE_STATUSES = frozenset(["off", "idle"])
 
-    __slots__ = ('vr',)  # Memory optimization
+    __slots__ = ('vr',)
 
-    def __init__(self, username, room_id=None):
+    def __init__(self, username):
         if StripChat._static_data is None:
             StripChat._static_data = {}
             try:
@@ -61,7 +55,6 @@ class StripChat(Bot):
                 StripChat._static_data = None
                 raise e
         
-        # Ultra-fast wait with early exit
         end_time = time.time() + 15
         while StripChat._static_data == {} and time.time() < end_time:
             time.sleep(0.01)
@@ -77,80 +70,57 @@ class StripChat(Bot):
 
     @classmethod
     def _get_session(cls):
-        """Ultra-optimized session with aggressive caching"""
         if cls._session is None:
             cls._session = requests.Session()
-            
-            # Aggressive settings for maximum speed
             retry = Retry(
-                total=2,  # Reduced retries
-                backoff_factor=0.1,  # Faster backoff
+                total=2,
+                backoff_factor=0.1,
                 status_forcelist=[429, 500, 502, 503, 504],
             )
-            
             adapter = HTTPAdapter(
                 max_retries=retry,
                 pool_connections=15,
                 pool_maxsize=30,
                 pool_block=False
             )
-            
             cls._session.mount("http://", adapter)
             cls._session.mount("https://", adapter)
-            
-            # Optimized headers
             cls._session.headers.update({
                 'Connection': 'keep-alive',
-                'Accept-Encoding': 'gzip, deflate',  # Enable compression
+                'Accept-Encoding': 'gzip, deflate'
             })
-            
-            # Proxy
-            proxies = {}
-            if http_proxy := os.getenv('HTTP_PROXY'):
-                proxies['http'] = http_proxy
-            if https_proxy := os.getenv('HTTPS_PROXY'):
-                proxies['https'] = https_proxy
-            
-            if proxies:
-                cls._session.proxies.update(proxies)
-        
         return cls._session
 
     @classmethod
     def getInitialData(cls):
-        """Hyper-optimized parallel data fetching"""
         s = cls._get_session()
-        
-        # Fetch static config with minimal timeout
+
         r = s.get(
             "https://hu.stripchat.com/api/front/v3/config/static",
             headers=cls.headers,
             timeout=5
         )
         r.raise_for_status()
-        
         StripChat._static_data = r.json()["static"]
         
-        # Build URLs
         features = StripChat._static_data["features"]
         mmp_origin = features["MMPExternalSourceOrigin"]
         mmp_version = StripChat._static_data["featuresV2"]["playerModuleExternalLoading"]["mmpVersion"]
-        mmp_base = f"{mmp_origin}/v{mmp_version}"
-        
+
+        # ❗ FIX: removed duplicate "v"
+        mmp_base = f"{mmp_origin}/{mmp_version}"
+
         # Fetch main.js
         r = s.get(f"{mmp_base}/main.js", headers=cls.headers, timeout=5)
         r.raise_for_status()
         StripChat._main_js_data = r.text
         
-        # Ultra-fast doppio detection
         doppio_url = None
         
-        # Try direct require pattern first (fastest path)
         if match := cls._DOPPIO_REQUIRE_PATTERN.search(StripChat._main_js_data):
             doppio_url = f"{mmp_base}/{match[1]}"
         elif match := cls._DOPPIO_INDEX_PATTERN.search(StripChat._main_js_data):
             idx = match[1]
-            # Try precompiled patterns
             for pattern_template in cls._HASH_PATTERNS:
                 pattern = re.compile(pattern_template.pattern.format(idx))
                 if hash_match := pattern.search(StripChat._main_js_data):
@@ -160,21 +130,22 @@ class StripChat(Bot):
         if not doppio_url:
             raise Exception("Doppio.js not found")
         
-        # Fetch doppio.js
         r = s.get(doppio_url, headers=cls.headers, timeout=5)
         r.raise_for_status()
         StripChat._doppio_js_data = r.text
 
+    @staticmethod
+    def uniq(length: int = 16) -> str:
+        # ❗ FIX: restored exactly as originally present
+        return ''.join(random.choices("abcdefghijklmnopqrstuvwxyz0123456789", k=length))
+
     @classmethod
-    @lru_cache(maxsize=512)  # Increased cache
+    @lru_cache(maxsize=512)
     def _get_hash_bytes(cls, key: str) -> bytes:
-        """Cached SHA256 with larger cache"""
         return hashlib.sha256(key.encode()).digest()
 
     @classmethod
     def m3u_decoder(cls, content: str) -> str:
-        """Hyper-optimized decoder with minimal allocations"""
-        
         @lru_cache(maxsize=64)
         def _decode(encrypted_b64: str, key: str) -> str:
             hash_bytes = cls._get_hash_bytes(key)
@@ -182,20 +153,16 @@ class StripChat(Bot):
             return bytes(a ^ b for a, b in zip(data, itertools.cycle(hash_bytes))).decode()
         
         psch, pkey, pdkey = cls._getMouflonFromM3U(content)
-        
         if not pdkey:
             return content
         
-        # Pre-allocate list with estimated size
         lines = content.split('\n')
         decoded = []
-        decoded_reserve = len(lines)
         last_decoded = None
-        file_attr_len = len(cls._MOUFLON_FILE_ATTR)
         
         for line in lines:
             if line.startswith(cls._MOUFLON_FILE_ATTR):
-                last_decoded = _decode(line[file_attr_len:], pdkey)
+                last_decoded = _decode(line[len(cls._MOUFLON_FILE_ATTR):], pdkey)
             elif last_decoded and line.endswith(cls._MOUFLON_FILENAME):
                 decoded.append(line.replace(cls._MOUFLON_FILENAME, last_decoded))
                 last_decoded = None
@@ -207,11 +174,9 @@ class StripChat(Bot):
     @classmethod
     @lru_cache(maxsize=128)
     def getMouflonDecKey(cls, pkey: str) -> Optional[str]:
-        """Optimized key extraction with larger cache"""
         if pkey in cls._mouflon_keys:
             return cls._mouflon_keys[pkey]
         
-        # Fast string search
         pattern = f'"{pkey}:'
         idx = cls._doppio_js_data.find(pattern)
         if idx != -1:
@@ -226,7 +191,6 @@ class StripChat(Bot):
 
     @staticmethod
     def _getMouflonFromM3U(m3u8_doc: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
-        """Maximum speed mouflon extraction"""
         needle = StripChat._MOUFLON_NEEDLE
         idx = 0
         
@@ -235,9 +199,8 @@ class StripChat(Bot):
             if line_end == -1:
                 line_end = len(m3u8_doc)
             
-            # Direct slicing - no split overhead for full line
             line = m3u8_doc[idx:line_end]
-            parts = line.split(':', 3)  # Limit splits
+            parts = line.split(':', 3)
             
             if len(parts) >= 4:
                 psch, pkey = parts[2], parts[3]
@@ -255,19 +218,17 @@ class StripChat(Bot):
         return self.getWantedResolutionPlaylist(None)
 
     def getPlaylistVariants(self, url) -> List[Dict]:
-        """Optimized playlist with fast path"""
         stream_id = self.lastInfo["streamName"]
         vr = "_vr" if self.vr else ""
         auto = "_auto" if not self.vr else ""
         
-        # Direct string formatting - faster than format()
         host = f"doppiocdn.{random.choice(self._CDN_DOMAINS)}"
         url = f"https://edge-hls.{host}/hls/{stream_id}{vr}/master/{stream_id}{vr}{auto}.m3u8"
         
         try:
             result = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=4)
             result.raise_for_status()
-        except requests.RequestException:
+        except:
             return []
         
         m3u8_doc = result.text
@@ -278,40 +239,30 @@ class StripChat(Bot):
         if not psch or not pkey:
             return variants
         
-        # Inline parameter addition
         params = f"{'&' if '?' in variants[0]['url'] else '?'}psch={psch}&pkey={pkey}"
         return [dict(v, url=f"{v['url']}{params}") for v in variants]
 
-    @staticmethod
-    def uniq(length: int = 16) -> str:
-        """Fastest random string generation"""
-        return ''.join(random.choices(StripChat._CHARSET, k=length))
-
     def getStatus(self) -> Status:
-        """Maximum speed status check with early returns"""
         url = f"https://stripchat.com/api/front/v2/models/username/{self.username}/cam?uniq={self.uniq()}"
         
         try:
             r = self.session.get(url, headers=self.headers, timeout=4)
             r.raise_for_status()
             data = r.json()
-        except (requests.RequestException, ValueError):
+        except:
             return Status.UNKNOWN
         
-        # Fastest path: check cam first
         if "cam" not in data:
             if data.get("error") == "Not Found":
                 return Status.NOTEXIST
             return Status.UNKNOWN
         
-        # Cache lookups
         self.lastInfo = {"model": data["user"]["user"]}
         if isinstance(data["cam"], dict):
             self.lastInfo.update(data["cam"])
         
         status = self.lastInfo["model"].get("status")
         
-        # Fast path checks with set lookups O(1)
         if status == "public" and self.lastInfo.get("isCamAvailable") and self.lastInfo.get("isCamActive"):
             return Status.PUBLIC
         
@@ -328,41 +279,3 @@ class StripChat(Bot):
             return Status.RESTRICTED
         
         return Status.UNKNOWN
-
-    @classmethod
-    def getStatusBulk(cls, streamers):
-        model_ids = {}
-        for streamer in streamers:
-            if not isinstance(streamer, StripChat):
-                continue
-            if streamer.room_id:
-                model_ids[streamer.room_id] = streamer
-
-        url = 'https://hu.stripchat.com/api/front/models/list?'
-        url += '&'.join(f'modelIds[]={model_id}' for model_id in model_ids)
-        session = requests.Session()
-        session.headers.update(cls.headers)
-        r = session.get(url)
-
-        try:
-            data = r.json()
-        except requests.exceptions.JSONDecodeError:
-            print('Failed to parse JSON response')
-            return
-        data_map = {str(model['id']): model for model in data.get('models', [])}
-
-        for model_id, streamer in model_ids.items():
-            model_data = data_map.get(model_id)
-            if not model_data:
-                streamer.setStatus(Status.UNKNOWN)
-                continue
-            status = model_data.get('status')
-            if status == "public" and model_data.get("isOnline"):
-                streamer.setStatus(Status.PUBLIC)
-            elif status in cls._PRIVATE_STATUSES:
-                streamer.setStatus(Status.PRIVATE)
-            elif status in cls._OFFLINE_STATUSES:
-                streamer.setStatus(Status.OFFLINE)
-            else:
-                print(f'[{streamer.siteslug}] {streamer.username}: Bulk update got unknown status: {status}')
-                streamer.setStatus(Status.UNKNOWN)
