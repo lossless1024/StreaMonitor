@@ -34,6 +34,13 @@ CONTAINER = env.str("STRMNTR_CONTAINER", 'mp4')
 # Add auto-generated VR format suffix to files
 VR_FORMAT_SUFFIX = env.bool("STRMNTR_VR_FORMAT_SUFFIX", True)
 
+# Set ffmpeg readrate to whatever works for you.
+# Usually this should be either 0, 1 or 1.3 depending on the network
+# Setting it to 0 can result in very fragmented recordings.
+# 1 can result in skipped segments
+# 1.3 should be the sweet spot but use what works
+FFMPEG_READRATE = env.int("STRMNTR_FFMPEG_READRATE", 1.3)
+
 # Specify the segment time in seconds
 # If None, the video will be downloaded as a single file
 # Example:
