@@ -14,7 +14,7 @@ class BulkStatusManager(Manager):
         self.logger = log.Logger("bulk_status_manager")
 
     def run(self):
-        bulk_bots = frozenset([site for site in LOADED_SITES if hasattr(site, 'getStatusBulk')])
+        bulk_bots = frozenset([site for site in LOADED_SITES if hasattr(site, 'getStatusBulk') and site.bulk_update])
         bot_sessions = {}
 
         for bot in bulk_bots:

@@ -9,7 +9,7 @@ class SexChatHU(RoomIdBot):
     site = 'SexChatHU'
     siteslug = 'SCHU'
 
-    _bulk_update = True
+    bulk_update = True
     _performers_list_cache = None
     _performers_list_cache_timestamp = 0
 
