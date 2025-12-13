@@ -16,7 +16,7 @@ class StripChat(RoomIdBot):
     site = 'StripChat'
     siteslug = 'SC'
 
-    _bulk_update = True
+    bulk_update = True
     _static_data = None
     _main_js_data = None
     _doppio_js_data = None
