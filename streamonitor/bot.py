@@ -24,7 +24,7 @@ class Bot(Thread):
     siteslug = None
     aliases = []
     ratelimit = False
-    _bulk_update = False
+    bulk_update = False
 
     sleep_on_private = 5
     sleep_on_offline = 5
@@ -164,7 +164,7 @@ class Bot(Thread):
             while self.running:
                 try:
                     self.recording = False
-                    if not self._bulk_update or self.sc == Status.NOTRUNNING:
+                    if not self.bulk_update or self.sc == Status.NOTRUNNING:
                         self.sc = self.getStatus()
                     # Check if the status has changed and log the update if it's different from the previous status
                     if self.sc != self.previous_status:
@@ -222,7 +222,7 @@ class Bot(Thread):
 
                 if self.quitting:
                     break
-                elif self._bulk_update:
+                elif self.bulk_update:
                     self._sleep(1)
                 elif self.ratelimit:
                     self._sleep(self.sleep_on_ratelimit)

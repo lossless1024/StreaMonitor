@@ -5,7 +5,7 @@ import sys
 
 import requests.cookies
 from threading import Thread
-from parameters import DEBUG, SEGMENT_TIME, CONTAINER, FFMPEG_PATH
+from parameters import DEBUG, SEGMENT_TIME, CONTAINER, FFMPEG_PATH, FFMPEG_READRATE
 
 
 def getVideoFfmpeg(self, url, filename):
@@ -24,8 +24,10 @@ def getVideoFfmpeg(self, url, filename):
             '-cookies', cookies_text
         ])
 
+    if FFMPEG_READRATE:
+        cmd.extend(['-readrate', f'{FFMPEG_READRATE!s}'])
+
     cmd.extend([
-        '-readrate', '1.3',
         '-max_reload', '20',
         '-seg_max_retry', '20',
         '-m3u8_hold_counters', '20',
