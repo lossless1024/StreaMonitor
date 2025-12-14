@@ -173,7 +173,6 @@ class StripChat(RoomIdBot):
         except requests.exceptions.JSONDecodeError:
             self.log('Failed to parse JSON response')
             return None
-        self.log(data)
         return data
 
     def _update_lastInfo(self, data):
