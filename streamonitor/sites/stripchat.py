@@ -27,7 +27,7 @@ class StripChat(Bot):
     _mouflon_keys: dict = {"Zeechoej4aleeshi": "ubahjae7goPoodi6"}
     _session = None
     
-    _DOPPIO_INDEX_PATTERN = re.compile(r'([0-9]+):"Doppio"')
+    _DOPPIO_INDEX_PATTERN = re.compile(r'(\d+):\s*"([a-f0-9]+)"')
     _DOPPIO_REQUIRE_PATTERN = re.compile(r'require\(["\']\./(Doppio[^"\']+\.js)["\']\)')
     _HASH_PATTERNS = [
         re.compile(r'{}:\\"([a-zA-Z0-9]{{20}})\\"'),
@@ -124,7 +124,8 @@ class StripChat(Bot):
             for pattern_template in cls._HASH_PATTERNS:
                 pattern = re.compile(pattern_template.pattern.format(idx))
                 if hash_match := pattern.search(StripChat._main_js_data):
-                    doppio_url = f"{mmp_base}/chunk-Doppio-{hash_match[1]}.js"
+                    doppio_url = f"{mmp_base}/chunk-{hash_match[1]}.js"
+
                     break
         
         if not doppio_url:
