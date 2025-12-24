@@ -240,7 +240,7 @@ class StripChat(Bot):
         if not psch or not pkey:
             return variants
         
-        params = f"{'&' if '?' in variants[0]['url'] else '?'}psch={psch}&pkey={pkey}"
+        params = f"{'&' if '?' in variants[0]['url'] else '?'}psch=v1&pkey={pkey}"
         return [dict(v, url=f"{v['url']}{params}") for v in variants]
 
     def getStatus(self) -> Status:
