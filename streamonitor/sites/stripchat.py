@@ -70,8 +70,15 @@ class StripChat(RoomIdBot):
             raise Exception("Failed to fetch main.js from StripChat")
         StripChat._main_js_data = r.content.decode('utf-8')
 
-        doppio_js_index = re.findall('([0-9]+):"Doppio"', StripChat._main_js_data)[0]
-        doppio_js_hash = re.findall(f'{doppio_js_index}:\\"([a-zA-Z0-9]{{20}})\\"', StripChat._main_js_data)[0]
+        try:
+            doppio_js_index_match = re.findall('([0-9]+):"Doppio"', StripChat._main_js_data)
+            doppio_js_index = doppio_js_index_match[0]
+            doppio_js_hash_match = re.findall(f'{doppio_js_index}:\\"([a-zA-Z0-9]{{20}})\\"', StripChat._main_js_data)
+            doppio_js_hash = doppio_js_hash_match[0]
+        except Exception as e:
+            logging.getLogger(__name__).exception("getInitialData: failed to parse main.js for Doppio chunk info: %s", e)
+            StripChat._doppio_js_data = None
+            return
 
         r = session.get(f"{mmp_base}/chunk-Doppio-{doppio_js_hash}.js", headers=cls.headers)
         if r.status_code != 200:
