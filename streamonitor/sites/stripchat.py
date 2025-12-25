@@ -6,10 +6,14 @@ import re
 import requests
 import base64
 import hashlib
+import logging
 
 from streamonitor.bot import RoomIdBot
 from streamonitor.downloaders.hls import getVideoNativeHLS
 from streamonitor.enums import Status
+
+
+logger = logging.getLogger(__name__)
 
 
 class StripChat(RoomIdBot):
@@ -66,8 +70,15 @@ class StripChat(RoomIdBot):
             raise Exception("Failed to fetch main.js from StripChat")
         StripChat._main_js_data = r.content.decode('utf-8')
 
-        doppio_js_index = re.findall('([0-9]+):"Doppio"', StripChat._main_js_data)[0]
-        doppio_js_hash = re.findall(f'{doppio_js_index}:\\"([a-zA-Z0-9]{{20}})\\"', StripChat._main_js_data)[0]
+        try:
+            doppio_js_index_match = re.findall('([0-9]+):"Doppio"', StripChat._main_js_data)
+            doppio_js_index = doppio_js_index_match[0]
+            doppio_js_hash_match = re.findall(f'{doppio_js_index}:\\"([a-zA-Z0-9]{{20}})\\"', StripChat._main_js_data)
+            doppio_js_hash = doppio_js_hash_match[0]
+        except Exception as e:
+            logging.getLogger(__name__).exception("getInitialData: failed to parse main.js for Doppio chunk info: %s", e)
+            StripChat._doppio_js_data = None
+            return
 
         r = session.get(f"{mmp_base}/chunk-Doppio-{doppio_js_hash}.js", headers=cls.headers)
         if r.status_code != 200:
@@ -104,17 +115,58 @@ class StripChat(RoomIdBot):
 
     @classmethod
     def getMouflonDecKey(cls, pkey):
+        """
+        Defensive lookup for mouflon decryption key:
+        - preserves previous behavior (returns None when not found)
+        - tolerates cls._doppio_js_data being None/non-str/bytes
+        - escapes pkey for safe regex matching
+        - logs helpful diagnostics
+        """
         if cls._mouflon_keys is None:
             cls._mouflon_keys = {}
+
+        if not pkey:
+            # keep previous behavior of returning None for missing keys
+            return None
+
         if pkey in cls._mouflon_keys:
             return cls._mouflon_keys[pkey]
-        else:
-            _pdks = re.findall(f'"{pkey}:(.*?)"', cls._doppio_js_data)
-            if len(_pdks) > 0:
-                pdk = cls._mouflon_keys.setdefault(pkey, _pdks[0])
+
+        js_data = cls._doppio_js_data
+        if js_data is None:
+            # nothing to search
+            return None
+
+        if isinstance(js_data, bytes):
+            try:
+                js_data = js_data.decode('utf-8', errors='replace')
+            except Exception:
+                # fallback to str() to avoid TypeError in re.findall
+                js_data = str(js_data)
+
+        if not isinstance(js_data, str):
+            # unexpected type: convert to string for the regex and log what we got
+            logging.getLogger(__name__).warning(
+                "getMouflonDecKey: _doppio_js_data has unexpected type %s; converting to str()",
+                type(js_data).__name__
+            )
+            js_data = str(js_data)
+
+        # Escape pkey so special regex characters don't break the pattern
+        escaped_pkey = re.escape(pkey)
+        pattern = rf'"{escaped_pkey}:(.*?)"'
+        matches = re.findall(pattern, js_data, flags=re.S)
+        if matches:
+            pdk = cls._mouflon_keys.setdefault(pkey, matches[0])
+            try:
                 with open(cls._mouflon_cache_filename, 'w') as f:
                     json.dump(cls._mouflon_keys, f)
-                return pdk
+            except Exception:
+                logging.getLogger(__name__).exception("getMouflonDecKey: failed to write mouflon key cache")
+            return pdk
+
+        # not found
+        logging.getLogger(__name__).debug("getMouflonDecKey: no match for pkey %r", pkey)
         return None
 
     @staticmethod
