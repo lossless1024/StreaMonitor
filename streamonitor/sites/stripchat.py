@@ -217,18 +217,21 @@ class StripChat(RoomIdBot):
             if streamer.room_id:
                 model_ids[streamer.room_id] = streamer
 
-        url = 'https://stripchat.com/api/front/models/list?'
-        url += '&'.join(f'modelIds[]={model_id}' for model_id in model_ids)
-        session = requests.Session()
-        session.headers.update(cls.headers)
-        r = session.get(url)
+        base_url = 'https://stripchat.com/api/front/models/list?'
+        batch_num = 100
+        data_map = {}
+        model_id_list = list(model_ids)
+        for _batch_ids in [model_id_list[i:i+batch_num] for i in range(0, len(model_id_list), batch_num)]:
+            session = requests.Session()
+            session.headers.update(cls.headers)
+            r = session.get(base_url + '&'.join(f'modelIds[]={model_id}' for model_id in _batch_ids))
 
-        try:
-            data = r.json()
-        except requests.exceptions.JSONDecodeError:
-            print('Failed to parse JSON response')
-            return
-        data_map = {str(model['id']): model for model in data.get('models', [])}
+            try:
+                data = r.json()
+            except requests.exceptions.JSONDecodeError:
+                print('Failed to parse JSON response')
+                return
+            data_map |= {str(model['id']): model for model in data.get('models', [])}
 
         for model_id, streamer in model_ids.items():
             model_data = data_map.get(model_id)
