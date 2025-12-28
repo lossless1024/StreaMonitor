@@ -59,9 +59,14 @@ class XLoveCam(Bot):
         if not self.lastInfo.get('enabled'):
             return Status.NOTEXIST
         if self.lastInfo.get('online') == 1:
+            if 'hlsPlaylistFree' not in self.lastInfo:
+                return Status.UNKNOWN
+            url = self.lastInfo.get('hlsPlaylistFree')
+            r_m3u = self.session.get(url)
+            m3u_data = r_m3u.content
+            if m3u_data.startswith(b'{') or b'EXTM3U' not in m3u_data:
+                return Status.PRIVATE
             return Status.PUBLIC
-        if 'hlsPlaylistFree' not in self.lastInfo:
-            return Status.PRIVATE
         if self.lastInfo.get('online') == 0:
             return Status.OFFLINE
         return Status.UNKNOWN

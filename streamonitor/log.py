@@ -10,13 +10,13 @@ class Logger(object):
         self.handler.setFormatter(self.formatter)
 
         self.logger = logging.getLogger(self.name)
-        loglevel = logging.DEBUG if parameters.DEBUG else logging.INFO
-        self.logger.setLevel(loglevel)
+        self.loglevel = logging.DEBUG if parameters.DEBUG else logging.INFO
+        self.logger.setLevel(self.loglevel)
         self.logger.addHandler(self.handler)
 
     def get_logger(self):
         logger = logging.getLogger(self.name)
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(self.loglevel)
         logger.addHandler(self.handler)
         return logger
 

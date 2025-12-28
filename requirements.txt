@@ -8,7 +8,7 @@ websocket-client
 ffmpy
 m3u8
 fake-useragent
-python-environ
+django-environ
 pycurl
 pycurl-requests
 python-socketio==4.6.1

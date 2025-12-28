@@ -24,6 +24,7 @@ class Bot(Thread):
     siteslug = None
     aliases = []
     ratelimit = False
+    bulk_update = False
 
     sleep_on_private = 5
     sleep_on_offline = 5
@@ -166,7 +167,8 @@ class Bot(Thread):
             while self.running:
                 try:
                     self.recording = False
-                    self.sc = self.getStatus()
+                    if not self.bulk_update or self.sc == Status.NOTRUNNING:
+                        self.sc = self.getStatus()
                     # Check if the status has changed and log the update if it's different from the previous status
                     if self.sc != self.previous_status:
                         self.log(self.status())
@@ -184,8 +186,8 @@ class Bot(Thread):
                                 def update_cookie():
                                     while self.sc == Status.PUBLIC and not self.quitting and self.running:
                                         self._sleep(self.cookie_update_interval)
-                                        ret = self.cookieUpdater()
-                                        if ret:
+                                        ret2 = self.cookieUpdater()
+                                        if ret2:
                                             self.debug('Updated cookies')
                                         else:
                                             self.logger.warning('Failed to update cookies')
@@ -223,6 +225,8 @@ class Bot(Thread):
 
                 if self.quitting:
                     break
+                elif self.bulk_update:
+                    self._sleep(1)
                 elif self.ratelimit:
                     self._sleep(self.sleep_on_ratelimit)
                 elif offline_time > self.long_offline_timeout:
@@ -235,6 +239,11 @@ class Bot(Thread):
             self.sc = Status.NOTRUNNING
             self.log("Stopped")
 
+    def setStatus(self, sc):
+        if self.sc == Status.LONG_OFFLINE and sc == Status.OFFLINE:
+            return
+        self.sc = sc
+
     def getPlaylistVariants(self, url=None, m3u_data=None):
         sources = []
 
@@ -243,7 +252,7 @@ class Bot(Thread):
         elif isinstance(m3u_data, str):
             variant_m3u8 = m3u8.loads(m3u_data)
         elif not m3u_data or url:
-            result = requests.get(url, headers=self.headers, cookies=self.cookies)
+            result = self.session.get(url, headers=self.headers, cookies=self.cookies)
             m3u8_doc = result.content.decode("utf-8")
             variant_m3u8 = m3u8.loads(m3u8_doc)
         else:
@@ -365,7 +374,11 @@ class Bot(Thread):
     @staticmethod
     def createInstance(username: str, site: str = None):
         if site:
-            return Bot.str2site(site)(username)
+            site_cls = Bot.str2site(site)
+            if site_cls:
+                return site_cls(username)
+            else:
+                raise Exception('No such site')
         return None
 
 

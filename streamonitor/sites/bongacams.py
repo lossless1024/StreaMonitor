@@ -24,7 +24,7 @@ class BongaCams(Bot):
             'X-Requested-With': 'XMLHttpRequest'
         }
         data = 'method=getRoomData&args%5B%5D=' + self.username + '&args%5B%5D=false'
-        r = requests.post('https://de.bongacams.net/tools/amf.php', data=data, headers=headers)
+        r = self.session.post('https://de.bongacams.net/tools/amf.php', data=data, headers=headers)
 
         if r.status_code == 200:
             self.lastInfo = r.json()
@@ -36,7 +36,7 @@ class BongaCams(Bot):
             if self.lastInfo['performerData']['showType'] in ['private', 'group']:
                 return Status.PRIVATE
             if 'videoServerUrl' in self.lastInfo['localData']:
-                r = requests.get(self.getPlaylistUrl())
+                r = self.session.get(self.getPlaylistUrl())
                 if len(r.text) == 25 or r.status_code == 404:
                     return Status.OFFLINE
                 return Status.PUBLIC

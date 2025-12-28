@@ -14,7 +14,7 @@ class CamsCom(Bot):
         return f'https://camscdn.cams.com/camscdn/cdn-{self.username.lower()}.m3u8'
 
     def getStatus(self):
-        r = requests.get(f'https://beta-api.cams.com/models/stream/{self.username}/')
+        r = self.session.get(f'https://beta-api.cams.com/models/stream/{self.username}/')
         self.lastInfo = r.json()
         
         if 'stream_name' not in self.lastInfo:

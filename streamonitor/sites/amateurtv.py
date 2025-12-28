@@ -27,7 +27,7 @@ class AmateurTV(Bot):
             'Content-Type': 'application/json',
             'Referer': 'https://amateur.tv/'
         }
-        r = requests.get(f'https://www.amateur.tv/v3/readmodel/show/{self.username}/en', headers=headers)
+        r = self.session.get(f'https://www.amateur.tv/v3/readmodel/show/{self.username}/en', headers=headers)
 
         if r.status_code != 200:
             return Status.UNKNOWN

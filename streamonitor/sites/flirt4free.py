@@ -16,7 +16,7 @@ class Flirt4Free(RoomIdBot):
 
     def getRoomIdFromUsername(self, username):
         if username not in Flirt4Free.models:
-            r = requests.get(f'https://www.flirt4free.com/?model={username}')
+            r = self.session.get(f'https://www.flirt4free.com/?model={username}')
 
             start = b'window.__homePageData__ = '
 
@@ -46,12 +46,12 @@ class Flirt4Free(RoomIdBot):
         return self.getWantedResolutionPlaylist("https:" + self.lastInfo['data']['hls'][0]['url'])
 
     def getStatus(self):
-        r = requests.get(f'https://www.flirt4free.com/ws/chat/get-stream-urls.php?model_id={self.room_id}').json()
+        r = self.session.get(f'https://www.flirt4free.com/ws/chat/get-stream-urls.php?model_id={self.room_id}').json()
         self.lastInfo = r
         if r['code'] == 44:
             return Status.NOTEXIST
         if r['code'] == 0:
-            s = requests.get(f'https://www.flirt4free.com/ws/rooms/chat-room-interface.php?a=login_room&model_id={self.room_id}').json()
+            s = self.session.get(f'https://www.flirt4free.com/ws/rooms/chat-room-interface.php?a=login_room&model_id={self.room_id}').json()
             if 'config' not in s:
                 return Status.UNKNOWN
             status = s['config'].get('room', {}).get('status')

@@ -18,7 +18,7 @@ class DreamCam(Bot):
         return None
 
     def getStatus(self):
-        r = requests.get('https://bss.dreamcamtrue.com/api/clients/v1/broadcasts/models/' + self.username, headers=self.headers)
+        r = self.session.get('https://bss.dreamcamtrue.com/api/clients/v1/broadcasts/models/' + self.username, headers=self.headers)
         if r.status_code != 200:
             return Status.UNKNOWN
 

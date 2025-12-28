@@ -6,6 +6,7 @@ from streamonitor.sites.stripchat import StripChat
 class StripChatVR(StripChat):
     site = 'StripChatVR'
     siteslug = 'SCVR'
+    bulk_update = False
 
     vr_frame_format_map = {
         'FISHEYE': 'F',
@@ -13,8 +14,8 @@ class StripChatVR(StripChat):
         'CIRCULAR': 'C',
     }
 
-    def __init__(self, username):
-        super().__init__(username)
+    def __init__(self, username, room_id=None):
+        super().__init__(username, room_id)
         self.stopDownloadFlag = False
         self.vr = True
 

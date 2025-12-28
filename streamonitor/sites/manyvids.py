@@ -21,7 +21,7 @@ class ManyVids(Bot):
         self.updateSiteCookies()
 
     def requestStreamInfo(self):
-        r = requests.get("/".join([self.lastInfo['publicAPIURL'], self.lastInfo['floorId'], 'player-settings', self.username]), headers=self.headers, cookies=self.cookies)
+        r = self.session.get("/".join([self.lastInfo['publicAPIURL'], self.lastInfo['floorId'], 'player-settings', self.username]), headers=self.headers, cookies=self.cookies)
         if r.cookies is not None:
             self.cookies.update(r.cookies)
         return r
@@ -31,7 +31,7 @@ class ManyVids(Bot):
         return r.cookies is not None
 
     def updateSiteCookies(self):
-        r = requests.get('https://www.manyvids.com/tak-live-redirect.php', allow_redirects=False)
+        r = self.session.get('https://www.manyvids.com/tak-live-redirect.php', allow_redirects=False)
         self.cookies.update(r.cookies)
 
     def getVideoUrl(self):
@@ -42,7 +42,7 @@ class ManyVids(Bot):
         return self.getWantedResolutionPlaylist(url)
 
     def getStatus(self):
-        r = requests.get('https://roompool.live.manyvids.com/roompool/' + self.username + '?private=false', headers=self.headers)
+        r = self.session.get('https://roompool.live.manyvids.com/roompool/' + self.username + '?private=false', headers=self.headers)
         if r.status_code != 200:
             return Status.UNKNOWN
 
