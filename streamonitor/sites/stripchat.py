@@ -18,8 +18,6 @@ class StripChat(RoomIdBot):
 
     bulk_update = True
     _static_data = None
-    _main_js_data = None
-    _doppio_js_data = None
     _mouflon_cache_filename = 'stripchat_mouflon_keys.json'
     _mouflon_keys: dict = None
     _cached_keys: dict[str, bytes] = None
@@ -52,27 +50,10 @@ class StripChat(RoomIdBot):
     @classmethod
     def getInitialData(cls):
         session = requests.Session()
-        r = session.get('https://hu.stripchat.com/api/front/v3/config/static', headers=cls.headers)
+        r = session.get('https://stripchat.com/api/front/v3/config/static', headers=cls.headers)
         if r.status_code != 200:
             raise Exception("Failed to fetch static data from StripChat")
         StripChat._static_data = r.json().get('static')
-
-        mmp_origin = StripChat._static_data['features']['MMPExternalSourceOrigin']
-        mmp_version = StripChat._static_data['featuresV2']['playerModuleExternalLoading']['mmpVersion']
-        mmp_base = f"{mmp_origin}/{mmp_version}"
-
-        r = session.get(f"{mmp_base}/main.js", headers=cls.headers)
-        if r.status_code != 200:
-            raise Exception("Failed to fetch main.js from StripChat")
-        StripChat._main_js_data = r.content.decode('utf-8')
-
-        doppio_js_index = re.findall('([0-9]+):"Doppio"', StripChat._main_js_data)[0]
-        doppio_js_hash = re.findall(f'{doppio_js_index}:\\"([a-zA-Z0-9]{{20}})\\"', StripChat._main_js_data)[0]
-
-        r = session.get(f"{mmp_base}/chunk-Doppio-{doppio_js_hash}.js", headers=cls.headers)
-        if r.status_code != 200:
-            raise Exception("Failed to fetch doppio.js from StripChat")
-        StripChat._doppio_js_data = r.content.decode('utf-8')
 
     @classmethod
     def m3u_decoder(cls, content):
@@ -108,13 +89,7 @@ class StripChat(RoomIdBot):
             cls._mouflon_keys = {}
         if pkey in cls._mouflon_keys:
             return cls._mouflon_keys[pkey]
-        else:
-            _pdks = re.findall(f'"{pkey}:(.*?)"', cls._doppio_js_data)
-            if len(_pdks) > 0:
-                pdk = cls._mouflon_keys.setdefault(pkey, _pdks[0])
-                with open(cls._mouflon_cache_filename, 'w') as f:
-                    json.dump(cls._mouflon_keys, f)
-                return pdk
+        # else: find pdkey
         return None
 
     @staticmethod
@@ -128,9 +103,11 @@ class StripChat(RoomIdBot):
                 psch = _mouflon[2]
                 pkey = _mouflon[3]
                 pdkey = StripChat.getMouflonDecKey(pkey)
-                if pdkey:
+                if pdkey and psch == 'v1':
                     return psch, pkey, pdkey
             _start += _mouflon_start + len(_needle)
+        if StripChat._mouflon_keys:
+            return ('v1',) + StripChat._mouflon_keys.items().__iter__().__next__()
         return None, None, None
 
     def getWebsiteURL(self):
@@ -240,7 +217,7 @@ class StripChat(RoomIdBot):
             if streamer.room_id:
                 model_ids[streamer.room_id] = streamer
 
-        url = 'https://hu.stripchat.com/api/front/models/list?'
+        url = 'https://stripchat.com/api/front/models/list?'
         url += '&'.join(f'modelIds[]={model_id}' for model_id in model_ids)
         session = requests.Session()
         session.headers.update(cls.headers)
