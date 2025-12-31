@@ -371,7 +371,11 @@ class Bot(Thread):
     @staticmethod
     def createInstance(username: str, site: str = None):
         if site:
-            return Bot.str2site(site)(username)
+            site_cls = Bot.str2site(site)
+            if site_cls:
+                return site_cls(username)
+            else:
+                raise Exception('No such site')
         return None
 
 
