@@ -2,7 +2,6 @@ import itertools
 import json
 import os.path
 import random
-import re
 import requests
 import base64
 import hashlib
@@ -57,7 +56,7 @@ class StripChat(RoomIdBot):
 
     @classmethod
     def m3u_decoder(cls, content):
-        _mouflon_file_attr = "#EXT-X-MOUFLON:FILE:"
+        _mouflon_file_attr = "#EXT-X-MOUFLON:URI:"
         _mouflon_filename = 'media.mp4'
 
         def _decode(encrypted_b64: str, key: str) -> str:
@@ -65,20 +64,24 @@ class StripChat(RoomIdBot):
                 cls._cached_keys = {}
             hash_bytes = cls._cached_keys[key] if key in cls._cached_keys \
                 else cls._cached_keys.setdefault(key, hashlib.sha256(key.encode("utf-8")).digest())
-            encrypted_data = base64.b64decode(encrypted_b64 + "==")
-            return bytes(a ^ b for (a, b) in zip(encrypted_data, itertools.cycle(hash_bytes))).decode("utf-8")
+            encrypted_data = base64.b64decode(encrypted_b64[::-1] + '==')
+            decoded_b64 = bytes(a ^ b for (a, b) in zip(encrypted_data, itertools.cycle(hash_bytes))).decode("utf-8")
+            return decoded_b64
 
         psch, pkey, pdkey = StripChat._getMouflonFromM3U(content)
 
         decoded = ''
         lines = content.splitlines()
-        last_decoded_file = None
+        last_decoded_uri = None
         for line in lines:
             if line.startswith(_mouflon_file_attr):
-                last_decoded_file = _decode(line[len(_mouflon_file_attr):], pdkey)
-            elif line.endswith(_mouflon_filename) and last_decoded_file:
-                decoded += (line.replace(_mouflon_filename, last_decoded_file)) + '\n'
-                last_decoded_file = None
+                uri = line[len(_mouflon_file_attr):]
+                encoded_part = uri.split('_')[-2]
+                decoded_part = _decode(encoded_part, pdkey)
+                last_decoded_uri = uri.replace(encoded_part, decoded_part)
+            elif line.endswith(_mouflon_filename) and last_decoded_uri:
+                decoded += last_decoded_uri + '\n'
+                last_decoded_uri = None
             else:
                 decoded += line + '\n'
         return decoded
@@ -107,7 +110,7 @@ class StripChat(RoomIdBot):
                     return psch, pkey, pdkey
             _start += _mouflon_start + len(_needle)
         if StripChat._mouflon_keys:
-            return ('v1',) + StripChat._mouflon_keys.items().__iter__().__next__()
+            return ('v2',) + StripChat._mouflon_keys.items().__iter__().__next__()
         return None, None, None
 
     def getWebsiteURL(self):
