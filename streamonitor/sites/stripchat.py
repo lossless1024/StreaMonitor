@@ -37,6 +37,7 @@ class StripChat(Bot):
     
     _MOUFLON_NEEDLE = "#EXT-X-MOUFLON:"
     _MOUFLON_FILE_ATTR = "#EXT-X-MOUFLON:FILE:"
+    _MOUFLON_URI_ATTR = "#EXT-X-MOUFLON:URI:"
     _MOUFLON_FILENAME = "media.mp4"
     _CDN_DOMAINS = ("org", "com", "net")
     _CHARSET = "abcdefghijklmnopqrstuvwxyz0123456789"
@@ -107,7 +108,6 @@ class StripChat(Bot):
         mmp_origin = features["MMPExternalSourceOrigin"]
         mmp_version = StripChat._static_data["featuresV2"]["playerModuleExternalLoading"]["mmpVersion"]
 
-        # ❗ FIX: removed duplicate "v"
         mmp_base = f"{mmp_origin}/{mmp_version}"
 
         # Fetch main.js
@@ -125,7 +125,6 @@ class StripChat(Bot):
                 pattern = re.compile(pattern_template.pattern.format(idx))
                 if hash_match := pattern.search(StripChat._main_js_data):
                     doppio_url = f"{mmp_base}/chunk-{hash_match[1]}.js"
-
                     break
         
         if not doppio_url:
@@ -137,7 +136,6 @@ class StripChat(Bot):
 
     @staticmethod
     def uniq(length: int = 16) -> str:
-        # ❗ FIX: restored exactly as originally present
         return ''.join(random.choices("abcdefghijklmnopqrstuvwxyz0123456789", k=length))
 
     @classmethod
@@ -154,6 +152,7 @@ class StripChat(Bot):
             return bytes(a ^ b for a, b in zip(data, itertools.cycle(hash_bytes))).decode()
         
         psch, pkey, pdkey = cls._getMouflonFromM3U(content)
+        
         if not pdkey:
             return content
         
@@ -161,14 +160,110 @@ class StripChat(Bot):
         decoded = []
         last_decoded = None
         
-        for line in lines:
-            if line.startswith(cls._MOUFLON_FILE_ATTR):
-                last_decoded = _decode(line[len(cls._MOUFLON_FILE_ATTR):], pdkey)
-            elif last_decoded and line.endswith(cls._MOUFLON_FILENAME):
-                decoded.append(line.replace(cls._MOUFLON_FILENAME, last_decoded))
-                last_decoded = None
-            else:
-                decoded.append(line)
+        # v1 decoding (FILE attribute)
+        if psch == "v1":
+            for line in lines:
+                if line.startswith(cls._MOUFLON_FILE_ATTR):
+                    last_decoded = _decode(line[len(cls._MOUFLON_FILE_ATTR):], pdkey)
+                elif last_decoded and line.endswith(cls._MOUFLON_FILENAME):
+                    decoded.append(line.replace(cls._MOUFLON_FILENAME, last_decoded))
+                    last_decoded = None
+                else:
+                    decoded.append(line)
+        
+        # v2 decoding (URI attribute)
+        elif psch == "v2":
+            i = 0
+            while i < len(lines):
+                line = lines[i]
+                line_stripped = line.strip()
+                
+                # Check for #EXT-X-MAP:URI lines (initialization segment)
+                if line_stripped.startswith('#EXT-X-MAP:URI'):
+                    try:
+                        if '"' in line:
+                            start_quote = line.find('"')
+                            end_quote = line.rfind('"')
+                            if start_quote >= 0 and end_quote > start_quote:
+                                map_uri = line[start_quote+1:end_quote]
+                                
+                                if '_init_' in map_uri and '.mp4' in map_uri:
+                                    uri_without_ext = map_uri[:-4]
+                                    last_us = uri_without_ext.rfind('_')
+                                    if last_us > 0:
+                                        url_before_encrypted = uri_without_ext[:last_us]
+                                        encrypted_part = uri_without_ext[last_us+1:]
+                                        
+                                        reversed_enc = encrypted_part[::-1]
+                                        decoded_part = _decode(reversed_enc, pdkey)
+                                        
+                                        new_map_uri = f'{url_before_encrypted}_{decoded_part}.mp4'
+                                        decoded.append(f'#EXT-X-MAP:URI="{new_map_uri}"')
+                                        i += 1
+                                        continue
+                        
+                        decoded.append(line)
+                        i += 1
+                        continue
+                        
+                    except Exception:
+                        decoded.append(line)
+                        i += 1
+                        continue
+                
+                # Check for segment URI lines
+                if line.startswith(cls._MOUFLON_URI_ATTR):
+                    uri_value = line[len(cls._MOUFLON_URI_ATTR):]
+                    
+                    try:
+                        if '.mp4' in uri_value:
+                            last_underscore = uri_value.rfind('_')
+                            if last_underscore > 0:
+                                url_without_timestamp = uri_value[:last_underscore]
+                                timestamp_part = uri_value[last_underscore+1:]
+                                
+                                second_last_underscore = url_without_timestamp.rfind('_')
+                                if second_last_underscore > 0:
+                                    url_before_encrypted = url_without_timestamp[:second_last_underscore]
+                                    encrypted = url_without_timestamp[second_last_underscore+1:]
+                                    
+                                    reversed_encrypted = encrypted[::-1]
+                                    decoded_segment = _decode(reversed_encrypted, pdkey)
+                                    
+                                    decoded_uri = f"{url_before_encrypted}_{decoded_segment}_{timestamp_part}"
+                                    
+                                    i += 1
+                                    if i < len(lines):
+                                        next_line = lines[i]
+                                        if 'media.mp4' in next_line:
+                                            decoded.append(decoded_uri)
+                                            i += 1
+                                            continue
+                                        else:
+                                            decoded.append(decoded_uri)
+                                            continue
+                                    else:
+                                        decoded.append(decoded_uri)
+                                        break
+                                else:
+                                    i += 1
+                                    continue
+                            else:
+                                i += 1
+                                continue
+                        else:
+                            i += 1
+                            continue
+                        
+                    except Exception:
+                        i += 1
+                        continue
+                else:
+                    decoded.append(line)
+                
+                i += 1
+        else:
+            return content
         
         return '\n'.join(decoded)
 
@@ -240,7 +335,7 @@ class StripChat(Bot):
         if not psch or not pkey:
             return variants
         
-        params = f"{'&' if '?' in variants[0]['url'] else '?'}psch=v1&pkey={pkey}"
+        params = f"{'&' if '?' in variants[0]['url'] else '?'}psch={psch}&pkey={pkey}"
         return [dict(v, url=f"{v['url']}{params}") for v in variants]
 
     def getStatus(self) -> Status:
