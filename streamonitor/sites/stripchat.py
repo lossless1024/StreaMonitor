@@ -24,7 +24,11 @@ class StripChat(Bot):
     _static_data = None
     _main_js_data = None
     _doppio_js_data = None
-    _mouflon_keys: dict = {"Zeechoej4aleeshi": "ubahjae7goPoodi6"}
+    _mouflon_keys: dict = {
+        "Zeechoej4aleeshi": "ubahjae7goPoodi6",
+        "Zokee2OhPh9kugh4": "Quean4cai9boJa5a",
+        "Ook7quaiNgiyuhai": "EQueeGh2kaewa3ch",
+    }
     _session = None
     
     _DOPPIO_INDEX_PATTERN = re.compile(r'(\d+):\s*"([a-f0-9]+)"')
