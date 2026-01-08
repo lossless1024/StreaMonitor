@@ -14,7 +14,7 @@ from websocket import WebSocketApp
 from streamonitor.bot import RoomIdBot
 from streamonitor.downloaders.hls import getVideoNativeHLS
 from streamonitor.bot_chat import ChatCollectingMixin
-from streamonitor.enums import Status
+from streamonitor.enums import Status, Gender, COUNTRIES
 
 
 class StripChat(ChatCollectingMixin, RoomIdBot):
@@ -29,6 +29,12 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
     _cached_keys: dict[str, bytes] = None
     _PRIVATE_STATUSES = frozenset(["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"])
     _OFFLINE_STATUSES = frozenset(["off", "idle"])
+
+    _GENDER_MAP = {
+        'female': Gender.FEMALE,
+        'male': Gender.MALE,
+        'maleFemale': Gender.BOTH
+    }
 
     if os.path.exists(_mouflon_cache_filename):
         with open(_mouflon_cache_filename) as f:
@@ -216,6 +222,19 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
         if error:
             return error
 
+        if 'user' in data and 'user' in data['user']:
+            model_data = data['user']['user']
+            if model_data.get('gender'):
+                self.gender = StripChat._GENDER_MAP.get(model_data.get('gender'))
+
+            if model_data.get('country'):
+                self.country = model_data.get('country', '').upper()
+            elif model_data.get('languages'):
+                for lang in model_data['languages']:
+                    if lang.upper() in COUNTRIES:
+                        self.country = lang.upper()
+                        break
+
         status = self.lastInfo['model'].get('status')
         if status == "public" and self.lastInfo["isCamAvailable"] and self.lastInfo["isCamActive"]:
             return Status.PUBLIC
@@ -246,7 +265,7 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
         for _batch_ids in [model_id_list[i:i+batch_num] for i in range(0, len(model_id_list), batch_num)]:
             session = requests.Session()
             session.headers.update(cls.headers)
-            r = session.get(base_url + '&'.join(f'modelIds[]={model_id}' for model_id in _batch_ids))
+            r = session.get(base_url + '&'.join(f'modelIds[]={model_id}' for model_id in _batch_ids), timeout=10)
 
             try:
                 data = r.json()
@@ -260,6 +279,10 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
             if not model_data:
                 streamer.setStatus(Status.UNKNOWN)
                 continue
+            if model_data.get('gender'):
+                streamer.gender = cls._GENDER_MAP.get(model_data.get('gender'))
+            if model_data.get('country'):
+                streamer.country = model_data.get('country', '').upper()
             status = model_data.get('status')
             if status == "public" and model_data.get("isOnline"):
                 streamer.setStatus(Status.PUBLIC)

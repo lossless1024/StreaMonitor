@@ -10,6 +10,12 @@
             <span class="link-text">{{ streamer.site }}</span><span class="mobile-link-text">{{ streamer.siteslug }}</span>
         </a>
     </td>
+    <td class="flag-container">
+        <h1 title="{{ streamer.country_data.name }}">{{ streamer.country_data.flag }}</h1>
+    </td>
+    <td class="gender-container">
+        <h1 title="{{ streamer.gender_data.name }}">{{ streamer.gender_data.icon }}</h1>
+    </td>
     <td class="streamer-container"><a class="link-fill" href="/recordings/{{ streamer.username }}/{{ streamer.site }}">{{ streamer.username }}</a></td>
     <td class="streamer-will-record">
         <span class="recording-status {{'not-recording' if not streamer.running }}">{% if streamer.running %}Yes{% else %}No{% endif %}</span>

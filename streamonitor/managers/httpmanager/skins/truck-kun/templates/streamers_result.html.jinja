@@ -27,6 +27,8 @@
     <thead><tr>
         <th></th>
         {{ sortable_header("site", "Site", 'left-align', sort_by, sort_dir, username_filter, site_filter, status_filter) }}
+        <th class="header-remove"></th>
+        <th class="header-remove"></th>
         {{ sortable_header("username", "Username", 'left-align', sort_by, sort_dir, username_filter, site_filter, status_filter) }}
         {{ sortable_header("running", "Running", 'center', sort_by, sort_dir, username_filter, site_filter, status_filter) }}
         {{ sortable_header("status", "Status", 'center', sort_by, sort_dir, username_filter, site_filter, status_filter) }}
