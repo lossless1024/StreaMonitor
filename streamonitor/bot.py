@@ -10,7 +10,7 @@ from threading import Thread
 import requests
 import requests.cookies
 
-from streamonitor.enums import Status
+from streamonitor.enums import Status, COUNTRIES, Gender, GENDER_DATA
 import streamonitor.log as log
 from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, CONTAINER, HTTP_USER_AGENT
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
@@ -79,6 +79,9 @@ class Bot(Thread):
         self.video_files = []
         self.video_files_total_size = 0
         self.cache_file_list()
+
+        self.gender = None
+        self.country = None
         self.url = self.getWebsiteURL()
 
     def setUsername(self, username):
@@ -126,6 +129,14 @@ class Bot(Thread):
 
     def getWebsiteURL(self):
         return "javascript:void(0)"
+
+    @property
+    def country_data(self):
+        return COUNTRIES.get(self.country, {'flag': '', 'name': 'Unknown'})
+
+    @property
+    def gender_data(self):
+        return GENDER_DATA.get(self.gender, GENDER_DATA.get(Gender.UNKNOWN))
 
     def cache_file_list(self):
         videos_folder = self.outputFolder
