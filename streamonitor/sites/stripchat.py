@@ -57,7 +57,6 @@ class StripChat(RoomIdBot):
 
     @classmethod
     def m3u_decoder(cls, content):
-        _mouflon_file_attr = "#EXT-X-MOUFLON:FILE:"
         _mouflon_filename = 'media.mp4'
 
         def _decode(encrypted_b64: str, key: str) -> str:
@@ -70,12 +69,25 @@ class StripChat(RoomIdBot):
 
         psch, pkey, pdkey = StripChat._getMouflonFromM3U(content)
 
+        if psch == 'v1':
+            _mouflon_file_attr = "#EXT-X-MOUFLON:FILE:"
+        elif psch == 'v2':
+            _mouflon_file_attr = "#EXT-X-MOUFLON:URI:"
+        else:
+            return None
+
         decoded = ''
         lines = content.splitlines()
         last_decoded_file = None
         for line in lines:
             if line.startswith(_mouflon_file_attr):
-                last_decoded_file = _decode(line[len(_mouflon_file_attr):], pdkey)
+                if psch == 'v1':
+                    last_decoded_file = _decode(line[len(_mouflon_file_attr):], pdkey)
+                elif psch == 'v2':
+                    uri = line[len(_mouflon_file_attr):]
+                    encoded_part = uri.split('_')[-2]
+                    decoded_part = _decode(encoded_part[::-1], pdkey)
+                    last_decoded_file = uri.replace(encoded_part, decoded_part).split('/', maxsplit=4)[4]
             elif line.endswith(_mouflon_filename) and last_decoded_file:
                 decoded += (line.replace(_mouflon_filename, last_decoded_file)) + '\n'
                 last_decoded_file = None
@@ -103,11 +115,9 @@ class StripChat(RoomIdBot):
                 psch = _mouflon[2]
                 pkey = _mouflon[3]
                 pdkey = StripChat.getMouflonDecKey(pkey)
-                if pdkey and psch == 'v1':
+                if pdkey:
                     return psch, pkey, pdkey
             _start += _mouflon_start + len(_needle)
-        if StripChat._mouflon_keys:
-            return ('v1',) + StripChat._mouflon_keys.items().__iter__().__next__()
         return None, None, None
 
     def getWebsiteURL(self):
