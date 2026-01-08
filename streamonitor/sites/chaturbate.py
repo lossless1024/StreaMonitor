@@ -12,7 +12,7 @@ class Chaturbate(Bot):
     _GENDER_MAP = {
         'f': Gender.FEMALE,
         'm': Gender.MALE,
-        't': Gender.TRANS,
+        's': Gender.TRANS,
         'c': Gender.BOTH,
     }
 
