@@ -25,6 +25,8 @@ class Chaturbate(Bot):
         return "https://www.chaturbate.com/" + self.username
     
     def getVideoUrl(self):
+        if self.bulk_update:
+            self.getStatus()
         url = self.lastInfo['url']
         if self.lastInfo.get('cmaf_edge'):
             url = url.replace('playlist.m3u8', 'playlist_sfm4s.m3u8')
