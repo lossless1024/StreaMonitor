@@ -364,10 +364,18 @@ class Bot(Thread):
     def fromConfig(cls, data):
         instance = cls(username=data['username'])
         instance.running = data.get('running', True)
+        instance.country = data.get('country')
+        instance.gender = data.get('gender')
         return instance
 
     def export(self):
-        return {"site": self.site, "username": self.username, "running": self.running}
+        return {
+            "site": self.site,
+            "username": self.username,
+            "running": self.running,
+            "country": self.country,
+            "gender": self.gender.value if self.gender else None,
+        }
 
     @staticmethod
     def str2site(site: str):
