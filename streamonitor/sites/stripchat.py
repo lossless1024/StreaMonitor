@@ -69,7 +69,6 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
 
     @classmethod
     def m3u_decoder(cls, content):
-        _mouflon_file_attr = "#EXT-X-MOUFLON:FILE:"
         _mouflon_filename = 'media.mp4'
 
         def _decode(encrypted_b64: str, key: str) -> str:
@@ -82,12 +81,25 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
 
         psch, pkey, pdkey = StripChat._getMouflonFromM3U(content)
 
+        if psch == 'v1':
+            _mouflon_file_attr = "#EXT-X-MOUFLON:FILE:"
+        elif psch == 'v2':
+            _mouflon_file_attr = "#EXT-X-MOUFLON:URI:"
+        else:
+            return None
+
         decoded = ''
         lines = content.splitlines()
         last_decoded_file = None
         for line in lines:
             if line.startswith(_mouflon_file_attr):
-                last_decoded_file = _decode(line[len(_mouflon_file_attr):], pdkey)
+                if psch == 'v1':
+                    last_decoded_file = _decode(line[len(_mouflon_file_attr):], pdkey)
+                elif psch == 'v2':
+                    uri = line[len(_mouflon_file_attr):]
+                    encoded_part = uri.split('_')[-2]
+                    decoded_part = _decode(encoded_part[::-1], pdkey)
+                    last_decoded_file = uri.replace(encoded_part, decoded_part).split('/', maxsplit=4)[4]
             elif line.endswith(_mouflon_filename) and last_decoded_file:
                 decoded += (line.replace(_mouflon_filename, last_decoded_file)) + '\n'
                 last_decoded_file = None
@@ -115,11 +127,9 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
                 psch = _mouflon[2]
                 pkey = _mouflon[3]
                 pdkey = StripChat.getMouflonDecKey(pkey)
-                if pdkey and psch == 'v1':
+                if pdkey:
                     return psch, pkey, pdkey
             _start += _mouflon_start + len(_needle)
-        if StripChat._mouflon_keys:
-            return ('v1',) + StripChat._mouflon_keys.items().__iter__().__next__()
         return None, None, None
 
     def getWebsiteURL(self):
@@ -229,18 +239,21 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
             if streamer.room_id:
                 model_ids[streamer.room_id] = streamer
 
-        url = 'https://stripchat.com/api/front/models/list?'
-        url += '&'.join(f'modelIds[]={model_id}' for model_id in model_ids)
-        session = requests.Session()
-        session.headers.update(cls.headers)
-        r = session.get(url)
+        base_url = 'https://stripchat.com/api/front/models/list?'
+        batch_num = 100
+        data_map = {}
+        model_id_list = list(model_ids)
+        for _batch_ids in [model_id_list[i:i+batch_num] for i in range(0, len(model_id_list), batch_num)]:
+            session = requests.Session()
+            session.headers.update(cls.headers)
+            r = session.get(base_url + '&'.join(f'modelIds[]={model_id}' for model_id in _batch_ids))
 
-        try:
-            data = r.json()
-        except requests.exceptions.JSONDecodeError:
-            print('Failed to parse JSON response')
-            return
-        data_map = {str(model['id']): model for model in data.get('models', [])}
+            try:
+                data = r.json()
+            except requests.exceptions.JSONDecodeError:
+                print('Failed to parse JSON response')
+                return
+            data_map |= {str(model['id']): model for model in data.get('models', [])}
 
         for model_id, streamer in model_ids.items():
             model_data = data_map.get(model_id)
