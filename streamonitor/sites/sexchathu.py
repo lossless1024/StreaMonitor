@@ -50,6 +50,7 @@ class SexChatHU(RoomIdBot):
         return "https://sexchat.hu/mypage/" + self.room_id + "/" + self.username + "/chat"
 
     def getVideoUrl(self):
+        self.getStatus()
         return self.getWantedResolutionPlaylist("https:" + self.lastInfo['onlineParams']['modeSpecific']['main']['hls']['address'])
 
     @classmethod
