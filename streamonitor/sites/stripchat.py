@@ -14,7 +14,7 @@ from urllib3.util.retry import Retry
 
 from streamonitor.bot import Bot
 from streamonitor.downloaders.hls import getVideoNativeHLS
-from streamonitor.enums import Status
+from streamonitor.enums import Status, Gender, COUNTRIES
 
 
 class StripChat(Bot):

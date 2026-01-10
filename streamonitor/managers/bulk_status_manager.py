@@ -35,7 +35,7 @@ class BulkStatusManager(Manager):
                     bot_class.getStatusBulk(streamers)
                 except Exception as e:
                     self.logger.error(f"Error in bulk status check for {bot_class.site}: {e}")
-            sleep(3)
+            sleep(10)
 
     def do_quit(self, _=None, __=None, ___=None):
         CleanExit(self.streamers)()
