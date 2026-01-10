@@ -135,7 +135,7 @@ class StripChat(RoomIdBot):
     def getPlaylistVariants(self, url):
         url = "https://edge-hls.{host}/hls/{id}{vr}/master/{id}{vr}{auto}.m3u8".format(
                 host='doppiocdn.' + random.choice(['org', 'com', 'net']),
-                id=self.lastInfo["streamName"],
+                id=self.room_id,
                 vr='_vr' if self.vr else '',
                 auto='_auto' if not self.vr else ''
             )
