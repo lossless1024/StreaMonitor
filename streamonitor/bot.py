@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import os
 import traceback
+from enum import Enum
 
 import m3u8
 from time import sleep
@@ -374,7 +375,7 @@ class Bot(Thread):
             "username": self.username,
             "running": self.running,
             "country": self.country,
-            "gender": self.gender.value if self.gender else None,
+            "gender": self.gender.value if isinstance(self.gender, Enum) else self.gender,
         }
 
     @staticmethod
