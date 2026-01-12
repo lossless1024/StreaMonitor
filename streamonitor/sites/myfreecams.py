@@ -28,13 +28,13 @@ class MyFreeCams(Bot):
         mid = 100000000 + int(self.attrs['data-cam-preview-model-id-value'])
         a = 'a_' if self.attrs['data-cam-preview-is-wzobs-value'] == 'true' else ''
         playlist_url = f"https://previews.myfreecams.com/hls/NxServer/{sid}/ngrp:mfc_{a}{mid}.f4v_mobile_mhp1080_previewurl/playlist.m3u8"
-        r = requests.get(playlist_url)
+        r = self.session.get(playlist_url)
         if r.status_code != 200:
             return None
         return self.getWantedResolutionPlaylist(playlist_url)
 
     def getStatus(self):
-        r = requests.get(f'https://share.myfreecams.com/{self.username}')
+        r = self.session.get(f'https://share.myfreecams.com/{self.username}')
         if r.status_code == 404:
             return Status.NOTEXIST
         if r.status_code != 200:

@@ -3,6 +3,8 @@
 <nav id="nav-bar" class="nav {{ 'has-error' if has_error }}" {{ refresh_interval if refresh_freq and refresh_freq > 0}}>
     <a class="home-link" href="/#streamer-{{ streamer.siteslug|lower }}-{{ streamer.username }}"><i class="icon feather icon-home"></i></a>
     <div class="streamer-info">
+        <h1 title="{{ streamer.country_data.name }}">{{ streamer.country_data.flag }}</h1>
+        <i title="{{ streamer.gender_data.name }}" class="{{ streamer.gender_data.bs_icon }}"></i>
         <h1>{{ streamer.username }}</h1>
         <a href="{{ streamer.url }}" target="_blank"><div title="{{ streamer.sc | status_text }}" class="status-indicator {{icon}}"><i class="icon feather icon-{{icon}}"></i></div></a>
     </div>

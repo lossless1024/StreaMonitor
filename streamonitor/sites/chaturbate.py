@@ -10,6 +10,14 @@ from requests.utils import dict_from_cookiejar, cookiejar_from_dict
 class Chaturbate(Bot):
     site = 'Chaturbate'
     siteslug = 'CB'
+    bulk_update = True
+
+    _GENDER_MAP = {
+        'f': Gender.FEMALE,
+        'm': Gender.MALE,
+        's': Gender.TRANS,
+        'c': Gender.BOTH,
+    }
 
     def __init__(self, username):
         super().__init__(username)
@@ -62,6 +70,15 @@ class Chaturbate(Bot):
             url = url.replace('playlist.m3u8', 'playlist_sfm4s.m3u8')
             url = re.sub('live-.+amlst', 'live-c-fhls/amlst', url)
         return self.getWantedResolutionPlaylist(url)
+    
+    @staticmethod
+    def _parseStatus(status):
+        if status == "public":
+            return Status.PUBLIC
+        elif status in ["private", "hidden"]:
+            return Status.PRIVATE
+        else:
+            return Status.OFFLINE
 
     def _wait_for_rate_limit(self):
         now = time.time()
