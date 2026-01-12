@@ -11,8 +11,23 @@ from parameters import DEBUG, SEGMENT_TIME, CONTAINER, FFMPEG_PATH, FFMPEG_READR
 def getVideoFfmpeg(self, url, filename):
     cmd = [
         FFMPEG_PATH,
+        '-loglevel', 'warning',  # Show warnings and errors
         '-user_agent', self.headers['User-Agent']
     ]
+
+    # Build custom headers string
+    headers_list = []
+    if 'Referer' in self.headers:
+        headers_list.append(f"Referer: {self.headers['Referer']}")
+    if 'Origin' in self.headers:
+        headers_list.append(f"Origin: {self.headers['Origin']}")
+    if 'Accept' in self.headers:
+        headers_list.append(f"Accept: {self.headers['Accept']}")
+    
+    # Add all headers as one option
+    if headers_list:
+        headers_str = '\r\n'.join(headers_list)
+        cmd.extend(['-headers', headers_str])
 
     if type(self.cookies) is requests.cookies.RequestsCookieJar:
         cookies_text = ''
