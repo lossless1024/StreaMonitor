@@ -19,6 +19,7 @@ def is_docker():
 
 
 def main():
+    # debut du code    
     if not OOSDetector.disk_space_good():
         print(OOSDetector.under_threshold_message)
         sys.exit(1)
