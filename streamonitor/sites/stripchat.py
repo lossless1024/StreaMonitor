@@ -14,7 +14,7 @@ from urllib3.util.retry import Retry
 
 from streamonitor.bot import Bot
 from streamonitor.downloaders.hls import getVideoNativeHLS
-from streamonitor.enums import Status, Gender, COUNTRIES
+from streamonitor.enums import Status
 
 
 class StripChat(Bot):
@@ -100,43 +100,70 @@ class StripChat(Bot):
     def getInitialData(cls):
         s = cls._get_session()
 
-        r = s.get(
-            "https://hu.stripchat.com/api/front/v3/config/static",
-            headers=cls.headers,
-            timeout=5
-        )
-        r.raise_for_status()
-        StripChat._static_data = r.json()["static"]
-        
-        features = StripChat._static_data["features"]
-        mmp_origin = features["MMPExternalSourceOrigin"]
-        mmp_version = StripChat._static_data["featuresV2"]["playerModuleExternalLoading"]["mmpVersion"]
+        try:
+            r = s.get(
+                "https://hu.stripchat.com/api/front/v3/config/static",
+                headers=cls.headers,
+                timeout=5
+            )
+            r.raise_for_status()
+            response_json = r.json()
+            
+            # Handle different response structures
+            if "static" in response_json:
+                static_data = response_json["static"]
+            else:
+                static_data = response_json
+            
+            # The API structure has changed - use featureSettings instead of features
+            if "featureSettings" in static_data:
+                feature_settings = static_data["featureSettings"]
+                mmp_origin = feature_settings["MMPExternalSourceOrigin"]
+            else:
+                raise Exception(f"'featureSettings' not found. Available keys: {list(static_data.keys())}")
+            
+            if "featuresV2" not in static_data:
+                raise Exception(f"'featuresV2' not found. Available keys: {list(static_data.keys())}")
+            
+            if "playerModuleExternalLoading" not in static_data["featuresV2"]:
+                raise Exception(f"'playerModuleExternalLoading' not found in featuresV2")
+            
+            mmp_version = static_data["featuresV2"]["playerModuleExternalLoading"]["mmpVersion"]
 
-        mmp_base = f"{mmp_origin}/{mmp_version}"
+            mmp_base = f"{mmp_origin}/{mmp_version}"
 
-        # Fetch main.js
-        r = s.get(f"{mmp_base}/main.js", headers=cls.headers, timeout=5)
-        r.raise_for_status()
-        StripChat._main_js_data = r.text
-        
-        doppio_url = None
-        
-        if match := cls._DOPPIO_REQUIRE_PATTERN.search(StripChat._main_js_data):
-            doppio_url = f"{mmp_base}/{match[1]}"
-        elif match := cls._DOPPIO_INDEX_PATTERN.search(StripChat._main_js_data):
-            idx = match[1]
-            for pattern_template in cls._HASH_PATTERNS:
-                pattern = re.compile(pattern_template.pattern.format(idx))
-                if hash_match := pattern.search(StripChat._main_js_data):
-                    doppio_url = f"{mmp_base}/chunk-{hash_match[1]}.js"
-                    break
-        
-        if not doppio_url:
-            raise Exception("Doppio.js not found")
-        
-        r = s.get(doppio_url, headers=cls.headers, timeout=5)
-        r.raise_for_status()
-        StripChat._doppio_js_data = r.text
+            # Fetch main.js
+            r = s.get(f"{mmp_base}/main.js", headers=cls.headers, timeout=5)
+            r.raise_for_status()
+            main_js_data = r.text
+            
+            doppio_url = None
+            
+            if match := cls._DOPPIO_REQUIRE_PATTERN.search(main_js_data):
+                doppio_url = f"{mmp_base}/{match[1]}"
+            elif match := cls._DOPPIO_INDEX_PATTERN.search(main_js_data):
+                idx = match[1]
+                for pattern_template in cls._HASH_PATTERNS:
+                    pattern = re.compile(pattern_template.pattern.format(idx))
+                    if hash_match := pattern.search(main_js_data):
+                        doppio_url = f"{mmp_base}/chunk-{hash_match[1]}.js"
+                        break
+            
+            if not doppio_url:
+                raise Exception("Doppio.js not found")
+            
+            r = s.get(doppio_url, headers=cls.headers, timeout=5)
+            r.raise_for_status()
+            doppio_js_data = r.text
+            
+            # Only update class variables after everything succeeds
+            StripChat._static_data = static_data
+            StripChat._main_js_data = main_js_data
+            StripChat._doppio_js_data = doppio_js_data
+            
+        except Exception as e:
+            print(f"ERROR in getInitialData: {e}")
+            raise
 
     @staticmethod
     def uniq(length: int = 16) -> str:
