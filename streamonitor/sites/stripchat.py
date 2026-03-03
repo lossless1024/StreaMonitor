@@ -118,7 +118,7 @@ class StripChat(Bot):
             # The API structure has changed - use featureSettings instead of features
             if "featureSettings" in static_data:
                 feature_settings = static_data["featureSettings"]
-                mmp_origin = feature_settings["MMPExternalSourceOrigin"]
+                mmp_origin = "https://mmp.doppiocdn.com/player/mmp"
             else:
                 raise Exception(f"'featureSettings' not found. Available keys: {list(static_data.keys())}")
             
