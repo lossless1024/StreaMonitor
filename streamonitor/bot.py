@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import os
 import traceback
 from enum import Enum
+from urllib.parse import urljoin
 
 import m3u8
 from time import sleep
@@ -331,10 +332,7 @@ class Bot(Thread):
                     frame_rate = f" {selected_source['frame_rate']}fps"
                 self.logger.info(f"Selected {selected_source['resolution'][0]}x{selected_source['resolution'][1]}{frame_rate} resolution")
             selected_source_url = selected_source['url']
-            if selected_source_url.startswith("https://"):
-                return selected_source_url
-            else:
-                return '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + selected_source_url
+            return urljoin(url, selected_source_url)
         except BaseException as e:
             self.logger.error("Can't get playlist, got some error: " + str(e))
             traceback.print_tb(e.__traceback__)
