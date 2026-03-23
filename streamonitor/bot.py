@@ -178,7 +178,11 @@ class Bot(Thread):
                 try:
                     self.recording = False
                     if not self.bulk_update or self.sc == Status.NOTRUNNING:
-                        self.sc = self.getStatus()
+                        try:
+                            self.sc = self.getStatus()
+                        except Exception as e:
+                            self.logger.exception(e)
+                            self.sc = Status.ERROR
                     # Check if the status has changed and log the update if it's different from the previous status
                     if self.sc != self.previous_status:
                         self.log(self.status())
@@ -204,7 +208,12 @@ class Bot(Thread):
                                 cookie_update_process = Thread(target=update_cookie)
                                 cookie_update_process.start()
 
-                            video_url = self.getVideoUrl()
+                            try:
+                                video_url = self.getVideoUrl()
+                            except Exception as e:
+                                self.logger.exception(e)
+                                self.logger.error('Failed to get video url')
+                                video_url = None
                             if video_url is None:
                                 self.sc = Status.ERROR
                                 self.logger.error(self.status())
@@ -213,15 +222,23 @@ class Bot(Thread):
                             self.log('Started downloading show')
                             self.recording = True
                             file = self.genOutFilename()
-                            ret = self.getVideo(self, video_url, file)
+                            try:
+                                ret = self.getVideo(self, video_url, file)
+                            except Exception as e:
+                                self.logger.exception(e)
+                                ret = False
                             if not ret:
+                                self.log('Recording ended with error')
                                 self.sc = Status.ERROR
                                 self.log(self.status())
                                 self._sleep(self.sleep_on_error)
                                 continue
                             self.recording = False
                             self.log('Recording ended')
-                            self.cache_file_list()
+                            try:
+                                self.cache_file_list()
+                            except Exception as e:
+                                self.logger.exception(e)
                 except Exception as e:
                     self.logger.exception(e)
                     try:
