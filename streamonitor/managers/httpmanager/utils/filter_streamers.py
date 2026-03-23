@@ -26,6 +26,8 @@ def sort_streamers(sort_by):
             return len(item.video_files)
         elif sort_by == 'status':
             return item.sc.value
+        elif sort_by == 'username':
+            return item.username.lower()
         return getattr(item, sort_by)
     return _real_sort_streamers
 

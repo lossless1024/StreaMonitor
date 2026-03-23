@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 import os
 import traceback
+from enum import Enum
+from urllib.parse import urljoin
 
 import m3u8
 from time import sleep
@@ -179,7 +181,11 @@ class Bot(Thread):
                 try:
                     self.recording = False
                     if not self.bulk_update or self.sc == Status.NOTRUNNING:
-                        self.sc = self.getStatus()
+                        try:
+                            self.sc = self.getStatus()
+                        except Exception as e:
+                            self.logger.exception(e)
+                            self.sc = Status.ERROR
                     # Check if the status has changed and log the update if it's different from the previous status
                     if self.sc != self.previous_status:
                         self.log(self.status())
@@ -205,7 +211,12 @@ class Bot(Thread):
                                 cookie_update_process = Thread(target=update_cookie)
                                 cookie_update_process.start()
 
-                            video_url = self.getVideoUrl()
+                            try:
+                                video_url = self.getVideoUrl()
+                            except Exception as e:
+                                self.logger.exception(e)
+                                self.logger.error('Failed to get video url')
+                                video_url = None
                             if video_url is None:
                                 self.sc = Status.ERROR
                                 self.logger.error(self.status())
@@ -214,15 +225,23 @@ class Bot(Thread):
                             self.log('Started downloading show')
                             self.recording = True
                             file = self.genOutFilename()
-                            ret = self.getVideoWrapper(video_url, file)
+                            try:
+                                ret = self.getVideoWrapper(video_url, file)
+                            except Exception as e:
+                                self.logger.exception(e)
+                                ret = False
                             if not ret:
+                                self.log('Recording ended with error')
                                 self.sc = Status.ERROR
                                 self.log(self.status())
                                 self._sleep(self.sleep_on_error)
                                 continue
                             self.recording = False
                             self.log('Recording ended')
-                            self.cache_file_list()
+                            try:
+                                self.cache_file_list()
+                            except Exception as e:
+                                self.logger.exception(e)
                 except Exception as e:
                     self.logger.exception(e)
                     try:
@@ -333,10 +352,7 @@ class Bot(Thread):
                     frame_rate = f" {selected_source['frame_rate']}fps"
                 self.logger.info(f"Selected {selected_source['resolution'][0]}x{selected_source['resolution'][1]}{frame_rate} resolution")
             selected_source_url = selected_source['url']
-            if selected_source_url.startswith("https://"):
-                return selected_source_url
-            else:
-                return '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + selected_source_url
+            return urljoin(url, selected_source_url)
         except BaseException as e:
             self.logger.error("Can't get playlist, got some error: " + str(e))
             traceback.print_tb(e.__traceback__)
@@ -377,7 +393,7 @@ class Bot(Thread):
             "username": self.username,
             "running": self.running,
             "country": self.country,
-            "gender": self.gender.value if self.gender else None,
+            "gender": self.gender.value if isinstance(self.gender, Enum) else self.gender,
         }
 
     @staticmethod

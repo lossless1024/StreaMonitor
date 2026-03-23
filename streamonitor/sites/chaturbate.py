@@ -19,7 +19,7 @@ class Chaturbate(ChatCollectingMixin, Bot):
     _GENDER_MAP = {
         'f': Gender.FEMALE,
         'm': Gender.MALE,
-        't': Gender.TRANS,
+        's': Gender.TRANS,
         'c': Gender.BOTH,
     }
 
@@ -36,6 +36,8 @@ class Chaturbate(ChatCollectingMixin, Bot):
         if self.bulk_update:
             self.getStatus()
         url = self.lastInfo['url']
+        if not url:
+            return None
         if self.lastInfo.get('cmaf_edge'):
             url = url.replace('playlist.m3u8', 'playlist_sfm4s.m3u8')
             url = re.sub('live-.+amlst', 'live-c-fhls/amlst', url)
@@ -59,6 +61,8 @@ class Chaturbate(ChatCollectingMixin, Bot):
             r = requests.post("https://chaturbate.com/get_edge_hls_url_ajax/", headers=headers, data=data)
             self.lastInfo = r.json()
             status = self._parseStatus(self.lastInfo['room_status'])
+            if status == status.PUBLIC and not self.lastInfo['url']:
+                status = status.RESTRICTED
         except:
             status = Status.RATELIMIT
 
@@ -92,6 +96,10 @@ class Chaturbate(ChatCollectingMixin, Bot):
             if model_data.get('country'):
                 streamer.country = model_data.get('country', '').upper()
             status = cls._parseStatus(model_data['current_show'])
+            if status == status.PUBLIC:
+                if streamer.sc in [status.PUBLIC, Status.RESTRICTED]:
+                    continue
+                status = streamer.getStatus()
             if status == Status.UNKNOWN:
                 print(f'[{streamer.siteslug}] {streamer.username}: Bulk update got unknown status: {status}')
             streamer.setStatus(status)
