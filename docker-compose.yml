@@ -2,14 +2,16 @@ services:
   streamonitor:
 # If you want to build locally, use this instead the image line below:
 #    build: ./
+    container_name: streamonitor
 #    image: streamonitor:latest
-
     image: ghcr.io/lossless1024/streamonitor:latest
-
     restart: unless-stopped
     environment:
       # set timzeone
       #TZ: Etc/UTC
+      # maybe only useful for synology users
+      #PUID: 100
+      #PGID: 1000
       # unset password (admin by default)
       #STRMNTR_PASSWORD: ''
       # unbind web interface (bound to 127.0.0.1 by default)
@@ -28,8 +30,12 @@ services:
     volumes:
       - ./downloads:/app/downloads
       - ./config.json:/app/config.json
+      - ./Controller.py:/app/Controller.py
+      - ./Downloader.py:/app/Downloader.py
+      - ./parameters.py:/app/parameters.py
       - ./stripchat_mouflon_keys.json:/app/stripchat_mouflon_keys.json
-      - /etc/timezone:/etc/timezone:ro
+      # not sable on sysnology docker
+      #- /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
       - '5000:5000'
