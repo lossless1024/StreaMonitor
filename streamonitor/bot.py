@@ -1,21 +1,29 @@
 from __future__ import unicode_literals
+
 import os
 import traceback
+from datetime import datetime
 from enum import Enum
+from threading import Thread
+from time import sleep
 from urllib.parse import urljoin
 
 import m3u8
-from time import sleep
-from datetime import datetime
-from threading import Thread
-
 import requests
 import requests.cookies
 
-from streamonitor.enums import Status, COUNTRIES, Gender, GENDER_DATA
 import streamonitor.log as log
-from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, CONTAINER, HTTP_USER_AGENT
+from parameters import (
+    CONTAINER,
+    DEBUG,
+    DOWNLOADS_DIR,
+    HTTP_USER_AGENT,
+    REQUESTS_PROXIES,
+    WANTED_RESOLUTION,
+    WANTED_RESOLUTION_PREFERENCE,
+)
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
+from streamonitor.enums import COUNTRIES, GENDER_DATA, Gender, Status
 from streamonitor.models import VideoData
 
 LOADED_SITES = set()
@@ -66,6 +74,8 @@ class Bot(Thread):
 
         self.session = requests.Session()
         self.session.headers.update(self.headers)
+        if REQUESTS_PROXIES:
+            self.session.proxies.update(REQUESTS_PROXIES)
         self.cookies = None
         self.cookieUpdater = None
         self.cookie_update_interval = 0

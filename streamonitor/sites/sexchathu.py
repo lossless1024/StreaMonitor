@@ -1,73 +1,87 @@
 import time
+
 import requests
+
+from parameters import REQUESTS_PROXIES
 from streamonitor.bot import RoomIdBot
 from streamonitor.enums import Status
 
 
 # Site of Hungarian group AdultPerformerNetwork
 class SexChatHU(RoomIdBot):
-    site = 'SexChatHU'
-    siteslug = 'SCHU'
+    site = "SexChatHU"
+    siteslug = "SCHU"
 
     bulk_update = True
     _performers_list_cache = None
     _performers_list_cache_timestamp = 0
 
-
     @classmethod
     def _getBabesList(cls, force_update=False):
-        if SexChatHU._performers_list_cache_timestamp < time.time() - 60 * 60 or \
-                SexChatHU._performers_list_cache is None or force_update:  # Cache for 1 hour
-            req = requests.get('https://sexchat.hu/ajax/api/roomList/babes', headers=cls.headers)
+        if (
+            SexChatHU._performers_list_cache_timestamp < time.time() - 60 * 60
+            or SexChatHU._performers_list_cache is None
+            or force_update
+        ):  # Cache for 1 hour
+            req = requests.get(
+                "https://sexchat.hu/ajax/api/roomList/babes",
+                headers=cls.headers,
+                proxies=REQUESTS_PROXIES,
+            )
             SexChatHU._performers_list_cache = req.json()
             SexChatHU._performers_list_cache_timestamp = time.time()
 
             for model_data in SexChatHU._performers_list_cache:
-                model_id = model_data['perfid']
+                model_id = model_data["perfid"]
                 model_id = str(model_id)
-                model_id = model_id[1:] if model_id.startswith('v') else model_id
-                model_data['perfid'] = model_id
+                model_id = model_id[1:] if model_id.startswith("v") else model_id
+                model_data["perfid"] = model_id
 
         return SexChatHU._performers_list_cache
 
     def getUsernameFromRoomId(self, room_id):
         for performer in self._getBabesList():
-            if str(performer['perfid']) == room_id:
-                username = performer['screenname']
+            if str(performer["perfid"]) == room_id:
+                username = performer["screenname"]
                 return username
         return None
 
     def getRoomIdFromUsername(self, username):
         for performer in self._getBabesList():
-            if performer['screenname'] == username:
-                room_id = str(performer['perfid'])
+            if performer["screenname"] == username:
+                room_id = str(performer["perfid"])
                 return room_id
         return None
 
     def getWebsiteURL(self):
         if self.room_id is None:
             return super().getWebsiteURL()
-        return "https://sexchat.hu/mypage/" + self.room_id + "/" + self.username + "/chat"
+        return (
+            "https://sexchat.hu/mypage/" + self.room_id + "/" + self.username + "/chat"
+        )
 
     def getVideoUrl(self):
         self.getStatus()
-        return self.getWantedResolutionPlaylist("https:" + self.lastInfo['onlineParams']['modeSpecific']['main']['hls']['address'])
+        return self.getWantedResolutionPlaylist(
+            "https:"
+            + self.lastInfo["onlineParams"]["modeSpecific"]["main"]["hls"]["address"]
+        )
 
     @classmethod
     def _getStatusFromData(cls, data):
         onlinestatus = data.get("onlinestatus") or data.get("onlineStatus")
         if onlinestatus == "free":
-            if 'onlineParams' not in data and 'onlineparams' not in data:
+            if "onlineParams" not in data and "onlineparams" not in data:
                 return Status.UNKNOWN
             onlineparams = data.get("onlineparams") or data.get("onlineParams")
-            if 'modeSpecific' not in onlineparams:
+            if "modeSpecific" not in onlineparams:
                 return Status.UNKNOWN
-            if 'main' not in onlineparams['modeSpecific']:
+            if "main" not in onlineparams["modeSpecific"]:
                 return Status.UNKNOWN
-            if 'hls' not in onlineparams['modeSpecific']['main']:
+            if "hls" not in onlineparams["modeSpecific"]["main"]:
                 return Status.UNKNOWN
             return Status.PUBLIC
-        elif onlinestatus in ['vip', 'group', 'priv']:
+        elif onlinestatus in ["vip", "group", "priv"]:
             return Status.PRIVATE
         elif onlinestatus == "offline":
             return Status.OFFLINE
@@ -77,7 +91,11 @@ class SexChatHU(RoomIdBot):
         if self.room_id is None:
             return Status.NOTEXIST
 
-        r = self.session.get('https://chat.a.apn2.com/chat-api/index.php/room/getRoom?tokenID=guest&roomID=' + self.room_id, headers=self.headers)
+        r = self.session.get(
+            "https://chat.a.apn2.com/chat-api/index.php/room/getRoom?tokenID=guest&roomID="
+            + self.room_id,
+            headers=self.headers,
+        )
         if r.status_code != 200:
             return Status.UNKNOWN
 
@@ -100,7 +118,7 @@ class SexChatHU(RoomIdBot):
         babes_list = cls._getBabesList()
         if not babes_list:
             return
-        data_map = {model['perfid']: model for model in babes_list}
+        data_map = {model["perfid"]: model for model in babes_list}
 
         for model_id, streamer in model_ids.items():
             model_data = data_map.get(model_id)

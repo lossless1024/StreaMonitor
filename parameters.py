@@ -1,4 +1,6 @@
+import os
 import os.path
+
 import environ
 
 
@@ -13,6 +15,38 @@ DEBUG = env.bool("STRMNTR_DEBUG", False)
 
 # The camsoda bot ignores this setting in favor of a chrome useragent generated with the fake-useragent library
 HTTP_USER_AGENT = env.str("STRMNTR_USER_AGENT", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0")
+
+# Optional proxy configuration for HTTP requests.
+# Examples:
+# STRMNTR_HTTP_PROXY=http://127.0.0.1:8080
+# STRMNTR_HTTPS_PROXY=http://127.0.0.1:8080
+# STRMNTR_ALL_PROXY=socks5://127.0.0.1:9050
+REQUESTS_HTTP_PROXY = env.str("STRMNTR_HTTP_PROXY", "").strip()
+REQUESTS_HTTPS_PROXY = env.str("STRMNTR_HTTPS_PROXY", "").strip()
+REQUESTS_ALL_PROXY = env.str("STRMNTR_ALL_PROXY", "").strip()
+REQUESTS_NO_PROXY = env.str("STRMNTR_NO_PROXY", "").strip()
+
+REQUESTS_PROXIES = {}
+if REQUESTS_HTTP_PROXY:
+    REQUESTS_PROXIES["http"] = REQUESTS_HTTP_PROXY
+if REQUESTS_HTTPS_PROXY:
+    REQUESTS_PROXIES["https"] = REQUESTS_HTTPS_PROXY
+if REQUESTS_ALL_PROXY:
+    REQUESTS_PROXIES.setdefault("http", REQUESTS_ALL_PROXY)
+    REQUESTS_PROXIES.setdefault("https", REQUESTS_ALL_PROXY)
+
+if REQUESTS_HTTP_PROXY:
+    os.environ["HTTP_PROXY"] = REQUESTS_HTTP_PROXY
+    os.environ["http_proxy"] = REQUESTS_HTTP_PROXY
+if REQUESTS_HTTPS_PROXY:
+    os.environ["HTTPS_PROXY"] = REQUESTS_HTTPS_PROXY
+    os.environ["https_proxy"] = REQUESTS_HTTPS_PROXY
+if REQUESTS_ALL_PROXY:
+    os.environ["ALL_PROXY"] = REQUESTS_ALL_PROXY
+    os.environ["all_proxy"] = REQUESTS_ALL_PROXY
+if REQUESTS_NO_PROXY:
+    os.environ["NO_PROXY"] = REQUESTS_NO_PROXY
+    os.environ["no_proxy"] = REQUESTS_NO_PROXY
 
 # Specify the full path to the ffmpeg binary. By default, ffmpeg found on PATH is used.
 FFMPEG_PATH = env.str("STRMNTR_FFMPEG_PATH", 'ffmpeg')

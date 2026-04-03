@@ -13,7 +13,7 @@ services:
       # unset password (admin by default)
       #STRMNTR_PASSWORD: ''
       # unbind web interface (bound to 127.0.0.1 by default)
-      STRMNTR_HOST: '0.0.0.0'
+      STRMNTR_HOST: "0.0.0.0"
       # change confirm delete behavior: disable
       #STRMNTR_CONFIRM_DEL: ""
       # change confirm delete behavior: always-on
