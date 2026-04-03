@@ -1,8 +1,8 @@
 services:
   streamonitor:
-# If you want to build locally, use this instead the image line below:
-#    build: ./
-#    image: streamonitor:latest
+    # If you want to build locally, use this instead the image line below:
+    #    build: ./
+    #    image: streamonitor:latest
 
     image: ghcr.io/lossless1024/streamonitor:latest
 
@@ -33,4 +33,3 @@ services:
       - /etc/localtime:/etc/localtime:ro
     ports:
       - '5000:5000'
-

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.12-alpine3.19
+FROM python:3.14-alpine3.23
 
 ENV PYCURL_SSL_LIBRARY=openssl
 
@@ -21,4 +21,3 @@ COPY streamonitor ./streamonitor
 
 EXPOSE 5000
 CMD [ "python3", "Downloader.py"]
-

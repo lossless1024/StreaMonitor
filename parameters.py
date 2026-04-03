@@ -1,10 +1,9 @@
 import os.path
 import environ
 
-
 env = environ.Env()
-if os.path.exists('.env'):
-    environ.Env.read_env('.env')
+if os.path.exists(".env"):
+    environ.Env.read_env(".env")
 
 
 DOWNLOADS_DIR = env.str("STRMNTR_DOWNLOAD_DIR", "downloads")
@@ -12,10 +11,13 @@ MIN_FREE_DISK_PERCENT = env.float("STRMNTR_MIN_FREE_SPACE", 5.0)  # in %
 DEBUG = env.bool("STRMNTR_DEBUG", False)
 
 # The camsoda bot ignores this setting in favor of a chrome useragent generated with the fake-useragent library
-HTTP_USER_AGENT = env.str("STRMNTR_USER_AGENT", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0")
+HTTP_USER_AGENT = env.str(
+    "STRMNTR_USER_AGENT",
+    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0",
+)
 
 # Specify the full path to the ffmpeg binary. By default, ffmpeg found on PATH is used.
-FFMPEG_PATH = env.str("STRMNTR_FFMPEG_PATH", 'ffmpeg')
+FFMPEG_PATH = env.str("STRMNTR_FFMPEG_PATH", "ffmpeg")
 
 # You can enter a number to select a specific height.
 # Use a huge number here and closest match to get the highest resolution variant
@@ -25,11 +27,11 @@ WANTED_RESOLUTION = env.int("STRMNTR_RESOLUTION", 1080)
 # Specify match type when specified height
 # Possible values: exact, exact_or_least_higher, exact_or_highest_lower, closest
 # Beware of the exact policy. Nothing gets downloaded if the wanted resolution is not available
-WANTED_RESOLUTION_PREFERENCE = env.str("STRMNTR_RESOLUTION_PREF", 'closest')
+WANTED_RESOLUTION_PREFERENCE = env.str("STRMNTR_RESOLUTION_PREF", "closest")
 
 # Specify output container here
 # Suggested values are 'mkv' or 'mp4'
-CONTAINER = env.str("STRMNTR_CONTAINER", 'mp4')
+CONTAINER = env.str("STRMNTR_CONTAINER", "mp4")
 
 # Add auto-generated VR format suffix to files
 VR_FORMAT_SUFFIX = env.bool("STRMNTR_VR_FORMAT_SUFFIX", True)
