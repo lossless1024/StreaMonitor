@@ -3,10 +3,9 @@ import os.path
 
 import environ
 
-
 env = environ.Env()
-if os.path.exists('.env'):
-    environ.Env.read_env('.env')
+if os.path.exists(".env"):
+    environ.Env.read_env(".env")
 
 
 DOWNLOADS_DIR = env.str("STRMNTR_DOWNLOAD_DIR", "downloads")
@@ -14,42 +13,44 @@ MIN_FREE_DISK_PERCENT = env.float("STRMNTR_MIN_FREE_SPACE", 5.0)  # in %
 DEBUG = env.bool("STRMNTR_DEBUG", False)
 
 # The camsoda bot ignores this setting in favor of a chrome useragent generated with the fake-useragent library
-HTTP_USER_AGENT = env.str("STRMNTR_USER_AGENT", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0")
+HTTP_USER_AGENT = env.str(
+    "STRMNTR_USER_AGENT",
+    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0",
+)
 
-# Optional proxy configuration for HTTP requests.
-# Examples:
+# Optional Chaturbate diagnostics / Cloudflare clearance support
+# Set a URL that will be fetched through the same session to verify proxy egress IP
+CHB_PROXY_TEST_URL = env.str(
+    "STRMNTR_CB_PROXY_TEST_URL",
+    "https://api.ipify.org?format=json",
+).strip()
+# Optional Cloudflare clearance cookie value for Chaturbate
+CHB_CF_CLEARANCE = env.str("STRMNTR_CB_CF_CLEARANCE", "").strip()
+# Optional Chaturbate-specific User-Agent override. If unset, HTTP_USER_AGENT is used.
+CHB_USER_AGENT = env.str("STRMNTR_CB_USER_AGENT", "").strip()
+
+# Optional proxy configuration for HTTP and HTTPS requests.
+# Example:
 # STRMNTR_HTTP_PROXY=http://127.0.0.1:8080
-# STRMNTR_HTTPS_PROXY=http://127.0.0.1:8080
-# STRMNTR_ALL_PROXY=socks5://127.0.0.1:9050
 REQUESTS_HTTP_PROXY = env.str("STRMNTR_HTTP_PROXY", "").strip()
-REQUESTS_HTTPS_PROXY = env.str("STRMNTR_HTTPS_PROXY", "").strip()
-REQUESTS_ALL_PROXY = env.str("STRMNTR_ALL_PROXY", "").strip()
 REQUESTS_NO_PROXY = env.str("STRMNTR_NO_PROXY", "").strip()
 
 REQUESTS_PROXIES = {}
 if REQUESTS_HTTP_PROXY:
     REQUESTS_PROXIES["http"] = REQUESTS_HTTP_PROXY
-if REQUESTS_HTTPS_PROXY:
-    REQUESTS_PROXIES["https"] = REQUESTS_HTTPS_PROXY
-if REQUESTS_ALL_PROXY:
-    REQUESTS_PROXIES.setdefault("http", REQUESTS_ALL_PROXY)
-    REQUESTS_PROXIES.setdefault("https", REQUESTS_ALL_PROXY)
+    REQUESTS_PROXIES["https"] = REQUESTS_HTTP_PROXY
 
 if REQUESTS_HTTP_PROXY:
     os.environ["HTTP_PROXY"] = REQUESTS_HTTP_PROXY
     os.environ["http_proxy"] = REQUESTS_HTTP_PROXY
-if REQUESTS_HTTPS_PROXY:
-    os.environ["HTTPS_PROXY"] = REQUESTS_HTTPS_PROXY
-    os.environ["https_proxy"] = REQUESTS_HTTPS_PROXY
-if REQUESTS_ALL_PROXY:
-    os.environ["ALL_PROXY"] = REQUESTS_ALL_PROXY
-    os.environ["all_proxy"] = REQUESTS_ALL_PROXY
+    os.environ["HTTPS_PROXY"] = REQUESTS_HTTP_PROXY
+    os.environ["https_proxy"] = REQUESTS_HTTP_PROXY
 if REQUESTS_NO_PROXY:
     os.environ["NO_PROXY"] = REQUESTS_NO_PROXY
     os.environ["no_proxy"] = REQUESTS_NO_PROXY
 
 # Specify the full path to the ffmpeg binary. By default, ffmpeg found on PATH is used.
-FFMPEG_PATH = env.str("STRMNTR_FFMPEG_PATH", 'ffmpeg')
+FFMPEG_PATH = env.str("STRMNTR_FFMPEG_PATH", "ffmpeg")
 
 # You can enter a number to select a specific height.
 # Use a huge number here and closest match to get the highest resolution variant
@@ -59,11 +60,11 @@ WANTED_RESOLUTION = env.int("STRMNTR_RESOLUTION", 1080)
 # Specify match type when specified height
 # Possible values: exact, exact_or_least_higher, exact_or_highest_lower, closest
 # Beware of the exact policy. Nothing gets downloaded if the wanted resolution is not available
-WANTED_RESOLUTION_PREFERENCE = env.str("STRMNTR_RESOLUTION_PREF", 'closest')
+WANTED_RESOLUTION_PREFERENCE = env.str("STRMNTR_RESOLUTION_PREF", "closest")
 
 # Specify output container here
 # Suggested values are 'mkv' or 'mp4'
-CONTAINER = env.str("STRMNTR_CONTAINER", 'mp4')
+CONTAINER = env.str("STRMNTR_CONTAINER", "mp4")
 
 # Add auto-generated VR format suffix to files
 VR_FORMAT_SUFFIX = env.bool("STRMNTR_VR_FORMAT_SUFFIX", True)

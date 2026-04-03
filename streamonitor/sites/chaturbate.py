@@ -2,7 +2,12 @@ import re
 
 import requests
 
-from parameters import REQUESTS_PROXIES
+from parameters import (
+    CHB_CF_CLEARANCE,
+    CHB_PROXY_TEST_URL,
+    CHB_USER_AGENT,
+    REQUESTS_PROXIES,
+)
 from streamonitor.bot import Bot
 from streamonitor.enums import Gender, Status
 
@@ -23,6 +28,18 @@ class Chaturbate(Bot):
         super().__init__(username)
         self.sleep_on_offline = 30
         self.sleep_on_error = 60
+        self._proxy_test_logged = False
+
+        if CHB_USER_AGENT:
+            self.session.headers["User-Agent"] = CHB_USER_AGENT
+
+        if CHB_CF_CLEARANCE:
+            self.session.cookies.set(
+                "cf_clearance",
+                CHB_CF_CLEARANCE,
+                domain=".chaturbate.com",
+                path="/",
+            )
 
     def getWebsiteURL(self):
         return "https://www.chaturbate.com/" + self.username
@@ -48,11 +65,36 @@ class Chaturbate(Bot):
         else:
             return Status.OFFLINE
 
+    def _log_proxy_test(self):
+        if self._proxy_test_logged:
+            return
+
+        self._proxy_test_logged = True
+        try:
+            r = self.session.get(CHB_PROXY_TEST_URL, timeout=10)
+            self.logger.info(
+                "Chaturbate proxy test: proxies=%s user-agent=%s cf_clearance=%s status=%s body=%s",
+                self.session.proxies,
+                self.session.headers.get("User-Agent"),
+                bool(self.session.cookies.get("cf_clearance")),
+                r.status_code,
+                r.text[:500],
+            )
+        except Exception as e:
+            self.logger.info(
+                "Chaturbate proxy test failed: proxies=%s user-agent=%s cf_clearance=%s error=%s",
+                self.session.proxies,
+                self.session.headers.get("User-Agent"),
+                bool(self.session.cookies.get("cf_clearance")),
+                e,
+            )
+
     def getStatus(self):
         headers = {"X-Requested-With": "XMLHttpRequest"}
         data = {"room_slug": self.username, "bandwidth": "high"}
 
         try:
+            self._log_proxy_test()
             r = self.session.post(
                 "https://chaturbate.com/get_edge_hls_url_ajax/",
                 headers=headers,
