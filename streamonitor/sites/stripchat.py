@@ -59,6 +59,9 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
         self.vr = False
         self.getVideo = lambda _, url, filename: getVideoNativeHLS(self, url, filename, StripChat.m3u_decoder)
         self._chat_websocket = None
+        self._chat_websocket_connected = False
+        self._chat_seen_ids = set()
+        self._chat_message_callback = None
 
     @classmethod
     def getInitialData(cls):
@@ -294,7 +297,41 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
                 print(f'[{streamer.siteslug}] {streamer.username}: Bulk update got unknown status: {status}')
                 streamer.setStatus(Status.UNKNOWN)
 
+    def downloadPastChat(self, message_callback, initial=True):
+        try:
+            req = requests.get(
+                f"https://stripchat.com/api/front/v2/models/username/{self.username}/chat?source=regular",
+                headers=self.headers
+            )
+            if req.status_code != 200:
+                self.log(f"Failed to load previous messages: {e}")
+                return
+            prev_data = req.json()
+            if 'messages' in prev_data:
+                for message in req.json()['messages']:
+                    if message['id'] in self._chat_seen_ids:
+                        continue
+                    self._chat_seen_ids.add(message['id'])
+                    if message['type'] != 'text':
+                        continue
+                    timestamp = datetime.datetime.fromisoformat(message['createdAt']).timestamp()
+                    username = message['userData']['username']
+                    text = message['details']['body']
+                    try:
+                        message_callback(username, text, timestamp=timestamp, initial=initial)
+                    except Exception as e:
+                        self.log(f"Error processing message callback: {e}")
+                self.debug('Loaded previous messages')
+
+        except Exception as e:
+            self.log(f"Failed to load previous messages: {e}")
+            return
+
     def prepareChatLog(self, message_callback):
+        self._chat_seen_ids.clear()
+        self._chat_message_callback = message_callback
+        self._chat_websocket_connected = False
+
         if 'client' not in StripChat._initial_data or not 'websocket' in StripChat._initial_data['client']:
             self.log("No initial data")
             return
@@ -309,30 +346,8 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
             ws.send('{"connect":{"token":"' + _ws_initial['token'] + '","name":"js"},"id":1}')
             ws.send('{"subscribe":{"channel":"newChatMessage@' + model_id + '"},"id":2}')
             self.log('Chat logger connected')
-
-            try:
-                req = requests.get(
-                    f"https://stripchat.com/api/front/v2/models/username/{self.username}/chat?source=regular",
-                    headers=self.headers
-                )
-                if req.status_code != 200:
-                    return
-                prev_data = req.json()
-                if 'messages' in prev_data:
-                    previous_chat_messages = req.json()['messages']
-                    for message in previous_chat_messages:
-                        if message['type'] != 'text':
-                            continue
-                        timestamp = datetime.datetime.strptime(message['createdAt'], "%Y-%m-%dT%H:%M:%SZ").timestamp()
-                        username = message['userData']['username']
-                        text = message['details']['body']
-                        try:
-                            message_callback(username, text, timestamp=timestamp, initial=True)
-                        except Exception as e:
-                            self.log(f"Error processing message callback: {e}")
-                    self.debug('Loaded previous messages')
-            except Exception as e:
-                self.log(f"Failed to load previous messages: {e}")
+            self.downloadPastChat(message_callback)
+            self._chat_websocket_connected = True
 
         def on_message(conn, t):
             if t == '{}':  # ping
@@ -363,11 +378,35 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
         def on_close(conn, arg1, arg2):
             self.log('Chat logger disconnected')
 
+        def on_error(conn, arg1):
+            self.log('Chat logger got error')
+
         self._chat_websocket = WebSocketApp(
-            _ws_initial['url'], on_open=on_open, on_message=on_message, on_close=on_close)
+            _ws_initial['url'], on_open=on_open, on_message=on_message, on_close=on_close, on_error=on_error)
 
     def startChatLog(self):
-        self._chat_websocket.run_forever()
+        if self._chat_websocket_connected:
+            self._chat_websocket.run_forever()
+        elif self._chat_message_callback:
+            self.log("Chat websocket disconnected, doing polling")
+            self.downloadPastChat(self._chat_message_callback)
+            self.debug('Loaded chat from past messages')
+            it = 0
+            while True:
+                time.sleep(1)
+                it += 1
+                if not self._chat_message_callback:
+                    return
+                mcb = self._chat_message_callback
+                if it > 60 and mcb:
+                    self.downloadPastChat(mcb, initial=False)
+                    self.debug('Updated chat from past messages')
+                    it = 0
 
     def stopChatLog(self):
-        self._chat_websocket.close()
+        if self._chat_websocket_connected:
+            self._chat_websocket.close()
+        else:
+            self.downloadPastChat(self._chat_message_callback, initial=False)
+            self.debug('Updated chat from past messages')
+            self._chat_message_callback = None

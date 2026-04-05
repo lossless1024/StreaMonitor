@@ -102,7 +102,7 @@ class ChatCollectingMixin:
         if not COLLECT_CHAT:
             return super().getVideoWrapper(url, filename)
 
-        start_timestamp = datetime.datetime.now().timestamp()
+        start_timestamp = datetime.datetime.now(datetime.UTC).timestamp()
 
         chat_log_files = []
         for format_class in self.CHAT_LOG_FORMATS:
@@ -110,7 +110,7 @@ class ChatCollectingMixin:
 
         def handle_chat_message(username, message, timestamp=None, initial=False):
             if not timestamp:
-                timestamp = datetime.datetime.now().timestamp()
+                timestamp = datetime.datetime.now(datetime.UTC).timestamp()
             for file in chat_log_files:
                 if initial:
                     file.writeInitialMessage(timestamp, 0, username, message)
