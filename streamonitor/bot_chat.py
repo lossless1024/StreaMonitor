@@ -61,7 +61,14 @@ class ChatSubtitleSRT(_ChatLogFile):
         self._counter = 1
 
     def _format_timestamp(self, timestamp):
-        return time.strftime('%H:%M:%S', time.gmtime(timestamp)) + ',' + '{:.3f}'.format(timestamp-int(timestamp))[2:]
+        ts = time.strftime('%H:%M:%S', time.gmtime(timestamp))
+        ts += ','
+        ts_diff = timestamp - int(timestamp)
+        if ts_diff > 0:
+            ts += '{:.3f}'.format(ts_diff)[2:]
+        else:
+            ts = '00:00:00,000'
+        return ts
 
     def writeMessage(self, timestamp, relative_time, username, message):
         self._fd.write(f'{self._counter!s}\n')
@@ -111,11 +118,12 @@ class ChatCollectingMixin:
         def handle_chat_message(username, message, timestamp=None, initial=False):
             if not timestamp:
                 timestamp = datetime.datetime.now(datetime.UTC).timestamp()
+
+            relative_time = timestamp - start_timestamp
             for file in chat_log_files:
-                if initial:
+                if initial or relative_time < 0:
                     file.writeInitialMessage(timestamp, 0, username, message)
                 else:
-                    relative_time = timestamp - start_timestamp
                     file.writeMessage(timestamp, relative_time, username, message)
 
         self.prepareChatLog(handle_chat_message)
