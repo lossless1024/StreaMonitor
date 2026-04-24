@@ -49,6 +49,8 @@ class StripChat(Bot):
     _PRIVATE_STATUSES = frozenset(["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"])
     _OFFLINE_STATUSES = frozenset(["off", "idle"])
 
+    _MMP_FALLBACK_VERSION = "v2.6.0"
+
     __slots__ = ('vr',)
 
     def __init__(self, username):
@@ -114,21 +116,24 @@ class StripChat(Bot):
                 static_data = response_json["static"]
             else:
                 static_data = response_json
-            
-            # The API structure has changed - use featureSettings instead of features
-            if "featureSettings" in static_data:
-                feature_settings = static_data["featureSettings"]
-                mmp_origin = "https://mmp.doppiocdn.com/player/mmp"
-            else:
-                raise Exception(f"'featureSettings' not found. Available keys: {list(static_data.keys())}")
-            
-            if "featuresV2" not in static_data:
-                raise Exception(f"'featuresV2' not found. Available keys: {list(static_data.keys())}")
-            
-            if "playerModuleExternalLoading" not in static_data["featuresV2"]:
-                raise Exception(f"'playerModuleExternalLoading' not found in featuresV2")
-            
-            mmp_version = static_data["featuresV2"]["playerModuleExternalLoading"]["mmpVersion"]
+
+            mmp_origin = static_data.get("featureSettings", {}).get(
+                "MMPExternalUnitedSourceOrigin",
+                "https://mmp.doppiocdn.com/player/mmp"
+            )
+
+            mmp_version = cls._MMP_FALLBACK_VERSION
+            try:
+                r_home = s.get("https://stripchat.com", headers=cls.headers, timeout=5)
+                r_home.raise_for_status()
+                version_match = re.search(
+                    r'mmp\.doppiocdn\.com/player/mmp/(v[\d.]+)/',
+                    r_home.text
+                )
+                if version_match:
+                    mmp_version = version_match.group(1)
+            except Exception:
+                pass
 
             mmp_base = f"{mmp_origin}/{mmp_version}"
 
