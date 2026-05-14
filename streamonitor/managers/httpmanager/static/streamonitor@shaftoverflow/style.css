@@ -351,6 +351,12 @@ video {
 	color: var(--main_foreground);
 }
 
+.list-group-item .video-thumbnail {
+	width: 240px;
+	height: auto;
+	border-radius: 4px;
+}
+
 /* Badge styling */
 .badge {
 	font-weight: 500;

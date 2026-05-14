@@ -17,6 +17,7 @@ from streamonitor.manager import Manager
 from streamonitor.managers.outofspace_detector import OOSDetector
 from streamonitor.utils import human_file_size
 
+from streamonitor.thumbnail import THUMBNAILS_DIR
 from .filters import status_icon, status_text
 from .mappers import web_status_lookup
 from .models import InvalidStreamer
@@ -168,6 +169,13 @@ class HTTPManager(Manager):
             streamer = cast(Union[Bot, None], self.getStreamer(user, site))
             return send_from_directory(
                 os.path.abspath(streamer.outputFolder),
+                filename
+            )
+
+        @app.route('/thumbnail/<path:filename>', methods=['GET'])
+        def get_thumbnail(filename):
+            return send_from_directory(
+                os.path.abspath(THUMBNAILS_DIR),
                 filename
             )
 

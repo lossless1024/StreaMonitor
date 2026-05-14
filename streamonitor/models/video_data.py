@@ -34,6 +34,16 @@ class VideoData:
             return self.filename
 
     @property
+    def has_thumbnail(self):
+        from streamonitor.thumbnail import thumbnail_exists
+        return thumbnail_exists(self.abs_path)
+
+    @property
+    def thumbnail_hash(self):
+        import hashlib
+        return hashlib.md5(self.filename.encode()).hexdigest()
+
+    @property
     def mimetype(self):
         mimetype = 'application/octet-stream'
         # if we lie about this, chrome will play it

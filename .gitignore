@@ -6,4 +6,5 @@ downloads/
 venv*/
 .idea/
 config.json
+.thumbnails/
 

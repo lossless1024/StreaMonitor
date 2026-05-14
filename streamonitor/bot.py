@@ -17,6 +17,7 @@ import streamonitor.log as log
 from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, CONTAINER, HTTP_USER_AGENT
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 from streamonitor.models import VideoData
+from streamonitor.thumbnail import enqueue_thumbnails_for_files
 
 LOADED_SITES = set()
 
@@ -158,6 +159,7 @@ class Bot(Thread):
                 self.logger.warning(e)
         self.video_files = _videos
         self.video_files_total_size = _total_size
+        enqueue_thumbnails_for_files(_videos)
 
     def _sleep(self, time):
         while time > 0:

@@ -7,6 +7,7 @@ from streamonitor.managers.climanager import CLIManager
 from streamonitor.managers.zmqmanager import ZMQManager
 from streamonitor.managers.outofspace_detector import OOSDetector
 from streamonitor.clean_exit import CleanExit
+from streamonitor.thumbnail import start_thumbnail_worker
 import streamonitor.sites  # must have
 
         
@@ -24,6 +25,8 @@ def main():
         sys.exit(1)
 
     streamers = config.loadStreamers()
+
+    start_thumbnail_worker()
 
     clean_exit = CleanExit(streamers)
 
