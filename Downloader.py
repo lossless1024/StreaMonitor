@@ -8,6 +8,7 @@ from streamonitor.managers.zmqmanager import ZMQManager
 from streamonitor.managers.outofspace_detector import OOSDetector
 from streamonitor.clean_exit import CleanExit
 import streamonitor.sites  # must have
+from streamonitor.managers.telegram_manager import TelegramManager
 
         
 def is_docker():
@@ -37,6 +38,12 @@ def main():
         console_manager = CLIManager(streamers)
         console_manager.start()
 
+    from parameters import TELEGRAM_ENABLED, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+    if TELEGRAM_ENABLED and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        telegram_manager = TelegramManager(streamers, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
+        telegram_manager.start()
+
+    
     zmq_manager = ZMQManager(streamers)
     zmq_manager.start()
 

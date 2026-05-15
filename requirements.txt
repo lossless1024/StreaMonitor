@@ -11,3 +11,6 @@ fake-useragent
 django-environ
 pycurl
 pycurl-requests
+python-telegram-bot
+httpx
+httpcore
