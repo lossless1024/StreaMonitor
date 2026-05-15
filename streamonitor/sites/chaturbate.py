@@ -1,7 +1,10 @@
 import re
 import requests
+import time
+import random
 from streamonitor.bot import Bot
-from streamonitor.enums import Status, Gender
+from streamonitor.enums import Status
+from requests.utils import dict_from_cookiejar, cookiejar_from_dict
 
 
 class Chaturbate(Bot):
@@ -18,22 +21,54 @@ class Chaturbate(Bot):
 
     def __init__(self, username):
         super().__init__(username)
-        self.sleep_on_offline = 30
-        self.sleep_on_error = 60
-    
+        self.sleep_on_offline = 120
+        self.sleep_on_error = 180
+        self.session = requests.Session()
+        self.session.trust_env = False
+
+        self.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer": f"https://chaturbate.com/{username}/",
+            "Origin": "https://chaturbate.com",
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+        })
+
+        self.consecutive_errors = 0
+        self.last_request_time = 0
+        self.min_request_interval = 20
+        self.cookies_initialized = False
+        self.hls_failures = 0
+
+    def _normalize_cookies(self, jar):
+        return cookiejar_from_dict(dict_from_cookiejar(jar))
+
     def getWebsiteURL(self):
         return "https://www.chaturbate.com/" + self.username
-    
+
+    def getPlaylistVariants(self, url):
+        try:
+            result = self.session.get(
+                url,
+                headers=self.headers,
+                cookies=self.cookies,
+                timeout=15
+            )
+            result.raise_for_status()
+            return super().getPlaylistVariants(m3u_data=result.content.decode("utf-8"))
+        except Exception:
+            return []
+
     def getVideoUrl(self):
-        if self.bulk_update:
-            self.getStatus()
-        url = self.lastInfo['url']
+        url = self.lastInfo.get("url", "")
         if not url:
             return None
+        url = url.replace('\\/', '/')
         if self.lastInfo.get('cmaf_edge'):
             url = url.replace('playlist.m3u8', 'playlist_sfm4s.m3u8')
             url = re.sub('live-.+amlst', 'live-c-fhls/amlst', url)
-
         return self.getWantedResolutionPlaylist(url)
     
     @staticmethod
@@ -45,53 +80,107 @@ class Chaturbate(Bot):
         else:
             return Status.OFFLINE
 
+    def _wait_for_rate_limit(self):
+        now = time.time()
+        since = now - self.last_request_time
+        if since < self.min_request_interval:
+            time.sleep(self.min_request_interval - since + random.uniform(1, 3))
+        self.last_request_time = time.time()
+
+    def _initialize_cookies(self):
+        if self.cookies_initialized:
+            return True
+        try:
+            r = self.session.get(
+                f"https://chaturbate.com/{self.username}/",
+                headers={
+                    "User-Agent": self.headers["User-Agent"],
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "Connection": "keep-alive",
+                    "Upgrade-Insecure-Requests": "1",
+                },
+                timeout=30
+            )
+            if r.status_code == 200:
+                self.cookies_initialized = True
+                self.cookies = self._normalize_cookies(r.cookies)
+                return True
+            return False
+        except Exception:
+            return False
+
     def getStatus(self):
-        headers = {"X-Requested-With": "XMLHttpRequest"}
-        data = {"room_slug": self.username, "bandwidth": "high"}
+        self._wait_for_rate_limit()
+
+        self._check_count = getattr(self, "_check_count", 0) + 1
+        if self._check_count > 10:
+            self.cookies_initialized = False
+            self._check_count = 0
+
+        if not self.cookies_initialized:
+            if not self._initialize_cookies():
+                self.consecutive_errors += 1
+                return Status.ERROR
+            time.sleep(2)
 
         try:
-            r = requests.post("https://chaturbate.com/get_edge_hls_url_ajax/", headers=headers, data=data)
+            r = self.session.post(
+                "https://chaturbate.com/get_edge_hls_url_ajax/",
+                headers={
+                    "User-Agent": self.headers["User-Agent"],
+                    "Accept": "application/json, text/javascript, */*; q=0.01",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Origin": "https://chaturbate.com",
+                    "Referer": f"https://chaturbate.com/{self.username}/",
+                    "Connection": "keep-alive",
+                },
+                data={"room_slug": self.username, "bandwidth": "high"},
+                timeout=30
+            )
+
+            if r.status_code in (429, 403):
+                self.cookies_initialized = False
+                self.consecutive_errors += 1
+                return Status.RATELIMIT
+
+            if r.status_code != 200:
+                self.consecutive_errors += 1
+                return Status.ERROR
+
             self.lastInfo = r.json()
-            status = self._parseStatus(self.lastInfo['room_status'])
-            if status == status.PUBLIC and not self.lastInfo['url']:
-                status = status.RESTRICTED
-        except:
-            status = Status.RATELIMIT
+            status = self.lastInfo.get("room_status", "offline")
 
-        self.ratelimit = status == Status.RATELIMIT
-        return status
+            if status == "public":
+                url = self.lastInfo.get("url", "")
+                if not url:
+                    self.hls_failures += 1
+                    if self.hls_failures >= 2:
+                        self.cookies_initialized = False
+                        self._initialize_cookies()
+                        self.hls_failures = 0
+                    return Status.ERROR
 
-    @classmethod
-    def getStatusBulk(cls, streamers):
-        for streamer in streamers:
-            if not isinstance(streamer, Chaturbate):
-                continue
+                if r.cookies:
+                    self.cookies = self._normalize_cookies(r.cookies)
 
-        session = requests.Session()
-        session.headers.update(cls.headers)
-        r = session.get("https://chaturbate.com/affiliates/api/onlinerooms/?format=json&wm=DkfRj", timeout=10)
+                self.hls_failures = 0
+                self.consecutive_errors = 0
+                return Status.PUBLIC
 
-        try:
-            data = r.json()
-        except requests.exceptions.JSONDecodeError:
-            print('Failed to parse JSON response')
-            return
-        data_map = {str(model['username']).lower(): model for model in data}
+            if status in ("private", "hidden"):
+                return Status.PRIVATE
 
-        for streamer in streamers:
-            model_data = data_map.get(streamer.username.lower())
-            if not model_data:
-                streamer.setStatus(Status.OFFLINE)
-                continue
-            if model_data.get('gender'):
-                streamer.gender = cls._GENDER_MAP.get(model_data.get('gender'))
-            if model_data.get('country'):
-                streamer.country = model_data.get('country', '').upper()
-            status = cls._parseStatus(model_data['current_show'])
-            if status == status.PUBLIC:
-                if streamer.sc in [status.PUBLIC, Status.RESTRICTED]:
-                    continue
-                status = streamer.getStatus()
-            if status == Status.UNKNOWN:
-                print(f'[{streamer.siteslug}] {streamer.username}: Bulk update got unknown status: {status}')
-            streamer.setStatus(status)
+            return Status.OFFLINE
+
+        except Exception:
+            self.consecutive_errors += 1
+            self.cookies_initialized = False
+            return Status.ERROR
+
+        finally:
+            self.sleep_on_error = min(900, 120 * (2 ** self.consecutive_errors))
+            self.ratelimit = False
