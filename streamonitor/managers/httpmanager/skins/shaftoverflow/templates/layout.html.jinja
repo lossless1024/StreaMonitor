@@ -15,6 +15,9 @@
     <title>{% block title %}StreaMonitor{% endblock %}</title>
     {% block head %}
     <script src="/static/htmx@2.0.4/htmx.min.js"></script>
+    <script src="/static/thumbswap.js"></script>
+    <script src="/static/heatmap.js"></script>
+    <link rel="stylesheet" href="/static/heatmap.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='fonts/iconfont.css') }}">
     {% endblock %}
 </head>

@@ -19,6 +19,7 @@ from streamonitor.manager import Manager
 from streamonitor.managers.outofspace_detector import OOSDetector
 from streamonitor.utils import human_file_size
 
+from streamonitor.thumbnail import THUMBNAILS_DIR
 from .filters import status_icon, status_text
 from .mappers import web_status_lookup
 from .models import InvalidStreamer
@@ -200,6 +201,30 @@ class HTTPManager(Manager):
             response.data = json.dumps(messages)
             return response
 
+        @app.route('/heatmap/<user>/<site>/<path:filename>', methods=['GET'])
+        def get_heatmap(user, site, filename):
+            streamer = cast(Union[Bot, None], self.getStreamer(user, site))
+            # Suffix is appended here so this route can only serve heatmaps.
+            # max_age lets the browser reuse them across htmx list swaps.
+            return send_from_directory(
+                os.path.abspath(streamer.outputFolder),
+                filename + '.heatmap.png',
+                max_age=3600
+            )
+
+        @app.route('/thumbnail/<path:filename>', methods=['GET'])
+        def get_thumbnail(filename):
+            thumb_dir = os.path.abspath(THUMBNAILS_DIR)
+            thumb_path = os.path.join(thumb_dir, filename)
+            if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0:
+                # Thumbnails never change once generated; cache to avoid
+                # re-fetch flicker when the video list is re-rendered.
+                return send_from_directory(thumb_dir, filename, max_age=86400)
+            err_path = os.path.splitext(thumb_path)[0] + '.err'
+            if os.path.exists(err_path):
+                return ('thumbnail generation failed', 500)
+            return ('thumbnail not ready', 404)
+
         @app.route('/videos/watch/<user>/<site>/<path:play_video>', methods=['GET'])
         @login_required
         def watch_video(user, site, play_video):
@@ -237,6 +262,11 @@ class HTTPManager(Manager):
             if match is not None:
                 try:
                     os.remove(match.abs_path)
+                    for sidecar in (match.abs_path + '.nudity.json', match.abs_path + '.heatmap.png'):
+                        try:
+                            os.remove(sidecar)
+                        except OSError:
+                            pass
                     streamer.cache_file_list()
                     context['total_size'] = context['total_size'] - match.filesize
                     if context['video_to_play'] is not None and filename == context['video_to_play'].filename:

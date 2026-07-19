@@ -1,0 +1,43 @@
+/* Nudity detection heatmap strip shown under the video player.
+   Red = nudity, yellow = underwear/covered, dark = nothing detected. */
+.nudity-heatmap {
+    position: relative;
+    width: 100%;
+    height: 28px;
+    cursor: pointer;
+    user-select: none;
+    touch-action: none;
+    background: #181818;
+    overflow: hidden;
+}
+
+.nudity-heatmap img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* Compact read-only variant shown under each thumbnail in the file list.
+   pointer-events: none so clicks fall through to the video link. */
+.nudity-heatmap-mini {
+    display: block;
+    width: 240px;
+    max-width: 100%;
+    height: 10px;
+    margin-top: 2px;
+    border-radius: 0 0 4px 4px;
+    pointer-events: none;
+}
+
+.nudity-heatmap .heatmap-cursor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 100%;
+    background: #ffffff;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+    opacity: 0.9;
+    pointer-events: none;
+}

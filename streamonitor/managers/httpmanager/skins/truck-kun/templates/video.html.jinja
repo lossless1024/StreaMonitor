@@ -1,8 +1,16 @@
 <h4 class="playing-video">Playing {{ video_to_play.shortname }}</h4>
 <div id="video-container">
-    <video id="video" preload="auto" controls="controls">
-        <source src="/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}" type="{{ video_to_play.mimetype }}" />
-    </video>
+    <div>
+        <video id="video" preload="auto" controls="controls">
+            <source src="/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}" type="{{ video_to_play.mimetype }}" />
+        </video>
+        {% if video_to_play.has_heatmap %}
+        <div class="nudity-heatmap" title="Nudity heatmap — click to seek">
+            <img src="/heatmap/{{ user }}/{{ site }}/{{ video_to_play.filename }}" alt="nudity heatmap" draggable="false">
+            <div class="heatmap-cursor"></div>
+        </div>
+        {% endif %}
+    </div>
     <div id="chat-container">
         <div>Chat</div>
         <table id="chat-messages"></table>
