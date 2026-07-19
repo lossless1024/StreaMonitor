@@ -421,6 +421,9 @@ class ProgressDisplay:
         self.total_files = total_files
         self.done_files = 0
         self.active = {}  # video_path -> (frames_done, frames_expected)
+        self.folder_name = None  # basename of the folder being scanned (None = hidden)
+        self.folder_total = 0
+        self.folder_done = 0
         self._lines = 0
         self.enabled = sys.stdout.isatty() or bool(os.environ.get('FORCE_PROGRESS'))
 
@@ -440,12 +443,19 @@ class ProgressDisplay:
         print(msg, flush=True)
         self.render()
 
+    def start_folder(self, name, total):
+        """Begin a new folder section; name None hides the folder bar."""
+        self.folder_name = name
+        self.folder_total = total
+        self.folder_done = 0
+
     def file_progress(self, path, done, expected):
         self.active[path] = (done, expected)
 
     def file_done(self, path):
         self.active.pop(path, None)
         self.done_files += 1
+        self.folder_done += 1
 
     def render(self):
         if not self.enabled:
@@ -456,6 +466,13 @@ class ProgressDisplay:
         in_flight = sum(min(d / e, 1.0) for d, e in self.active.values() if e)
         frac = (self.done_files + in_flight) / self.total_files if self.total_files else 1.0
         lines = [f'Overall {self._bar(frac)} {self.done_files}/{self.total_files} files ({frac:.0%})']
+        if self.folder_name:
+            # Folders are scanned one at a time, so every active file belongs
+            # to the current folder and in-flight credit carries over.
+            frac_f = (self.folder_done + in_flight) / self.folder_total if self.folder_total else 1.0
+            line = (f'Folder  {self._bar(frac_f)} {self.folder_done}/{self.folder_total} files '
+                    f'({frac_f:.0%})  {self.folder_name}')
+            lines.append(line[:cols - 1])
         for path, (done, expected) in sorted(self.active.items()):
             name = os.path.basename(path)
             if expected:
@@ -612,6 +629,7 @@ def main():
     done = 0
     try:
         for folder, videos in sorted(folders.items()):
+            display.start_folder(os.path.basename(folder) if folder != root else None, len(videos))
             display.log(f'\n=== {folder} ({len(videos)} videos) ===')
             pending = {v: pool.apply_async(
                 _worker_scan, ((v, args.interval, args.upgrade_sidecars, args.redraw_heatmaps),))
