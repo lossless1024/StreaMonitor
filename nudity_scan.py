@@ -19,7 +19,11 @@ Workflow (per folder):
      except a deterministic ~10% random sample that is kept.
 
 A folder containing a `.keep` or `.nodelete` file is protected: its videos
-(and those of its subfolders) are scanned but never deleted.
+(and those of its subfolders) are scanned but never deleted. A single video
+can be protected the same way with a `<video>.keep`/`<video>.nodelete` file
+next to it. On top of that, every folder always keeps at least --min-keep
+videos (default 4); when deletion would go below that, the candidates with
+the highest nudity scores are spared.
 
 Nothing is deleted unless --delete is passed; the default is a dry run that
 prints and logs what would happen.
@@ -514,6 +518,16 @@ def find_keep_marker(folder, root):
         folder = parent
 
 
+def file_keep_marker(video_path):
+    """Return the path of a `<video>.keep`/`<video>.nodelete` file protecting
+    this single video, or None."""
+    for marker in KEEP_MARKERS:
+        path = video_path + marker
+        if os.path.exists(path):
+            return path
+    return None
+
+
 def keep_lottery(video_path, keep_fraction):
     """Deterministic pseudo-random keep decision, stable across re-runs so a
     dry run shows exactly what a later --delete run will do."""
@@ -585,6 +599,8 @@ def main():
                         help='total nude time to keep a file (default 3.0)')
     parser.add_argument('--keep-fraction', type=float, default=0.10,
                         help='fraction of non-nude videos to keep anyway (default 0.10)')
+    parser.add_argument('--min-keep', type=int, default=4,
+                        help='always keep at least this many videos per folder (default 4)')
     parser.add_argument('--min-age-minutes', type=float, default=30,
                         help='skip files modified more recently than this (default 30)')
     parser.add_argument('--redraw-heatmaps', action='store_true',
@@ -625,7 +641,8 @@ def main():
                                 initargs=(threads_per_worker, progress_queue))
     display = ProgressDisplay(total_files)
 
-    totals = {'nude': 0, 'clean_kept': 0, 'protected': 0, 'deleted': 0, 'errors': 0, 'freed': 0, 'skipped': 0}
+    totals = {'nude': 0, 'clean_kept': 0, 'protected': 0, 'min_kept': 0,
+              'deleted': 0, 'errors': 0, 'freed': 0, 'skipped': 0}
     done = 0
     try:
         for folder, videos in sorted(folders.items()):
@@ -672,22 +689,58 @@ def main():
             keep_marker = find_keep_marker(folder, root)
             if keep_marker and any(v == 'clean' for _, v, _ in decisions):
                 display.log(f'  folder protected by {keep_marker}, keeping all videos')
+
+            # Phase 1: decide each file's fate without touching anything.
+            fates = []  # [video_path, verdict, data, action]; 'delete' = candidate
             for video_path, verdict, data in decisions:
+                if verdict == 'nude' or verdict == 'error':
+                    action = 'kept'
+                elif keep_marker:
+                    action = 'kept-protected'
+                elif file_keep_marker(video_path):
+                    action = 'kept-marker'
+                elif keep_lottery(video_path, args.keep_fraction):
+                    action = 'kept-lottery'
+                else:
+                    action = 'delete'
+                fates.append([video_path, verdict, data, action])
+
+            # A folder always keeps at least --min-keep videos, no matter
+            # what. Skipped/unscanned videos stay too, so they count as kept.
+            deleting = [f for f in fates if f[3] == 'delete']
+            remaining = len(videos) - len(deleting)
+            if deleting and remaining < args.min_keep:
+                rescued = sorted(
+                    deleting, reverse=True,
+                    key=lambda f: decide(f[2], args.nude_threshold, args.strong_threshold,
+                                         args.min_nude_seconds)[1],
+                )[:args.min_keep - remaining]
+                for f in rescued:
+                    f[3] = 'kept-minimum'
+
+            # Phase 2: act on the fates.
+            for video_path, verdict, data, action in fates:
                 entry = {
                     'time': time.strftime('%Y-%m-%dT%H:%M:%S'),
                     'file': video_path,
                     'verdict': verdict,
                     'action': 'kept',
                 }
-                if verdict == 'nude' or verdict == 'error':
+                if action == 'kept':
                     totals['nude'] += verdict == 'nude'
-                elif keep_marker:
+                elif action in ('kept-protected', 'kept-marker'):
                     totals['protected'] += 1
-                    entry['action'] = 'kept-protected'
-                elif keep_lottery(video_path, args.keep_fraction):
+                    entry['action'] = action
+                    if action == 'kept-marker':
+                        display.log(f'  keeping (marker file): {os.path.basename(video_path)}')
+                elif action == 'kept-lottery':
                     totals['clean_kept'] += 1
                     entry['action'] = 'kept-lottery'
                     display.log(f'  keeping (random {args.keep_fraction:.0%} sample): {os.path.basename(video_path)}')
+                elif action == 'kept-minimum':
+                    totals['min_kept'] += 1
+                    entry['action'] = 'kept-minimum'
+                    display.log(f'  keeping (folder minimum of {args.min_keep}): {os.path.basename(video_path)}')
                 elif args.heatmaps_only or not args.delete:
                     entry['action'] = 'would-delete'
                     totals['deleted'] += 1
@@ -719,7 +772,7 @@ def main():
 
     action = 'deleted' if (args.delete and not args.heatmaps_only) else 'would delete'
     print(f'\nDone. nude: {totals["nude"]}, kept clean (lottery): {totals["clean_kept"]}, '
-          f'kept (protected folder): {totals["protected"]}, '
+          f'kept (protected): {totals["protected"]}, kept (folder minimum): {totals["min_kept"]}, '
           f'{action}: {totals["deleted"]} ({human_size(totals["freed"])}), '
           f'skipped (in use): {totals["skipped"]}, errors: {totals["errors"]}')
     print(f'Report appended to {args.report}')
