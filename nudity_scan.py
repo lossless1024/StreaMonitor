@@ -28,7 +28,8 @@ import hashlib
 import json
 import multiprocessing
 import os
-import random
+import queue as queue_module
+import shutil
 import subprocess
 import sys
 import time
@@ -181,11 +182,17 @@ def load_cached(video_path):
     return None
 
 
-def scan_video(video_path, interval, dedupe_threshold=2.0):
-    """Sample and classify one video. Returns the sidecar dict (not written)."""
+def scan_video(video_path, interval, dedupe_threshold=2.0, progress=None):
+    """Sample and classify one video. Returns the sidecar dict (not written).
+
+    `progress` is an optional callable(frames_done, frames_expected).
+    """
     import cv2
 
     duration = probe_duration(video_path)
+    expected_frames = int(duration / interval) + 1 if duration else 0
+    if progress:
+        progress(0, expected_frames)
     samples = []
     prev_frame = None
     prev_scores = (0.0, 0.0)
@@ -205,6 +212,8 @@ def scan_video(video_path, interval, dedupe_threshold=2.0):
             prev_scores = scores
             samples.append([round(frames * interval, 2), round(scores[0], 3), round(scores[1], 3)])
             frames += 1
+            if progress:
+                progress(frames, expected_frames)
         if frames > 0:
             break
         # -discard nokey produced nothing (unusual container) -> full decode
@@ -267,9 +276,31 @@ def render_heatmap(data, out_path, width=1000, height=40):
 # Worker process
 # ---------------------------------------------------------------------------
 
-def _worker_init(threads):
+_progress_queue = None
+
+
+def _worker_init(threads, progress_queue=None):
+    global _progress_queue
+    _progress_queue = progress_queue
     os.environ.setdefault('OMP_NUM_THREADS', str(threads))
     os.environ.setdefault('ORT_NUM_THREADS', str(threads))
+
+
+def _report_progress(video_path):
+    """Progress callable that forwards to the parent, throttled to ~4 Hz."""
+    last_sent = [0.0]
+
+    def progress(done, total):
+        if _progress_queue is None:
+            return
+        now = time.monotonic()
+        if done == 0 or done == total or now - last_sent[0] >= 0.25:
+            last_sent[0] = now
+            try:
+                _progress_queue.put_nowait((video_path, done, total))
+            except Exception:
+                pass
+    return progress
 
 
 def _worker_scan(args):
@@ -280,7 +311,7 @@ def _worker_scan(args):
             data = cached
             data['from_cache'] = True
         else:
-            data = scan_video(video_path, interval)
+            data = scan_video(video_path, interval, progress=_report_progress(video_path))
             data['from_cache'] = False
             with open(sidecar_path(video_path), 'w') as f:
                 json.dump(data, f)
@@ -290,6 +321,72 @@ def _worker_scan(args):
         return video_path, data, None
     except Exception as e:
         return video_path, None, repr(e)
+
+
+# ---------------------------------------------------------------------------
+# Progress display
+# ---------------------------------------------------------------------------
+
+class ProgressDisplay:
+    """Overall + per-file progress bars pinned to the bottom of the terminal.
+
+    Log lines are printed above the bars via log(). Falls back to plain
+    printing when stdout is not a TTY (e.g. piped to a file).
+    """
+
+    def __init__(self, total_files):
+        self.total_files = total_files
+        self.done_files = 0
+        self.active = {}  # video_path -> (frames_done, frames_expected)
+        self._lines = 0
+        self.enabled = sys.stdout.isatty() or bool(os.environ.get('FORCE_PROGRESS'))
+
+    @staticmethod
+    def _bar(frac, width=28):
+        frac = min(max(frac, 0.0), 1.0)
+        filled = int(round(frac * width))
+        return '[' + '#' * filled + '-' * (width - filled) + ']'
+
+    def _erase(self):
+        if self._lines:
+            sys.stdout.write(f'\x1b[{self._lines}F\x1b[J')
+            self._lines = 0
+
+    def log(self, msg):
+        self._erase()
+        print(msg, flush=True)
+        self.render()
+
+    def file_progress(self, path, done, expected):
+        self.active[path] = (done, expected)
+
+    def file_done(self, path):
+        self.active.pop(path, None)
+        self.done_files += 1
+
+    def render(self):
+        if not self.enabled:
+            return
+        self._erase()
+        cols = shutil.get_terminal_size().columns
+        # Overall bar gets fractional credit for files currently in flight
+        in_flight = sum(min(d / e, 1.0) for d, e in self.active.values() if e)
+        frac = (self.done_files + in_flight) / self.total_files if self.total_files else 1.0
+        lines = [f'Overall {self._bar(frac)} {self.done_files}/{self.total_files} files ({frac:.0%})']
+        for path, (done, expected) in sorted(self.active.items()):
+            name = os.path.basename(path)
+            if expected:
+                line = f'  {self._bar(done / expected, 20)} {done:>4}/{expected} frames  {name}'
+            else:
+                line = f'  {self._bar(0, 20)} {done:>4} frames       {name}'
+            lines.append(line[:cols - 1])
+        sys.stdout.write('\n'.join(lines) + '\n')
+        sys.stdout.flush()
+        self._lines = len(lines)
+
+    def close(self):
+        self._erase()
+        sys.stdout.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -395,32 +492,48 @@ def main():
 
     report = open(args.report, 'a')
     threads_per_worker = max(1, (os.cpu_count() or 2) // args.workers)
+    manager = multiprocessing.Manager()
+    progress_queue = manager.Queue()
     pool = multiprocessing.Pool(args.workers, initializer=_worker_init,
-                                initargs=(threads_per_worker,))
+                                initargs=(threads_per_worker, progress_queue))
+    display = ProgressDisplay(total_files)
 
     totals = {'nude': 0, 'clean_kept': 0, 'deleted': 0, 'errors': 0, 'freed': 0}
     done = 0
     try:
         for folder, videos in sorted(folders.items()):
-            print(f'\n=== {folder} ({len(videos)} videos) ===')
-            results = pool.imap_unordered(
-                _worker_scan, [(v, args.interval) for v in videos])
+            display.log(f'\n=== {folder} ({len(videos)} videos) ===')
+            pending = {v: pool.apply_async(_worker_scan, ((v, args.interval),))
+                       for v in videos}
             decisions = []  # (path, verdict, data)
-            for video_path, data, error in results:
-                done += 1
-                name = os.path.basename(video_path)
-                if error or data.get('error'):
-                    totals['errors'] += 1
-                    print(f'[{done}/{total_files}] {name}: ERROR {error or data["error"]} (kept)')
-                    decisions.append((video_path, 'error', data))
-                    continue
-                is_nude, max_score, nude_seconds = decide(
-                    data, args.nude_threshold, args.strong_threshold, args.min_nude_seconds)
-                verdict = 'nude' if is_nude else 'clean'
-                cache_note = ' (cached)' if data.get('from_cache') else f' [{data["scan_seconds"]}s, {data["inferences"]}/{data["frames"]} inferred]'
-                print(f'[{done}/{total_files}] {name}: {verdict} '
-                      f'(max {max_score:.2f}, {nude_seconds:.0f}s nude){cache_note}')
-                decisions.append((video_path, verdict, data))
+            while pending:
+                try:
+                    while True:
+                        path, frames_done, frames_expected = progress_queue.get_nowait()
+                        display.file_progress(path, frames_done, frames_expected)
+                except queue_module.Empty:
+                    pass
+                finished = [p for p, r in pending.items() if r.ready()]
+                for p in finished:
+                    video_path, data, error = pending.pop(p).get()
+                    display.file_done(video_path)  # also advances the overall bar
+                    done += 1
+                    name = os.path.basename(video_path)
+                    if error or data.get('error'):
+                        totals['errors'] += 1
+                        display.log(f'[{done}/{total_files}] {name}: ERROR {error or data["error"]} (kept)')
+                        decisions.append((video_path, 'error', data))
+                        continue
+                    is_nude, max_score, nude_seconds = decide(
+                        data, args.nude_threshold, args.strong_threshold, args.min_nude_seconds)
+                    verdict = 'nude' if is_nude else 'clean'
+                    cache_note = ' (cached)' if data.get('from_cache') else f' [{data["scan_seconds"]}s, {data["inferences"]}/{data["frames"]} inferred]'
+                    display.log(f'[{done}/{total_files}] {name}: {verdict} '
+                                f'(max {max_score:.2f}, {nude_seconds:.0f}s nude){cache_note}')
+                    decisions.append((video_path, verdict, data))
+                display.render()
+                if pending and not finished:
+                    time.sleep(0.15)
 
             # Folder fully scanned -> now prune
             for video_path, verdict, data in decisions:
@@ -435,12 +548,12 @@ def main():
                 elif keep_lottery(video_path, args.keep_fraction):
                     totals['clean_kept'] += 1
                     entry['action'] = 'kept-lottery'
-                    print(f'  keeping (random {args.keep_fraction:.0%} sample): {os.path.basename(video_path)}')
+                    display.log(f'  keeping (random {args.keep_fraction:.0%} sample): {os.path.basename(video_path)}')
                 elif args.heatmaps_only or not args.delete:
                     entry['action'] = 'would-delete'
                     totals['deleted'] += 1
                     totals['freed'] += data.get('filesize', 0) if data else 0
-                    print(f'  would delete: {os.path.basename(video_path)}')
+                    display.log(f'  would delete: {os.path.basename(video_path)}')
                 else:
                     size = data.get('filesize', 0) if data else 0
                     if args.trash_dir:
@@ -456,10 +569,11 @@ def main():
                         entry['action'] = 'deleted'
                     totals['deleted'] += 1
                     totals['freed'] += size
-                    print(f'  deleted: {os.path.basename(video_path)} ({human_size(size)})')
+                    display.log(f'  deleted: {os.path.basename(video_path)} ({human_size(size)})')
                 report.write(json.dumps(entry) + '\n')
             report.flush()
     finally:
+        display.close()
         pool.terminate()
         pool.join()
         report.close()
