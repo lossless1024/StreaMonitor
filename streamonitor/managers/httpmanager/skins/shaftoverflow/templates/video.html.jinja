@@ -8,6 +8,12 @@
         <video preload="auto" controls="controls" class="w-100">
             <source src="/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}" type="{{ video_to_play.mimetype }}" />
         </video>
+        {% if video_to_play.has_heatmap %}
+        <div class="nudity-heatmap" title="Nudity heatmap — click to seek">
+            <img src="/thumbnail/{{ video_to_play.thumbnail_hash }}.heatmap.png" alt="nudity heatmap" draggable="false">
+            <div class="heatmap-cursor"></div>
+        </div>
+        {% endif %}
     </div>
     <div class="card-footer">
         <a href="/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}" download class="btn btn-primary">

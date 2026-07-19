@@ -44,6 +44,11 @@ class VideoData:
         return hashlib.md5(self.filename.encode()).hexdigest()
 
     @property
+    def has_heatmap(self):
+        from streamonitor.thumbnail import THUMBNAILS_DIR
+        return os.path.exists(os.path.join(THUMBNAILS_DIR, f"{self.thumbnail_hash}.heatmap.png"))
+
+    @property
     def mimetype(self):
         mimetype = 'application/octet-stream'
         # if we lie about this, chrome will play it

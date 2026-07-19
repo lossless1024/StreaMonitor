@@ -2,5 +2,11 @@
 <video preload="auto" controls="controls">
     <source src="/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}" type="{{ video_to_play.mimetype }}" />
 </video>
+{% if video_to_play.has_heatmap %}
+<div class="nudity-heatmap" title="Nudity heatmap — click to seek">
+    <img src="/thumbnail/{{ video_to_play.thumbnail_hash }}.heatmap.png" alt="nudity heatmap" draggable="false">
+    <div class="heatmap-cursor"></div>
+</div>
+{% endif %}
 <a href="/video/{{ user }}/{{ site }}/{{ video_to_play.filename }}" download>Download <i class="icon feather icon-download"></i></a>
 <input type="hidden" name="play_video" id="play_video" class="streamer-context" value="{{ video_to_play.filename }}">

@@ -1,0 +1,474 @@
+#!/usr/bin/env python3
+"""Scan a video collection for nudity and prune videos that contain none.
+
+Detection is done with NudeNet (ONNX), which reports separate classes for
+exposed body parts and covered ones, so underwear-only footage is NOT
+counted as nudity.
+
+Workflow (per folder):
+  1. Every video is sampled at a fixed interval (default 2s) using only
+     keyframes for fast decoding, and frames go through the detector.
+  2. Results are written to a `<video>.nudity.json` sidecar (used as a cache
+     on re-runs) and a heatmap PNG the StreaMonitor web player displays.
+  3. Only after the whole folder is scanned, non-nude videos are deleted --
+     except a deterministic ~10% random sample that is kept.
+
+Nothing is deleted unless --delete is passed; the default is a dry run that
+prints and logs what would happen.
+
+Requires: pip install nudenet   (pulls in onnxruntime + opencv + numpy)
+
+Examples:
+    python nudity_scan.py downloads                 # dry run, full report
+    python nudity_scan.py downloads --delete        # actually delete
+    python nudity_scan.py downloads --heatmaps-only # never delete anything
+"""
+import argparse
+import hashlib
+import json
+import multiprocessing
+import os
+import random
+import subprocess
+import sys
+import time
+
+VIDEO_EXTENSIONS = ('mp4', 'mkv', 'webm', 'mov', 'avi', 'wmv')
+SIDECAR_SUFFIX = '.nudity.json'
+SIDECAR_VERSION = 2
+MODEL_SIZE = 320  # NudeNet 320n input resolution
+
+# NudeNet classes counted as actual nudity. *_COVERED classes (underwear,
+# lingerie) intentionally count as non-nude.
+NUDE_CLASSES = {
+    'FEMALE_BREAST_EXPOSED',
+    'FEMALE_GENITALIA_EXPOSED',
+    'MALE_GENITALIA_EXPOSED',
+    'ANUS_EXPOSED',
+    'BUTTOCKS_EXPOSED',
+}
+COVERED_CLASSES = {
+    'FEMALE_BREAST_COVERED',
+    'FEMALE_GENITALIA_COVERED',
+    'ANUS_COVERED',
+    'BUTTOCKS_COVERED',
+}
+
+try:
+    from parameters import FFMPEG_PATH
+except Exception:
+    FFMPEG_PATH = 'ffmpeg'
+FFPROBE_PATH = os.path.join(os.path.dirname(FFMPEG_PATH), 'ffprobe') if os.sep in FFMPEG_PATH else 'ffprobe'
+
+try:
+    from streamonitor.thumbnail import THUMBNAILS_DIR
+except Exception:
+    THUMBNAILS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.thumbnails')
+
+_detector = None
+_detector_takes_ndarray = True
+
+
+# ---------------------------------------------------------------------------
+# Detection
+# ---------------------------------------------------------------------------
+
+def _get_detector():
+    global _detector
+    if _detector is None:
+        from nudenet import NudeDetector
+        _detector = NudeDetector()
+    return _detector
+
+
+def _detect_frame(frame):
+    """Run NudeNet on one BGR ndarray, return (nude_score, covered_score)."""
+    global _detector_takes_ndarray
+    detector = _get_detector()
+    if _detector_takes_ndarray:
+        try:
+            detections = detector.detect(frame)
+        except Exception:
+            _detector_takes_ndarray = False
+            detections = None
+    if not _detector_takes_ndarray:
+        # Older nudenet versions only accept file paths
+        import cv2
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            cv2.imwrite(tmp_path, frame)
+            detections = detector.detect(tmp_path)
+        finally:
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+    nude = max((d['score'] for d in detections if d['class'] in NUDE_CLASSES), default=0.0)
+    covered = max((d['score'] for d in detections if d['class'] in COVERED_CLASSES), default=0.0)
+    return float(nude), float(covered)
+
+
+# ---------------------------------------------------------------------------
+# Frame extraction
+# ---------------------------------------------------------------------------
+
+def probe_duration(path):
+    try:
+        out = subprocess.run(
+            [FFPROBE_PATH, '-v', 'error', '-show_entries', 'format=duration',
+             '-of', 'csv=p=0', path],
+            capture_output=True, text=True, timeout=60)
+        return float(out.stdout.strip())
+    except Exception:
+        return None
+
+
+def iter_frames(path, interval, keyframes_only=True):
+    """Yield BGR ndarrays sampled every `interval` seconds.
+
+    With keyframes_only, non-key packets are dropped before decoding which is
+    an order of magnitude faster; HLS recordings have keyframes every few
+    seconds so temporal accuracy stays close to `interval`.
+    """
+    import numpy as np
+    vf = (f'fps=1/{interval},'
+          f'scale={MODEL_SIZE}:{MODEL_SIZE}:force_original_aspect_ratio=decrease:flags=area,'
+          f'pad={MODEL_SIZE}:{MODEL_SIZE}:(ow-iw)/2:(oh-ih)/2')
+    cmd = [FFMPEG_PATH, '-nostdin', '-hide_banner', '-loglevel', 'error']
+    if keyframes_only:
+        cmd += ['-discard', 'nokey']
+    cmd += ['-i', path, '-vf', vf, '-f', 'rawvideo', '-pix_fmt', 'bgr24', 'pipe:1']
+
+    frame_bytes = MODEL_SIZE * MODEL_SIZE * 3
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    try:
+        while True:
+            buf = proc.stdout.read(frame_bytes)
+            if len(buf) < frame_bytes:
+                break
+            yield np.frombuffer(buf, dtype=np.uint8).reshape(MODEL_SIZE, MODEL_SIZE, 3)
+    finally:
+        proc.stdout.close()
+        proc.wait()
+
+
+# ---------------------------------------------------------------------------
+# Per-file scan
+# ---------------------------------------------------------------------------
+
+def sidecar_path(video_path):
+    return video_path + SIDECAR_SUFFIX
+
+
+def heatmap_path(video_path):
+    name_hash = hashlib.md5(os.path.basename(video_path).encode()).hexdigest()
+    return os.path.join(THUMBNAILS_DIR, f'{name_hash}.heatmap.png')
+
+
+def load_cached(video_path):
+    try:
+        with open(sidecar_path(video_path)) as f:
+            data = json.load(f)
+        stat = os.stat(video_path)
+        if (data.get('version') == SIDECAR_VERSION
+                and data.get('filesize') == stat.st_size
+                and abs(data.get('mtime', 0) - stat.st_mtime) < 2):
+            return data
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def scan_video(video_path, interval, dedupe_threshold=2.0):
+    """Sample and classify one video. Returns the sidecar dict (not written)."""
+    import cv2
+
+    duration = probe_duration(video_path)
+    samples = []
+    prev_frame = None
+    prev_scores = (0.0, 0.0)
+    inferences = 0
+    frames = 0
+    start = time.monotonic()
+
+    for use_keyframes in (True, False):
+        for frame in iter_frames(video_path, interval, keyframes_only=use_keyframes):
+            # Static scenes and duplicated keyframes: reuse the last scores
+            if prev_frame is not None and float(cv2.absdiff(frame, prev_frame).mean()) < dedupe_threshold:
+                scores = prev_scores
+            else:
+                scores = _detect_frame(frame)
+                inferences += 1
+            prev_frame = frame
+            prev_scores = scores
+            samples.append([round(frames * interval, 2), round(scores[0], 3), round(scores[1], 3)])
+            frames += 1
+        if frames > 0:
+            break
+        # -discard nokey produced nothing (unusual container) -> full decode
+
+    stat = os.stat(video_path)
+    return {
+        'version': SIDECAR_VERSION,
+        'file': os.path.basename(video_path),
+        'filesize': stat.st_size,
+        'mtime': stat.st_mtime,
+        'duration': duration if duration else (frames * interval),
+        'interval': interval,
+        'samples': samples,
+        'frames': frames,
+        'inferences': inferences,
+        'scan_seconds': round(time.monotonic() - start, 1),
+        'error': None if frames > 0 else 'no frames decoded',
+    }
+
+
+def decide(data, nude_threshold, strong_threshold, min_nude_seconds):
+    """Return (is_nude, max_score, nude_seconds) from sidecar sample data."""
+    interval = data.get('interval', 2.0)
+    scores = [s[1] for s in data.get('samples', [])]
+    max_score = max(scores, default=0.0)
+    nude_seconds = sum(interval for s in scores if s >= nude_threshold)
+    is_nude = nude_seconds >= min_nude_seconds or max_score >= strong_threshold
+    return is_nude, max_score, nude_seconds
+
+
+# ---------------------------------------------------------------------------
+# Heatmap rendering (PNG strip, funscript/Stash style, served by the web UI)
+# ---------------------------------------------------------------------------
+
+def render_heatmap(data, out_path, width=1000, height=40):
+    import numpy as np
+    import cv2
+
+    img = np.full((height, width, 3), 24, dtype=np.uint8)  # dark background
+    samples = data.get('samples') or []
+    duration = data.get('duration') or 0
+    if samples and duration > 0:
+        times = np.array([s[0] for s in samples], dtype=np.float32)
+        nude = np.array([s[1] for s in samples], dtype=np.float32)
+        cov = np.array([s[2] for s in samples], dtype=np.float32)
+        col_t = (np.arange(width, dtype=np.float32) + 0.5) * (duration / width)
+        idx = np.searchsorted(times, col_t).clip(0, len(samples) - 1)
+        for x in range(width):
+            c = cov[idx[x]]
+            n = nude[idx[x]]
+            if c > 0.2:  # underwear/covered: yellow bar
+                img[height - max(1, int(c * height)):, x] = (16, 200, 235)
+            if n > 0.2:  # nudity: red bar drawn on top
+                img[height - max(1, int(n * height)):, x] = (48, 48, 235)
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    cv2.imwrite(out_path, img)
+
+
+# ---------------------------------------------------------------------------
+# Worker process
+# ---------------------------------------------------------------------------
+
+def _worker_init(threads):
+    os.environ.setdefault('OMP_NUM_THREADS', str(threads))
+    os.environ.setdefault('ORT_NUM_THREADS', str(threads))
+
+
+def _worker_scan(args):
+    video_path, interval = args
+    try:
+        cached = load_cached(video_path)
+        if cached is not None:
+            data = cached
+            data['from_cache'] = True
+        else:
+            data = scan_video(video_path, interval)
+            data['from_cache'] = False
+            with open(sidecar_path(video_path), 'w') as f:
+                json.dump(data, f)
+        hm = heatmap_path(video_path)
+        if not data.get('from_cache') or not os.path.exists(hm):
+            render_heatmap(data, hm)
+        return video_path, data, None
+    except Exception as e:
+        return video_path, None, repr(e)
+
+
+# ---------------------------------------------------------------------------
+# Collection walk / deletion
+# ---------------------------------------------------------------------------
+
+def keep_lottery(video_path, keep_fraction):
+    """Deterministic pseudo-random keep decision, stable across re-runs so a
+    dry run shows exactly what a later --delete run will do."""
+    digest = hashlib.md5(('keep-lottery:' + os.path.basename(video_path)).encode()).hexdigest()
+    return (int(digest[:8], 16) / 0xFFFFFFFF) < keep_fraction
+
+
+def collect_folders(root, min_age_minutes):
+    """Map folder -> list of video files, skipping files that are too new
+    (possibly still being recorded)."""
+    folders = {}
+    cutoff = time.time() - min_age_minutes * 60
+    for dirpath, _dirnames, filenames in os.walk(root):
+        videos = []
+        for name in sorted(filenames):
+            if not name.lower().endswith(tuple('.' + e for e in VIDEO_EXTENSIONS)):
+                continue
+            path = os.path.join(dirpath, name)
+            try:
+                if os.stat(path).st_mtime > cutoff:
+                    print(f'  skipping (modified recently, maybe recording): {path}')
+                    continue
+            except OSError:
+                continue
+            videos.append(path)
+        if videos:
+            folders[dirpath] = videos
+    return folders
+
+
+def delete_video_and_sidecars(video_path):
+    for path in (
+        video_path,
+        sidecar_path(video_path),
+        heatmap_path(video_path),
+        os.path.splitext(heatmap_path(video_path))[0].replace('.heatmap', '') + '.jpg',  # thumbnail
+    ):
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
+def human_size(n):
+    for unit in ('B', 'KiB', 'MiB', 'GiB', 'TiB'):
+        if n < 1024 or unit == 'TiB':
+            return f'{n:.1f} {unit}'
+        n /= 1024
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('root', nargs='?', default='downloads',
+                        help='collection root; each subfolder is scanned then pruned (default: downloads)')
+    parser.add_argument('--delete', action='store_true',
+                        help='actually delete files (default is a dry run)')
+    parser.add_argument('--trash-dir', default=None,
+                        help='move deleted files here instead of removing them')
+    parser.add_argument('--heatmaps-only', action='store_true',
+                        help='only scan and generate heatmaps, never delete')
+    parser.add_argument('--interval', type=float, default=2.0,
+                        help='seconds between sampled frames (default 2.0)')
+    parser.add_argument('--nude-threshold', type=float, default=0.5,
+                        help='per-frame score needed to count as nude (default 0.5)')
+    parser.add_argument('--strong-threshold', type=float, default=0.7,
+                        help='a single frame above this keeps the file, catching very brief nudity (default 0.7)')
+    parser.add_argument('--min-nude-seconds', type=float, default=3.0,
+                        help='total nude time to keep a file (default 3.0)')
+    parser.add_argument('--keep-fraction', type=float, default=0.10,
+                        help='fraction of non-nude videos to keep anyway (default 0.10)')
+    parser.add_argument('--min-age-minutes', type=float, default=30,
+                        help='skip files modified more recently than this (default 30)')
+    parser.add_argument('--workers', type=int,
+                        default=max(1, (os.cpu_count() or 2) // 2),
+                        help='parallel scanner processes')
+    parser.add_argument('--report', default='nudity_scan_report.jsonl',
+                        help='JSONL report of every decision (default nudity_scan_report.jsonl)')
+    args = parser.parse_args()
+
+    try:
+        import nudenet  # noqa: F401
+    except ImportError:
+        sys.exit('nudenet is not installed. Run:  pip install nudenet')
+
+    root = os.path.abspath(args.root)
+    if not os.path.isdir(root):
+        sys.exit(f'Not a directory: {root}')
+
+    folders = collect_folders(root, args.min_age_minutes)
+    total_files = sum(len(v) for v in folders.values())
+    print(f'Found {total_files} videos in {len(folders)} folders under {root}')
+    if args.delete and not args.heatmaps_only:
+        print('DELETION IS ENABLED - non-nude videos will be removed at the end of each folder.')
+    else:
+        print('Dry run: no files will be deleted (pass --delete to prune).')
+
+    report = open(args.report, 'a')
+    threads_per_worker = max(1, (os.cpu_count() or 2) // args.workers)
+    pool = multiprocessing.Pool(args.workers, initializer=_worker_init,
+                                initargs=(threads_per_worker,))
+
+    totals = {'nude': 0, 'clean_kept': 0, 'deleted': 0, 'errors': 0, 'freed': 0}
+    done = 0
+    try:
+        for folder, videos in sorted(folders.items()):
+            print(f'\n=== {folder} ({len(videos)} videos) ===')
+            results = pool.imap_unordered(
+                _worker_scan, [(v, args.interval) for v in videos])
+            decisions = []  # (path, verdict, data)
+            for video_path, data, error in results:
+                done += 1
+                name = os.path.basename(video_path)
+                if error or data.get('error'):
+                    totals['errors'] += 1
+                    print(f'[{done}/{total_files}] {name}: ERROR {error or data["error"]} (kept)')
+                    decisions.append((video_path, 'error', data))
+                    continue
+                is_nude, max_score, nude_seconds = decide(
+                    data, args.nude_threshold, args.strong_threshold, args.min_nude_seconds)
+                verdict = 'nude' if is_nude else 'clean'
+                cache_note = ' (cached)' if data.get('from_cache') else f' [{data["scan_seconds"]}s, {data["inferences"]}/{data["frames"]} inferred]'
+                print(f'[{done}/{total_files}] {name}: {verdict} '
+                      f'(max {max_score:.2f}, {nude_seconds:.0f}s nude){cache_note}')
+                decisions.append((video_path, verdict, data))
+
+            # Folder fully scanned -> now prune
+            for video_path, verdict, data in decisions:
+                entry = {
+                    'time': time.strftime('%Y-%m-%dT%H:%M:%S'),
+                    'file': video_path,
+                    'verdict': verdict,
+                    'action': 'kept',
+                }
+                if verdict == 'nude' or verdict == 'error':
+                    totals['nude'] += verdict == 'nude'
+                elif keep_lottery(video_path, args.keep_fraction):
+                    totals['clean_kept'] += 1
+                    entry['action'] = 'kept-lottery'
+                    print(f'  keeping (random {args.keep_fraction:.0%} sample): {os.path.basename(video_path)}')
+                elif args.heatmaps_only or not args.delete:
+                    entry['action'] = 'would-delete'
+                    totals['deleted'] += 1
+                    totals['freed'] += data.get('filesize', 0) if data else 0
+                    print(f'  would delete: {os.path.basename(video_path)}')
+                else:
+                    size = data.get('filesize', 0) if data else 0
+                    if args.trash_dir:
+                        os.makedirs(args.trash_dir, exist_ok=True)
+                        os.rename(video_path, os.path.join(args.trash_dir, os.path.basename(video_path)))
+                        try:
+                            os.remove(sidecar_path(video_path))
+                        except OSError:
+                            pass
+                        entry['action'] = 'trashed'
+                    else:
+                        delete_video_and_sidecars(video_path)
+                        entry['action'] = 'deleted'
+                    totals['deleted'] += 1
+                    totals['freed'] += size
+                    print(f'  deleted: {os.path.basename(video_path)} ({human_size(size)})')
+                report.write(json.dumps(entry) + '\n')
+            report.flush()
+    finally:
+        pool.terminate()
+        pool.join()
+        report.close()
+
+    action = 'deleted' if (args.delete and not args.heatmaps_only) else 'would delete'
+    print(f'\nDone. nude: {totals["nude"]}, kept clean (lottery): {totals["clean_kept"]}, '
+          f'{action}: {totals["deleted"]} ({human_size(totals["freed"])}), errors: {totals["errors"]}')
+    print(f'Report appended to {args.report}')
+
+
+if __name__ == '__main__':
+    main()
