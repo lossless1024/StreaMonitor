@@ -45,8 +45,7 @@ class VideoData:
 
     @property
     def has_heatmap(self):
-        from streamonitor.thumbnail import THUMBNAILS_DIR
-        return os.path.exists(os.path.join(THUMBNAILS_DIR, f"{self.thumbnail_hash}.heatmap.png"))
+        return os.path.exists(self.abs_path + '.heatmap.png')
 
     @property
     def mimetype(self):

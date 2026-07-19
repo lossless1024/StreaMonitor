@@ -4,7 +4,7 @@
 </video>
 {% if video_to_play.has_heatmap %}
 <div class="nudity-heatmap" title="Nudity heatmap — click to seek">
-    <img src="/thumbnail/{{ video_to_play.thumbnail_hash }}.heatmap.png" alt="nudity heatmap" draggable="false">
+    <img src="/heatmap/{{ user }}/{{ site }}/{{ video_to_play.filename }}" alt="nudity heatmap" draggable="false">
     <div class="heatmap-cursor"></div>
 </div>
 {% endif %}

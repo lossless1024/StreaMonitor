@@ -164,8 +164,13 @@ def sidecar_path(video_path):
 
 
 def heatmap_path(video_path):
+    """Heatmap PNG lives next to the video, like the JSON sidecar."""
+    return video_path + '.heatmap.png'
+
+
+def thumbnail_jpg_path(video_path):
     name_hash = hashlib.md5(os.path.basename(video_path).encode()).hexdigest()
-    return os.path.join(THUMBNAILS_DIR, f'{name_hash}.heatmap.png')
+    return os.path.join(THUMBNAILS_DIR, f'{name_hash}.jpg')
 
 
 def load_cached(video_path):
@@ -428,7 +433,7 @@ def delete_video_and_sidecars(video_path):
         video_path,
         sidecar_path(video_path),
         heatmap_path(video_path),
-        os.path.splitext(heatmap_path(video_path))[0].replace('.heatmap', '') + '.jpg',  # thumbnail
+        thumbnail_jpg_path(video_path),
     ):
         try:
             os.remove(path)
@@ -558,11 +563,11 @@ def main():
                     size = data.get('filesize', 0) if data else 0
                     if args.trash_dir:
                         os.makedirs(args.trash_dir, exist_ok=True)
-                        os.rename(video_path, os.path.join(args.trash_dir, os.path.basename(video_path)))
-                        try:
-                            os.remove(sidecar_path(video_path))
-                        except OSError:
-                            pass
+                        for path in (video_path, sidecar_path(video_path), heatmap_path(video_path)):
+                            try:
+                                os.rename(path, os.path.join(args.trash_dir, os.path.basename(path)))
+                            except OSError:
+                                pass
                         entry['action'] = 'trashed'
                     else:
                         delete_video_and_sidecars(video_path)
