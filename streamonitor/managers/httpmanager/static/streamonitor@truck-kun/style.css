@@ -762,12 +762,18 @@ a {
     text-align: center;
     margin-left: auto;
     margin-right: auto;
-    height: calc((100vw / 1.77) + 9.625rem);
-    /* doesn't extend beyond the width of the video list  */
-    max-height: calc((85rem / 1.77) + 9.625rem);
-    
+    /* height is content-driven: the fixed 100vw-based formula assumed a
+       full-width video and left a large dead gap once the chat column
+       took a share of the width */
+
     &.theater-mode {
-        max-height: calc(100vh + 4.75rem);
+        & #video-container {
+            max-width: none;
+        }
+
+        & video {
+            max-height: calc(100vh - 12rem);
+        }
     }
 
     &:not(:has(video))  {
@@ -782,30 +788,55 @@ a {
 
     & #video-container {
         display: flex;
+        gap: 1rem;
         margin-left: auto;
         margin-right: auto;
-        max-width: 100%;
+        /* aligned with the #video-list width cap */
+        max-width: 85.5rem;
         margin-bottom: 0.5rem;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
         padding-bottom: 1rem;
-        height: calc(100% - 9.625rem);
+
+        /* the video (plus its heatmap strip) sits in a wrapper div, so the
+           wrapper is the flex item, not the video itself */
+        & > div:first-child {
+            flex: 1;
+            min-width: 0;
+        }
 
         & video {
-            flex: 1;
+            width: 100%;
             aspect-ratio: 16/9;
+            background-color: #000;
+        }
+
+        /* the column reserves the space; the chat inside is absolutely
+           positioned so its height always equals the video's height and
+           long chat logs scroll instead of stretching the page */
+        & .chat-column {
+            position: relative;
+            flex: 0 0 clamp(16rem, 26vw, 32rem);
+
+            &.no-chat {
+                display: none;
+            }
         }
 
         & #chat-container {
-            margin-left: 20px;
-            padding: 20px;
+            position: absolute;
+            inset: 0;
+            padding: 1rem;
             overflow-y: auto;
             box-sizing: border-box;
             background-color: #111;
-            width: 32vw;
 
             & > div {
-                padding-bottom: 20px;
+                padding-bottom: 1rem;
+            }
+
+            & #chat-messages {
+                width: 100%;
             }
 
             .chat-message {
@@ -825,21 +856,43 @@ a {
 
             .timestamp {
                 font-size: 0.8em;
+                white-space: nowrap;
             }
 
             .username {
                 font-weight: bold;
                 text-align: right;
                 color: brown;
-                padding-right: 1rem;
-                padding-left: 1rem;
+                padding-right: 0.5rem;
+                padding-left: 0.5rem;
             }
 
             .message {
                 text-align: left;
+                word-break: break-word;
             }
         }
 
+    }
+}
+
+/* narrow screens: a side-by-side chat is unusable, stack it under the video */
+@media screen and (max-width: 800px) {
+    #video-area {
+        .playing-video {
+            padding-top: 3.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        & #video-container {
+            flex-direction: column;
+            padding-bottom: 0.5rem;
+
+            & .chat-column {
+                flex: none;
+                height: 35vh;
+            }
+        }
     }
 }
 
@@ -935,29 +988,74 @@ a {
     }
 
     .video-list {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
         gap: 1rem;
-        justify-content: space-around;
     }
-    
+
     .video-link {
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: flex-start;
+
+        .filename {
+            margin-top: 0.5rem;
+        }
+
+        .size {
+            font-size: 1rem;
+            opacity: 0.75;
+            margin-top: 0.125rem;
+            margin-bottom: 0.625rem;
+        }
     }
 
     .video-ref {
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-        align-items: center;
+        position: relative;
+        background-color: #262320;
+        border-radius: 0.375rem;
+        overflow: hidden;
+
+        /* teal marks the recording currently in the player */
+        &:has(.currently-playing) {
+            outline: 2px solid #128fa8;
+        }
+
+        &:hover .video-thumbnail {
+            filter: brightness(1.1);
+        }
     }
 
     .video-thumbnail {
-        width: 240px;
-        height: auto;
-        border-radius: 4px;
+        width: 100%;
+        aspect-ratio: 16/9;
+        object-fit: cover;
+        background-color: #181818;
+    }
+
+    .nudity-heatmap-mini {
+        width: 100%;
+        margin-top: 0;
+        border-radius: 0;
+    }
+
+    .remove-video {
+        position: absolute;
+        top: 0.375rem;
+        right: 0.375rem;
+        padding: 0.375rem 0.5rem;
+        background-color: rgba(0, 0, 0, 0.55);
+        color: #E7E7E7;
+
+        &:not(:disabled):hover {
+            background-color: rgba(128, 24, 24, 0.9);
+            color: #FFFFFF;
+        }
+
+        &.currently-playing {
+            opacity: 0.35;
+        }
     }
 }
 
