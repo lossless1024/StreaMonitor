@@ -10,8 +10,20 @@ Workflow (per folder):
      keyframes for fast decoding, and frames go through the detector.
   2. Results are written to a `<video>.nudity.json` sidecar (used as a cache
      on re-runs) and a heatmap PNG the StreaMonitor web player displays.
+     Heatmap colors: red = breasts, pink = pussy, blue = dick,
+     orange = ass/anus, yellow = covered/underwear. Old (v2) sidecars only
+     stored a single aggregated score, so their heatmaps stay all-red until
+     the video is rescanned with --upgrade-sidecars; --redraw-heatmaps
+     re-renders every PNG from the sidecar JSON without rescanning.
   3. Only after the whole folder is scanned, non-nude videos are deleted --
      except a deterministic ~10% random sample that is kept.
+
+A folder containing a `.keep` or `.nodelete` file is protected: its videos
+(and those of its subfolders) are scanned but never deleted. A single video
+can be protected the same way with a `<video>.keep`/`<video>.nodelete` file
+next to it. On top of that, every folder always keeps at least --min-keep
+videos (default 4); when deletion would go below that, the candidates with
+the highest nudity scores are spared.
 
 Nothing is deleted unless --delete is passed; the default is a dry run that
 prints and logs what would happen.
@@ -22,6 +34,10 @@ Examples:
     python nudity_scan.py downloads                 # dry run, full report
     python nudity_scan.py downloads --delete        # actually delete
     python nudity_scan.py downloads --heatmaps-only # never delete anything
+    python nudity_scan.py downloads --heatmaps-only --redraw-heatmaps
+                                                    # re-render PNGs after a color change
+    python nudity_scan.py downloads --heatmaps-only --upgrade-sidecars
+                                                    # rescan old sidecars for per-part colors
 """
 import argparse
 import hashlib
@@ -36,18 +52,24 @@ import time
 
 VIDEO_EXTENSIONS = ('mp4', 'mkv', 'webm', 'mov', 'avi', 'wmv')
 SIDECAR_SUFFIX = '.nudity.json'
-SIDECAR_VERSION = 2
+SIDECAR_VERSION = 3
+# v2 sidecars store one aggregated nude score per sample; v3 stores one score
+# per category below. v2 stays a valid cache (heatmaps keep the old 2-color
+# look) until the video is rescanned with --upgrade-sidecars.
+COMPATIBLE_SIDECAR_VERSIONS = (2, 3)
 MODEL_SIZE = 320  # NudeNet 320n input resolution
 
-# NudeNet classes counted as actual nudity. *_COVERED classes (underwear,
-# lingerie) intentionally count as non-nude.
-NUDE_CLASSES = {
-    'FEMALE_BREAST_EXPOSED',
-    'FEMALE_GENITALIA_EXPOSED',
-    'MALE_GENITALIA_EXPOSED',
-    'ANUS_EXPOSED',
-    'BUTTOCKS_EXPOSED',
-}
+# Nudity categories: (key, NudeNet classes, heatmap BGR color). *_COVERED
+# classes (underwear, lingerie) intentionally count as non-nude.
+# A sidecar sample row is [time, <one score per category>, covered_score].
+NUDE_CATEGORIES = (
+    ('breast', {'FEMALE_BREAST_EXPOSED'}, (48, 48, 235)),                  # red
+    ('pussy', {'FEMALE_GENITALIA_EXPOSED'}, (180, 105, 255)),              # pink
+    ('dick', {'MALE_GENITALIA_EXPOSED'}, (235, 130, 48)),                  # blue
+    ('ass', {'ANUS_EXPOSED', 'BUTTOCKS_EXPOSED'}, (48, 165, 255)),         # orange
+)
+LEGACY_NUDE_COLOR = (48, 48, 235)   # v2 sidecars: any nudity, red
+COVERED_COLOR = (16, 200, 235)      # underwear/covered, yellow
 COVERED_CLASSES = {
     'FEMALE_BREAST_COVERED',
     'FEMALE_GENITALIA_COVERED',
@@ -83,7 +105,9 @@ def _get_detector():
 
 
 def _detect_frame(frame):
-    """Run NudeNet on one BGR ndarray, return (nude_score, covered_score)."""
+    """Run NudeNet on one BGR ndarray.
+
+    Returns [<max score per NUDE_CATEGORIES entry>, covered_score]."""
     global _detector_takes_ndarray
     detector = _get_detector()
     if _detector_takes_ndarray:
@@ -106,9 +130,10 @@ def _detect_frame(frame):
                 os.remove(tmp_path)
             except OSError:
                 pass
-    nude = max((d['score'] for d in detections if d['class'] in NUDE_CLASSES), default=0.0)
-    covered = max((d['score'] for d in detections if d['class'] in COVERED_CLASSES), default=0.0)
-    return float(nude), float(covered)
+    scores = [float(max((d['score'] for d in detections if d['class'] in classes), default=0.0))
+              for _key, classes, _color in NUDE_CATEGORIES]
+    scores.append(float(max((d['score'] for d in detections if d['class'] in COVERED_CLASSES), default=0.0)))
+    return scores
 
 
 # ---------------------------------------------------------------------------
@@ -173,12 +198,12 @@ def thumbnail_jpg_path(video_path):
     return os.path.join(THUMBNAILS_DIR, f'{name_hash}.jpg')
 
 
-def load_cached(video_path):
+def load_cached(video_path, versions=COMPATIBLE_SIDECAR_VERSIONS):
     try:
         with open(sidecar_path(video_path)) as f:
             data = json.load(f)
         stat = os.stat(video_path)
-        if (data.get('version') == SIDECAR_VERSION
+        if (data.get('version') in versions
                 and data.get('filesize') == stat.st_size
                 and abs(data.get('mtime', 0) - stat.st_mtime) < 2):
             return data
@@ -200,7 +225,7 @@ def scan_video(video_path, interval, dedupe_threshold=2.0, progress=None):
         progress(0, expected_frames)
     samples = []
     prev_frame = None
-    prev_scores = (0.0, 0.0)
+    prev_scores = [0.0] * (len(NUDE_CATEGORIES) + 1)
     inferences = 0
     frames = 0
     start = time.monotonic()
@@ -215,7 +240,7 @@ def scan_video(video_path, interval, dedupe_threshold=2.0, progress=None):
                 inferences += 1
             prev_frame = frame
             prev_scores = scores
-            samples.append([round(frames * interval, 2), round(scores[0], 3), round(scores[1], 3)])
+            samples.append([round(frames * interval, 2)] + [round(s, 3) for s in scores])
             frames += 1
             if progress:
                 progress(frames, expected_frames)
@@ -240,9 +265,12 @@ def scan_video(video_path, interval, dedupe_threshold=2.0, progress=None):
 
 
 def decide(data, nude_threshold, strong_threshold, min_nude_seconds):
-    """Return (is_nude, max_score, nude_seconds) from sidecar sample data."""
+    """Return (is_nude, max_score, nude_seconds) from sidecar sample data.
+
+    Sample rows are [time, <nude score(s)>, covered]; v2 has one aggregated
+    nude column, v3 one per NUDE_CATEGORIES entry. Both handled here."""
     interval = data.get('interval', 2.0)
-    scores = [s[1] for s in data.get('samples', [])]
+    scores = [max(s[1:-1]) for s in data.get('samples', [])]
     max_score = max(scores, default=0.0)
     nude_seconds = sum(interval for s in scores if s >= nude_threshold)
     is_nude = nude_seconds >= min_nude_seconds or max_score >= strong_threshold
@@ -254,6 +282,12 @@ def decide(data, nude_threshold, strong_threshold, min_nude_seconds):
 # ---------------------------------------------------------------------------
 
 def render_heatmap(data, out_path, width=1000, height=40):
+    """Bar height is the score; per-category colors from NUDE_CATEGORIES.
+
+    Where several categories fire at once, the taller bar is drawn first and
+    shorter ones over its base, so each visible segment is the category whose
+    score reaches that height. v2 sidecars have a single aggregated nude
+    column and render in the legacy red."""
     import numpy as np
     import cv2
 
@@ -261,18 +295,26 @@ def render_heatmap(data, out_path, width=1000, height=40):
     samples = data.get('samples') or []
     duration = data.get('duration') or 0
     if samples and duration > 0:
-        times = np.array([s[0] for s in samples], dtype=np.float32)
-        nude = np.array([s[1] for s in samples], dtype=np.float32)
-        cov = np.array([s[2] for s in samples], dtype=np.float32)
+        arr = np.array(samples, dtype=np.float32)
+        times = arr[:, 0]
+        nude = arr[:, 1:-1]
+        cov = arr[:, -1]
+        if nude.shape[1] == len(NUDE_CATEGORIES):
+            colors = [color for _key, _classes, color in NUDE_CATEGORIES]
+        else:
+            colors = [LEGACY_NUDE_COLOR] * nude.shape[1]
         col_t = (np.arange(width, dtype=np.float32) + 0.5) * (duration / width)
         idx = np.searchsorted(times, col_t).clip(0, len(samples) - 1)
         for x in range(width):
-            c = cov[idx[x]]
-            n = nude[idx[x]]
+            i = idx[x]
+            c = cov[i]
             if c > 0.2:  # underwear/covered: yellow bar
-                img[height - max(1, int(c * height)):, x] = (16, 200, 235)
-            if n > 0.2:  # nudity: red bar drawn on top
-                img[height - max(1, int(n * height)):, x] = (48, 48, 235)
+                img[height - max(1, int(c * height)):, x] = COVERED_COLOR
+            bars = sorted(
+                ((float(nude[i, k]), colors[k]) for k in range(nude.shape[1]) if nude[i, k] > 0.2),
+                key=lambda b: b[0], reverse=True)
+            for score, color in bars:  # nudity drawn on top of covered
+                img[height - max(1, int(score * height)):, x] = color
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     cv2.imwrite(out_path, img)
 
@@ -344,9 +386,12 @@ def _report_progress(video_path):
 
 def _worker_scan(args):
     """Returns (video_path, data, error, skipped_reason)."""
-    video_path, interval = args
+    video_path, interval, upgrade, redraw = args
     try:
-        cached = load_cached(video_path)
+        # With --upgrade-sidecars only the current version counts as cached,
+        # so older sidecars get rescanned with per-category scores.
+        versions = (SIDECAR_VERSION,) if upgrade else COMPATIBLE_SIDECAR_VERSIONS
+        cached = load_cached(video_path, versions)
         if cached is not None:
             data = cached
             data['from_cache'] = True
@@ -358,7 +403,7 @@ def _worker_scan(args):
             with open(sidecar_path(video_path), 'w') as f:
                 json.dump(data, f)
         hm = heatmap_path(video_path)
-        if not data.get('from_cache') or not os.path.exists(hm):
+        if redraw or not data.get('from_cache') or not os.path.exists(hm):
             render_heatmap(data, hm)
         return video_path, data, None, None
     except Exception as e:
@@ -380,6 +425,9 @@ class ProgressDisplay:
         self.total_files = total_files
         self.done_files = 0
         self.active = {}  # video_path -> (frames_done, frames_expected)
+        self.folder_name = None  # basename of the folder being scanned (None = hidden)
+        self.folder_total = 0
+        self.folder_done = 0
         self._lines = 0
         self.enabled = sys.stdout.isatty() or bool(os.environ.get('FORCE_PROGRESS'))
 
@@ -399,12 +447,19 @@ class ProgressDisplay:
         print(msg, flush=True)
         self.render()
 
+    def start_folder(self, name, total):
+        """Begin a new folder section; name None hides the folder bar."""
+        self.folder_name = name
+        self.folder_total = total
+        self.folder_done = 0
+
     def file_progress(self, path, done, expected):
         self.active[path] = (done, expected)
 
     def file_done(self, path):
         self.active.pop(path, None)
         self.done_files += 1
+        self.folder_done += 1
 
     def render(self):
         if not self.enabled:
@@ -415,6 +470,13 @@ class ProgressDisplay:
         in_flight = sum(min(d / e, 1.0) for d, e in self.active.values() if e)
         frac = (self.done_files + in_flight) / self.total_files if self.total_files else 1.0
         lines = [f'Overall {self._bar(frac)} {self.done_files}/{self.total_files} files ({frac:.0%})']
+        if self.folder_name:
+            # Folders are scanned one at a time, so every active file belongs
+            # to the current folder and in-flight credit carries over.
+            frac_f = (self.folder_done + in_flight) / self.folder_total if self.folder_total else 1.0
+            line = (f'Folder  {self._bar(frac_f)} {self.folder_done}/{self.folder_total} files '
+                    f'({frac_f:.0%})  {self.folder_name}')
+            lines.append(line[:cols - 1])
         for path, (done, expected) in sorted(self.active.items()):
             name = os.path.basename(path)
             if expected:
@@ -434,6 +496,37 @@ class ProgressDisplay:
 # ---------------------------------------------------------------------------
 # Collection walk / deletion
 # ---------------------------------------------------------------------------
+
+KEEP_MARKERS = ('.keep', '.nodelete')
+
+
+def find_keep_marker(folder, root):
+    """Return the path of a .keep/.nodelete file protecting `folder`, looking
+    in the folder itself and every parent up to (and including) `root`."""
+    folder = os.path.abspath(folder)
+    root = os.path.abspath(root)
+    while True:
+        for marker in KEEP_MARKERS:
+            path = os.path.join(folder, marker)
+            if os.path.exists(path):
+                return path
+        if folder == root:
+            return None
+        parent = os.path.dirname(folder)
+        if parent == folder:
+            return None
+        folder = parent
+
+
+def file_keep_marker(video_path):
+    """Return the path of a `<video>.keep`/`<video>.nodelete` file protecting
+    this single video, or None."""
+    for marker in KEEP_MARKERS:
+        path = video_path + marker
+        if os.path.exists(path):
+            return path
+    return None
+
 
 def keep_lottery(video_path, keep_fraction):
     """Deterministic pseudo-random keep decision, stable across re-runs so a
@@ -506,8 +599,16 @@ def main():
                         help='total nude time to keep a file (default 3.0)')
     parser.add_argument('--keep-fraction', type=float, default=0.10,
                         help='fraction of non-nude videos to keep anyway (default 0.10)')
+    parser.add_argument('--min-keep', type=int, default=4,
+                        help='always keep at least this many videos per folder (default 4)')
     parser.add_argument('--min-age-minutes', type=float, default=30,
                         help='skip files modified more recently than this (default 30)')
+    parser.add_argument('--redraw-heatmaps', action='store_true',
+                        help='re-render every heatmap PNG from the cached sidecar JSON (no rescan); '
+                             'use after changing the color scheme')
+    parser.add_argument('--upgrade-sidecars', action='store_true',
+                        help='rescan videos whose sidecar is an older version to get '
+                             'per-category scores (and the colored heatmap)')
     parser.add_argument('--workers', type=int,
                         default=max(1, (os.cpu_count() or 2) // 2),
                         help='parallel scanner processes')
@@ -540,12 +641,15 @@ def main():
                                 initargs=(threads_per_worker, progress_queue))
     display = ProgressDisplay(total_files)
 
-    totals = {'nude': 0, 'clean_kept': 0, 'deleted': 0, 'errors': 0, 'freed': 0, 'skipped': 0}
+    totals = {'nude': 0, 'clean_kept': 0, 'protected': 0, 'min_kept': 0,
+              'deleted': 0, 'errors': 0, 'freed': 0, 'skipped': 0}
     done = 0
     try:
         for folder, videos in sorted(folders.items()):
+            display.start_folder(os.path.basename(folder) if folder != root else None, len(videos))
             display.log(f'\n=== {folder} ({len(videos)} videos) ===')
-            pending = {v: pool.apply_async(_worker_scan, ((v, args.interval),))
+            pending = {v: pool.apply_async(
+                _worker_scan, ((v, args.interval, args.upgrade_sidecars, args.redraw_heatmaps),))
                        for v in videos}
             decisions = []  # (path, verdict, data)
             while pending:
@@ -582,19 +686,61 @@ def main():
                     time.sleep(0.15)
 
             # Folder fully scanned -> now prune
+            keep_marker = find_keep_marker(folder, root)
+            if keep_marker and any(v == 'clean' for _, v, _ in decisions):
+                display.log(f'  folder protected by {keep_marker}, keeping all videos')
+
+            # Phase 1: decide each file's fate without touching anything.
+            fates = []  # [video_path, verdict, data, action]; 'delete' = candidate
             for video_path, verdict, data in decisions:
+                if verdict == 'nude' or verdict == 'error':
+                    action = 'kept'
+                elif keep_marker:
+                    action = 'kept-protected'
+                elif file_keep_marker(video_path):
+                    action = 'kept-marker'
+                elif keep_lottery(video_path, args.keep_fraction):
+                    action = 'kept-lottery'
+                else:
+                    action = 'delete'
+                fates.append([video_path, verdict, data, action])
+
+            # A folder always keeps at least --min-keep videos, no matter
+            # what. Skipped/unscanned videos stay too, so they count as kept.
+            deleting = [f for f in fates if f[3] == 'delete']
+            remaining = len(videos) - len(deleting)
+            if deleting and remaining < args.min_keep:
+                rescued = sorted(
+                    deleting, reverse=True,
+                    key=lambda f: decide(f[2], args.nude_threshold, args.strong_threshold,
+                                         args.min_nude_seconds)[1],
+                )[:args.min_keep - remaining]
+                for f in rescued:
+                    f[3] = 'kept-minimum'
+
+            # Phase 2: act on the fates.
+            for video_path, verdict, data, action in fates:
                 entry = {
                     'time': time.strftime('%Y-%m-%dT%H:%M:%S'),
                     'file': video_path,
                     'verdict': verdict,
                     'action': 'kept',
                 }
-                if verdict == 'nude' or verdict == 'error':
+                if action == 'kept':
                     totals['nude'] += verdict == 'nude'
-                elif keep_lottery(video_path, args.keep_fraction):
+                elif action in ('kept-protected', 'kept-marker'):
+                    totals['protected'] += 1
+                    entry['action'] = action
+                    if action == 'kept-marker':
+                        display.log(f'  keeping (marker file): {os.path.basename(video_path)}')
+                elif action == 'kept-lottery':
                     totals['clean_kept'] += 1
                     entry['action'] = 'kept-lottery'
                     display.log(f'  keeping (random {args.keep_fraction:.0%} sample): {os.path.basename(video_path)}')
+                elif action == 'kept-minimum':
+                    totals['min_kept'] += 1
+                    entry['action'] = 'kept-minimum'
+                    display.log(f'  keeping (folder minimum of {args.min_keep}): {os.path.basename(video_path)}')
                 elif args.heatmaps_only or not args.delete:
                     entry['action'] = 'would-delete'
                     totals['deleted'] += 1
@@ -626,6 +772,7 @@ def main():
 
     action = 'deleted' if (args.delete and not args.heatmaps_only) else 'would delete'
     print(f'\nDone. nude: {totals["nude"]}, kept clean (lottery): {totals["clean_kept"]}, '
+          f'kept (protected): {totals["protected"]}, kept (folder minimum): {totals["min_kept"]}, '
           f'{action}: {totals["deleted"]} ({human_size(totals["freed"])}), '
           f'skipped (in use): {totals["skipped"]}, errors: {totals["errors"]}')
     print(f'Report appended to {args.report}')
