@@ -50,7 +50,7 @@
                     hx-sync="#video-list:replace"
                     hx-swap="innerHTML">
                         <div class="d-flex justify-content-between align-items-center">
-                            {% if video.has_thumbnail %}<img class="video-thumbnail me-2" src="/thumbnail/{{ video.thumbnail_hash }}.jpg" alt="" loading="lazy" style="width: 240px; height: auto; border-radius: 4px;">{% endif %}
+                            {% if video.has_thumbnail %}<img class="video-thumbnail me-2" src="/thumbnail/{{ video.thumbnail_hash }}.jpg" alt="" loading="lazy" style="width: 240px; height: auto; border-radius: 4px;">{% else %}<img class="video-thumbnail me-2" src="/static/placeholders/generating.jpg" alt="" loading="lazy" style="width: 240px; height: auto; border-radius: 4px;" hx-get="/thumbnail/{{ video.thumbnail_hash }}.jpg" hx-trigger="load, every 5s" hx-swap="none" hx-on::after-request="thumbSwap(this, event, '/thumbnail/{{ video.thumbnail_hash }}.jpg')">{% endif %}
                             <span class="fw-bold">{{ video.shortname }}</span>
                             <span class="badge bg-primary">{{ video.human_readable_filesize }}</span>
                         </div>

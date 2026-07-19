@@ -174,10 +174,14 @@ class HTTPManager(Manager):
 
         @app.route('/thumbnail/<path:filename>', methods=['GET'])
         def get_thumbnail(filename):
-            return send_from_directory(
-                os.path.abspath(THUMBNAILS_DIR),
-                filename
-            )
+            thumb_dir = os.path.abspath(THUMBNAILS_DIR)
+            thumb_path = os.path.join(thumb_dir, filename)
+            if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0:
+                return send_from_directory(thumb_dir, filename)
+            err_path = os.path.splitext(thumb_path)[0] + '.err'
+            if os.path.exists(err_path):
+                return ('thumbnail generation failed', 500)
+            return ('thumbnail not ready', 404)
 
         @app.route('/videos/watch/<user>/<site>/<path:play_video>', methods=['GET'])
         @login_required

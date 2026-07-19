@@ -21,8 +21,16 @@ def get_thumbnail_path(video_path):
     return os.path.join(THUMBNAILS_DIR, f"{name_hash}.jpg")
 
 
+def get_thumbnail_error_path(video_path):
+    return os.path.splitext(get_thumbnail_path(video_path))[0] + '.err'
+
+
 def thumbnail_exists(video_path):
     return os.path.exists(get_thumbnail_path(video_path))
+
+
+def thumbnail_failed(video_path):
+    return os.path.exists(get_thumbnail_error_path(video_path))
 
 
 def generate_thumbnail(video_path, width=None):
@@ -31,10 +39,25 @@ def generate_thumbnail(video_path, width=None):
         width = THUMBNAIL_WIDTH
 
     thumb_path = get_thumbnail_path(video_path)
+    err_path = get_thumbnail_error_path(video_path)
     if os.path.exists(thumb_path):
         return thumb_path
 
     os.makedirs(THUMBNAILS_DIR, exist_ok=True)
+
+    def _success():
+        if os.path.exists(err_path):
+            try:
+                os.remove(err_path)
+            except OSError:
+                pass
+
+    def _failure():
+        try:
+            with open(err_path, 'w'):
+                pass
+        except OSError:
+            pass
 
     try:
         subprocess.run(
@@ -52,6 +75,7 @@ def generate_thumbnail(video_path, width=None):
             timeout=30
         )
         if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0:
+            _success()
             return thumb_path
         # If 5s seek failed (short video), try without seek
         subprocess.run(
@@ -68,10 +92,12 @@ def generate_thumbnail(video_path, width=None):
             timeout=30
         )
         if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0:
+            _success()
             return thumb_path
     except Exception as e:
         logger.warning(f"Failed to generate thumbnail for {video_path}: {e}")
 
+    _failure()
     return None
 
 
