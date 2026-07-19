@@ -39,7 +39,7 @@
             hx-include=".sorted-context"
             hx-target="#content"
             hx-sync="#video-list:replace"
-            hx-swap="innerHTML">{% if video.has_thumbnail %}<img class="video-thumbnail" src="/thumbnail/{{ video.thumbnail_hash }}.jpg" alt="" loading="lazy">{% else %}<img class="video-thumbnail" src="/static/placeholders/generating.jpg" alt="" loading="lazy" hx-get="/thumbnail/{{ video.thumbnail_hash }}.jpg" hx-trigger="load, every 5s" hx-swap="none" hx-on::after-request="thumbSwap(this, event, '/thumbnail/{{ video.thumbnail_hash }}.jpg')">{% endif %}<span class="filename">{{ video.shortname }}</span><span class="size">{{ video.human_readable_filesize }}</span></a>
+            hx-swap="innerHTML">{% if video.has_thumbnail %}<img class="video-thumbnail" src="/thumbnail/{{ video.thumbnail_hash }}.jpg" alt="" loading="lazy">{% else %}<img class="video-thumbnail" src="/static/placeholders/generating.jpg" alt="" loading="lazy" hx-get="/thumbnail/{{ video.thumbnail_hash }}.jpg" hx-trigger="load, every 5s" hx-swap="none" hx-on::after-request="thumbSwap(this, event, '/thumbnail/{{ video.thumbnail_hash }}.jpg')">{% endif %}{% if video.has_heatmap %}<img class="nudity-heatmap-mini" src="/thumbnail/{{ video.thumbnail_hash }}.heatmap.png" alt="" loading="lazy">{% endif %}<span class="filename">{{ video.shortname }}</span><span class="size">{{ video.human_readable_filesize }}</span></a>
             <button hx-delete="/videos/{{ streamer.username }}/{{ streamer.site }}/{{ video.filename }}"
                 hx-trigger="click"
                 hx-target="#video-list"
