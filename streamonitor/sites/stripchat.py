@@ -304,7 +304,7 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
                 headers=self.headers
             )
             if req.status_code != 200:
-                self.log(f"Failed to load previous messages: {e}")
+                self.log(f"Failed to load previous messages: {req.content}")
                 return
             prev_data = req.json()
             if 'messages' in prev_data:
