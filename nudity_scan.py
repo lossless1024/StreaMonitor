@@ -281,6 +281,40 @@ def render_heatmap(data, out_path, width=1000, height=40):
 # Worker process
 # ---------------------------------------------------------------------------
 
+def is_open_for_writing(path):
+    """True if any visible local process has `path` open with write access.
+
+    Read-only opens (e.g. the web player streaming the file) don't count.
+    Uses /proc, so it only sees processes of the same user (which is where
+    the StreaMonitor recorder runs anyway); returns False on non-Linux.
+    """
+    real = os.path.realpath(path)
+    if not os.path.isdir('/proc'):
+        return False
+    for pid in os.listdir('/proc'):
+        if not pid.isdigit():
+            continue
+        fd_dir = os.path.join('/proc', pid, 'fd')
+        try:
+            fds = os.listdir(fd_dir)
+        except OSError:
+            continue
+        for fd in fds:
+            try:
+                if os.readlink(os.path.join(fd_dir, fd)) != real:
+                    continue
+                with open(os.path.join('/proc', pid, 'fdinfo', fd)) as f:
+                    for line in f:
+                        if line.startswith('flags:'):
+                            access_mode = int(line.split()[1], 8) & 0o3
+                            if access_mode in (os.O_WRONLY, os.O_RDWR):
+                                return True
+                            break
+            except OSError:
+                continue
+    return False
+
+
 _progress_queue = None
 
 
@@ -309,6 +343,7 @@ def _report_progress(video_path):
 
 
 def _worker_scan(args):
+    """Returns (video_path, data, error, skipped_reason)."""
     video_path, interval = args
     try:
         cached = load_cached(video_path)
@@ -316,6 +351,8 @@ def _worker_scan(args):
             data = cached
             data['from_cache'] = True
         else:
+            if is_open_for_writing(video_path):
+                return video_path, None, None, 'open for writing, still downloading?'
             data = scan_video(video_path, interval, progress=_report_progress(video_path))
             data['from_cache'] = False
             with open(sidecar_path(video_path), 'w') as f:
@@ -323,9 +360,9 @@ def _worker_scan(args):
         hm = heatmap_path(video_path)
         if not data.get('from_cache') or not os.path.exists(hm):
             render_heatmap(data, hm)
-        return video_path, data, None
+        return video_path, data, None, None
     except Exception as e:
-        return video_path, None, repr(e)
+        return video_path, None, repr(e), None
 
 
 # ---------------------------------------------------------------------------
@@ -503,7 +540,7 @@ def main():
                                 initargs=(threads_per_worker, progress_queue))
     display = ProgressDisplay(total_files)
 
-    totals = {'nude': 0, 'clean_kept': 0, 'deleted': 0, 'errors': 0, 'freed': 0}
+    totals = {'nude': 0, 'clean_kept': 0, 'deleted': 0, 'errors': 0, 'freed': 0, 'skipped': 0}
     done = 0
     try:
         for folder, videos in sorted(folders.items()):
@@ -520,10 +557,14 @@ def main():
                     pass
                 finished = [p for p, r in pending.items() if r.ready()]
                 for p in finished:
-                    video_path, data, error = pending.pop(p).get()
+                    video_path, data, error, skipped = pending.pop(p).get()
                     display.file_done(video_path)  # also advances the overall bar
                     done += 1
                     name = os.path.basename(video_path)
+                    if skipped:
+                        totals['skipped'] += 1
+                        display.log(f'[{done}/{total_files}] {name}: skipped ({skipped})')
+                        continue  # not in decisions -> never deleted
                     if error or data.get('error'):
                         totals['errors'] += 1
                         display.log(f'[{done}/{total_files}] {name}: ERROR {error or data["error"]} (kept)')
@@ -585,7 +626,8 @@ def main():
 
     action = 'deleted' if (args.delete and not args.heatmaps_only) else 'would delete'
     print(f'\nDone. nude: {totals["nude"]}, kept clean (lottery): {totals["clean_kept"]}, '
-          f'{action}: {totals["deleted"]} ({human_size(totals["freed"])}), errors: {totals["errors"]}')
+          f'{action}: {totals["deleted"]} ({human_size(totals["freed"])}), '
+          f'skipped (in use): {totals["skipped"]}, errors: {totals["errors"]}')
     print(f'Report appended to {args.report}')
 
 
