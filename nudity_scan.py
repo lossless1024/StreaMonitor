@@ -13,6 +13,9 @@ Workflow (per folder):
   3. Only after the whole folder is scanned, non-nude videos are deleted --
      except a deterministic ~10% random sample that is kept.
 
+A folder containing a `.keep` or `.nodelete` file is protected: its videos
+(and those of its subfolders) are scanned but never deleted.
+
 Nothing is deleted unless --delete is passed; the default is a dry run that
 prints and logs what would happen.
 
@@ -435,6 +438,27 @@ class ProgressDisplay:
 # Collection walk / deletion
 # ---------------------------------------------------------------------------
 
+KEEP_MARKERS = ('.keep', '.nodelete')
+
+
+def find_keep_marker(folder, root):
+    """Return the path of a .keep/.nodelete file protecting `folder`, looking
+    in the folder itself and every parent up to (and including) `root`."""
+    folder = os.path.abspath(folder)
+    root = os.path.abspath(root)
+    while True:
+        for marker in KEEP_MARKERS:
+            path = os.path.join(folder, marker)
+            if os.path.exists(path):
+                return path
+        if folder == root:
+            return None
+        parent = os.path.dirname(folder)
+        if parent == folder:
+            return None
+        folder = parent
+
+
 def keep_lottery(video_path, keep_fraction):
     """Deterministic pseudo-random keep decision, stable across re-runs so a
     dry run shows exactly what a later --delete run will do."""
@@ -540,7 +564,7 @@ def main():
                                 initargs=(threads_per_worker, progress_queue))
     display = ProgressDisplay(total_files)
 
-    totals = {'nude': 0, 'clean_kept': 0, 'deleted': 0, 'errors': 0, 'freed': 0, 'skipped': 0}
+    totals = {'nude': 0, 'clean_kept': 0, 'protected': 0, 'deleted': 0, 'errors': 0, 'freed': 0, 'skipped': 0}
     done = 0
     try:
         for folder, videos in sorted(folders.items()):
@@ -582,6 +606,9 @@ def main():
                     time.sleep(0.15)
 
             # Folder fully scanned -> now prune
+            keep_marker = find_keep_marker(folder, root)
+            if keep_marker and any(v == 'clean' for _, v, _ in decisions):
+                display.log(f'  folder protected by {keep_marker}, keeping all videos')
             for video_path, verdict, data in decisions:
                 entry = {
                     'time': time.strftime('%Y-%m-%dT%H:%M:%S'),
@@ -591,6 +618,9 @@ def main():
                 }
                 if verdict == 'nude' or verdict == 'error':
                     totals['nude'] += verdict == 'nude'
+                elif keep_marker:
+                    totals['protected'] += 1
+                    entry['action'] = 'kept-protected'
                 elif keep_lottery(video_path, args.keep_fraction):
                     totals['clean_kept'] += 1
                     entry['action'] = 'kept-lottery'
@@ -626,6 +656,7 @@ def main():
 
     action = 'deleted' if (args.delete and not args.heatmaps_only) else 'would delete'
     print(f'\nDone. nude: {totals["nude"]}, kept clean (lottery): {totals["clean_kept"]}, '
+          f'kept (protected folder): {totals["protected"]}, '
           f'{action}: {totals["deleted"]} ({human_size(totals["freed"])}), '
           f'skipped (in use): {totals["skipped"]}, errors: {totals["errors"]}')
     print(f'Report appended to {args.report}')
