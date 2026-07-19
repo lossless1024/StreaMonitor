@@ -176,6 +176,13 @@ class StripChat(RoomIdBot):
                 error = data['error']
                 if error == 'Not Found':
                     return Status.NOTEXIST
+                elif error == 'Model not found':
+                    if 'newUsername' in data['data']:
+                        self.username = data['data']['newUsername']
+                        self.logger.info('Model name changed')
+                        data = self._getStatusData(self.username)
+                        return self._update_lastInfo(data)
+                    return Status.NOTEXIST
                 self.logger.warn(f'Status returned error: {error}')
             return Status.UNKNOWN
 
@@ -191,6 +198,7 @@ class StripChat(RoomIdBot):
         data = self._getStatusData(username)
         if username == self.username:
             self._update_lastInfo(data)
+            return str(self.lastInfo.get('model', {}).get('id'))
 
         if 'user' not in data:
             return None
