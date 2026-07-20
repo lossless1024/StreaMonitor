@@ -28,14 +28,8 @@ def load_config():
 
 def save_config(config):
     try:
-        with open(config_loc+'.tmp', "w+") as f:
+        with open(config_loc, "w+") as f:
             json.dump(config, f, indent=4)
-        if os.path.exists(config_loc+'.bak'):
-            os.remove(config_loc+'.bak')
-        if os.path.exists(config_loc):
-            os.rename(config_loc, config_loc+'.bak')
-        if not os.path.exists(config_loc) and os.path.exists(config_loc+'.tmp'):
-            os.rename(config_loc+'.tmp', config_loc)
         return True
     except Exception as e:
         logger.exception(e)
