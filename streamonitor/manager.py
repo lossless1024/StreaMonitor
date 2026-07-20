@@ -50,7 +50,7 @@ class Manager(Thread):
         return found
 
     def saveConfig(self):
-        config.save_config([s.export() for s in self.streamers])
+        config.saveStreamers(self.streamers)
 
     def do_add(self, streamer, username, site):
         if streamer:

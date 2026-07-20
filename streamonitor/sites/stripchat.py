@@ -1,8 +1,6 @@
 import itertools
-import json
 import os.path
 import random
-import re
 import time
 import datetime
 import json
@@ -193,10 +191,16 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
                     return Status.NOTEXIST
                 elif error == 'Model not found':
                     if 'newUsername' in data['data']:
-                        self.username = data['data']['newUsername']
-                        self.logger.info('Model name changed')
-                        data = self._getStatusData(self.username)
-                        return self._update_lastInfo(data)
+                        _new_username = data['data']['newUsername']
+                        self.logger.info(f'Model name changed, new name: {_new_username}')
+                        _old_dl_dir = self.outputFolder
+                        self.setUsername(_new_username)
+                        data = self._getStatusData(_new_username)
+                        _error = self._update_lastInfo(data)
+                        _new_dl_dir = self.outputFolder
+                        if os.path.exists(_old_dl_dir) and not os.path.exists(_new_dl_dir):
+                            os.rename(_old_dl_dir, _new_dl_dir)
+                        return _error
                     return Status.NOTEXIST
                 self.logger.warn(f'Status returned error: {error}')
             return Status.UNKNOWN
