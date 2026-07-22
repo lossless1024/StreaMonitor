@@ -28,6 +28,8 @@ def sort_streamers(sort_by):
             return item.sc.value
         elif sort_by == 'username':
             return item.username.lower()
+        elif sort_by == 'last_stream':
+            return item.last_stream
         return getattr(item, sort_by)
     return _real_sort_streamers
 
@@ -52,7 +54,8 @@ def streamer_list(streamers: List[Bot], request):
         filtered = False
 
     allowed_sort_columns = [
-        'site', 'username', 'running', 'status', 'video_files_total_size', 'video_files_count']
+        'site', 'username', 'running', 'status', 'last_stream',
+        'video_files_total_size', 'video_files_count']
     if sort_by not in allowed_sort_columns:
         sort_by = None
 

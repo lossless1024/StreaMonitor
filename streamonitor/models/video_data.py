@@ -23,6 +23,7 @@ class VideoData:
         self.filename = file.name
         self.abs_path = os.path.abspath(file.path)
         self.filesize = self._stat.st_size
+        self.mtime = self._stat.st_mtime
         self.human_readable_filesize = human_file_size(self._stat.st_size)
 
     @property

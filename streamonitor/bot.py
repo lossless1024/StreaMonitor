@@ -141,6 +141,18 @@ class Bot(Thread):
     def gender_data(self):
         return GENDER_DATA.get(self.gender, GENDER_DATA.get(Gender.UNKNOWN))
 
+    @property
+    def last_stream(self):
+        """Unix timestamp of the most recent recording, or 0 if none.
+
+        Derived from recording file mtimes; a currently-recording streamer's
+        growing file keeps this near 'now', so it sorts as most recent.
+        """
+        files = getattr(self, 'video_files', None)
+        if not files:
+            return 0
+        return max((getattr(v, 'mtime', 0) for v in files), default=0)
+
     def cache_file_list(self):
         videos_folder = self.outputFolder
         _videos = []
