@@ -205,7 +205,7 @@ class Chaturbate(ChatCollectingMixin, Bot):
             'format': 'json',
             'upgrade': connect_data[0]['connectionDetails']['connectionKey']
         }
-        ws_url = f"wss://{auth_data['settings']['realtime_host']}?" + urlencode(sock_params | ws_params)
+        ws_url = f"wss://{auth_data['settings']['host']}?" + urlencode(sock_params | ws_params)
         self._chat_websocket = WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_close=on_close)
 
     def startChatLog(self):
