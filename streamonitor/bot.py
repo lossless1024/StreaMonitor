@@ -39,6 +39,19 @@ class Bot(Thread):
         "User-Agent": HTTP_USER_AGENT
     }
 
+    html_headers = {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Encoding': 'none',
+        'Accept-Language': 'en,en-US;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Pragma': 'no-cache',
+        'Priority': 'u=4',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'cross-site',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
+    }
+
     status_messages = {
         Status.UNKNOWN: "Unknown error",
         Status.PUBLIC: "Channel online",
