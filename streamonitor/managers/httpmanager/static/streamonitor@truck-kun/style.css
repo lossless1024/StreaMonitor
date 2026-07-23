@@ -637,121 +637,149 @@ a {
         }
     }
 
+    /* Mobile: each row becomes a self-contained card. Cells are placed by
+       position (the row is always this fixed 12-cell structure:
+       1 status-icon, 2 site, 3 flag, 4 gender, 5 username, 6 record-toggle,
+       7 status-text, 8 last-stream, 9 size, 10 count, 11 refresh, 12 remove).
+       The header row is hidden here, so header-click sorting is desktop-only. */
     @media screen and (max-width: 600px) {
-        .streamer-link {
-            text-decoration: none;
-    
-            .link-text {
-                display: none;
-            }
-            .mobile-link-text {
-                display: grid;
-                width: 3rem;
-                height: 3rem;
-                justify-content: center;
-                align-items: center;
-                background-color: #128fa8;
-                border-radius: 50%;
-            }
+        & {
+            border: none;
         }
-    
-        tr {
+
+        thead {
+            display: none;
+        }
+
+        tbody {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        td {
+            padding: 0;
+        }
+
+        .streamer,
+        .streamer:nth-child(odd) {
             display: grid;
+            grid-template-columns: auto 1fr auto auto;
             grid-template-areas:
-                "site   streamer  streamer streamer"
-                "status status    status   status"
-                "trash  trash     watch    watch";
-            grid-template-columns: 5rem calc(50% - 5rem) 25% 25%;
+                "icon name   flag   gender"
+                "site site   status status"
+                "last last   last   last"
+                "size size   count  count"
+                "run  run    ref    rem";
+            gap: 0.4rem 0.6rem;
+            align-items: center;
+            padding: 0.85rem;
+            border: 1px solid #3a3a3a;
+            border-radius: 0.5rem;
+            background-color: #2a2a2a;
         }
-        .header-site {
-            grid-area: site;
-            text-align: start;
-            margin-inline: 1rem;
+
+        .icon-container {
+            grid-area: icon;
+            width: auto;
         }
+
+        .streamer-container {
+            grid-area: name;
+            font-size: 1.4rem;
+            justify-self: start;
+            min-width: 0;
+
+            a {
+                justify-content: flex-start;
+            }
+        }
+
+        .flag-container {
+            grid-area: flag;
+            justify-self: end;
+        }
+        .gender-container {
+            grid-area: gender;
+            justify-self: end;
+        }
+        .flag-container h1,
+        .gender-container h1 {
+            font-size: 1.4rem;
+        }
+
+        /* site: plain full name, not the round slug badge the old layout used */
         .site-container {
             grid-area: site;
-            justify-self: center;
+            justify-self: start;
+        }
+        .streamer-link {
+            text-decoration: none;
 
-            &:has(.link-fill) {
-                padding-block: 0.5rem;
+            .link-text {
+                display: inline;
+            }
+            .mobile-link-text {
+                display: none;
             }
         }
-        .header-streamer-name {
-            grid-area: streamer;
-            text-align: end;
-            margin-inline: 1rem;
+
+        .streamer > td:nth-child(7) {
+            grid-area: status;
+            justify-self: end;
+            color: #cfcfcf;
         }
-        .streamer-container {
-            grid-area: streamer;
-            display: flex;
-            font-size: 1.5rem;
-            background-color: #0a202f;
-    
-            a {
-                flex: 1;
-                text-decoration: none;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-    
-                &:visited {
-                    color: #BDBDBD;
-                }
+
+        .last-stream-cell {
+            grid-area: last;
+            justify-self: start;
+
+            &::before {
+                content: "Last stream: ";
+                color: #8a8a8a;
             }
         }
-        .header-running {
-            grid-area: watch;
-            text-align: end;
-            margin-inline: 1rem;
+
+        .streamer > td:nth-child(9) {
+            grid-area: size;
+            justify-self: start;
+
+            &::before {
+                content: "Size: ";
+                color: #8a8a8a;
+            }
         }
+        .streamer > td:nth-child(10) {
+            grid-area: count;
+            justify-self: end;
+
+            &::before {
+                content: "Videos: ";
+                color: #8a8a8a;
+            }
+        }
+
         td.streamer-will-record {
-            grid-area: watch;
+            grid-area: run;
             display: flex;
-            margin-right: 1rem;
-            margin-block: 0.5rem;
-            padding-left:0;
-    
+
             .recording-status {
                 display: none;
             }
-    
             button {
                 flex: 1;
             }
+        }
 
-            .pause-btn {
-                margin-left: 0;
-                
-                span {
-                    margin-left: 0;
-                }
-        
-                i {
-                    margin-right: 0;
-                }
-            }
+        .streamer > td:nth-child(11) {
+            grid-area: ref;
         }
-        .header-status {
-            grid-area: status;
+        .streamer > td:nth-child(12) {
+            grid-area: rem;
         }
-        .streamer-status {
-            grid-area: status;
-            margin-top: 0.5rem;
-        }
-        .header-remove {
-            grid-area: trash;
-            margin-inline: 1rem;
-            text-align: start;
-        }
-        td.streamer-remove {
-            grid-area: trash;
-            text-align: start;
-            margin-left: 1rem;
-            margin-block: 0.5rem;
-        }
-        td.streamer-disk-usage {
-            grid-area: trash;
-            text-align: end;
+        .streamer > td:nth-child(11) button,
+        .streamer > td:nth-child(12) button {
+            width: 100%;
         }
     }
 }
