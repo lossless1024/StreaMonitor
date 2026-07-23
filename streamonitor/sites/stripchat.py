@@ -171,7 +171,7 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
     def _getStatusData(self, username):
         r = self.session.get(
             f'https://stripchat.com/api/front/v2/models/username/{username}/cam?uniq={StripChat.uniq()}',
-            headers=self.headers
+            headers=self.headers | self.html_headers
         )
 
         try:
@@ -217,16 +217,19 @@ class StripChat(ChatCollectingMixin, RoomIdBot):
         data = self._getStatusData(username)
         if username == self.username:
             self._update_lastInfo(data)
-            return str(self.lastInfo.get('model', {}).get('id'))
+            _id = self.lastInfo.get('model', {}).get('id')
+            return str(_id) if _id else None
 
+        if not isinstance(data, dict):
+            return None
         if 'user' not in data:
             return None
         if 'user' not in data['user']:
             return None
         if 'id' not in data['user']['user']:
             return None
-
-        return str(data['user']['user']['id'])
+        _id = data['user']['user']['id']
+        return str(_id) if _id else None
 
     def getStatus(self):
         data = self._getStatusData(self.username)
