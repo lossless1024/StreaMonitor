@@ -17,7 +17,8 @@ from streamonitor.manager import Manager
 from streamonitor.managers.outofspace_detector import OOSDetector
 from streamonitor.utils import human_file_size
 
-from .filters import status_icon, status_text
+from streamonitor.thumbnail import THUMBNAILS_DIR
+from .filters import status_icon, status_text, reltime, abstime
 from .mappers import web_status_lookup
 from .models import InvalidStreamer
 from .utils import confirm_deletes, streamer_list, get_recording_query_params, get_streamer_context, set_streamer_list_cookies
@@ -48,6 +49,8 @@ class HTTPManager(Manager):
         app.add_template_filter(human_file_size, name='tohumanfilesize')
         app.add_template_filter(status_icon, name='status_icon_class')
         app.add_template_filter(status_text, name='status_text')
+        app.add_template_filter(reltime, name='reltime')
+        app.add_template_filter(abstime, name='abstime')
 
         def check_auth(username, password):
             return WEBSERVER_PASSWORD == "" or (username == 'admin' and compare_digest(password, WEBSERVER_PASSWORD))
