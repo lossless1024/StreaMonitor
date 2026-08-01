@@ -30,7 +30,7 @@ class StripChat(Bot):
         "Ook7quaiNgiyuhai": "EQueeGh2kaewa3ch",
     }
     _session = None
-    
+
     _DOPPIO_INDEX_PATTERN = re.compile(r'(\d+):\s*"([a-f0-9]+)"')
     _DOPPIO_REQUIRE_PATTERN = re.compile(r'require\(["\']\./(Doppio[^"\']+\.js)["\']\)')
     _HASH_PATTERNS = [
@@ -38,17 +38,23 @@ class StripChat(Bot):
         re.compile(r'{}:"([a-zA-Z0-9]{{20}})"'),
         re.compile(r'"{}":"([a-zA-Z0-9]{{20}})"'),
     ]
-    
+
     _MOUFLON_NEEDLE = "#EXT-X-MOUFLON:"
     _MOUFLON_FILE_ATTR = "#EXT-X-MOUFLON:FILE:"
     _MOUFLON_URI_ATTR = "#EXT-X-MOUFLON:URI:"
     _MOUFLON_FILENAME = "media.mp4"
     _CDN_DOMAINS = ("org", "com", "net")
     _CHARSET = "abcdefghijklmnopqrstuvwxyz0123456789"
-    
+
     _PRIVATE_STATUSES = frozenset(["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"])
     _OFFLINE_STATUSES = frozenset(["off", "idle"])
 
+    # -----------------------------------------------------------------------
+    # CHANGE 1: Added _MMP_FALLBACK_VERSION class constant.
+    # Stores the known-good MMP player version used as a fallback when
+    # auto-detection from the homepage fails. Update this string whenever
+    # Stripchat ships a new player version and auto-detection breaks.
+    # -----------------------------------------------------------------------
     _MMP_FALLBACK_VERSION = "v2.6.0"
 
     __slots__ = ('vr',)
@@ -61,14 +67,14 @@ class StripChat(Bot):
             except Exception as e:
                 StripChat._static_data = None
                 raise e
-        
+
         end_time = time.time() + 15
         while StripChat._static_data == {} and time.time() < end_time:
             time.sleep(0.01)
-        
+
         if StripChat._static_data == {}:
             raise TimeoutError("Static data initialization timeout")
-        
+
         super().__init__(username)
         self.vr = False
         self.getVideo = lambda _, url, filename: getVideoNativeHLS(
@@ -104,28 +110,67 @@ class StripChat(Bot):
 
         try:
             r = s.get(
-                "https://hu.stripchat.com/api/front/v3/config/static",
+                "https://stripchat.com/api/front/v3/config/static",
                 headers=cls.headers,
                 timeout=5
             )
             r.raise_for_status()
             response_json = r.json()
-            
+
             # Handle different response structures
             if "static" in response_json:
                 static_data = response_json["static"]
             else:
                 static_data = response_json
 
+            # -------------------------------------------------------------------
+            # CHANGE 2: Replaced the old featuresV2 / featureSettings block.
+            #
+            # OLD CODE (lines ~120-133 in the original):
+            #
+            #   if "featureSettings" in static_data:
+            #       feature_settings = static_data["featureSettings"]
+            #       mmp_origin = "https://mmp.doppiocdn.com/player/mmp"
+            #   else:
+            #       raise Exception(f"'featureSettings' not found. ...")
+            #
+            #   if "featuresV2" not in static_data:          # <-- caused the crash
+            #       raise Exception(f"'featuresV2' not found. ...")
+            #
+            #   if "playerModuleExternalLoading" not in static_data["featuresV2"]:
+            #       raise Exception(...)
+            #
+            #   mmp_version = static_data["featuresV2"]["playerModuleExternalLoading"]["mmpVersion"]
+            #
+            # WHY IT BROKE:
+            #   Stripchat removed both `featuresV2` and `mmpVersion` from their
+            #   static config API entirely. The version is now embedded only in
+            #   the HTML of their homepage as a script src attribute.
+            #
+            # NEW APPROACH:
+            #   1. Read mmp_origin from featureSettings.MMPExternalUnitedSourceOrigin
+            #      (falls back to the known default if the key is absent).
+            #   2. Auto-detect the version by scraping the stripchat.com homepage
+            #      for a URL matching the MMP CDN pattern.
+            #   3. Fall back to _MMP_FALLBACK_VERSION if scraping fails.
+            # -------------------------------------------------------------------
+
+            # Step 1 — resolve the MMP CDN origin URL
             mmp_origin = static_data.get("featureSettings", {}).get(
                 "MMPExternalUnitedSourceOrigin",
                 "https://mmp.doppiocdn.com/player/mmp"
             )
 
-            mmp_version = cls._MMP_FALLBACK_VERSION
+            # Step 2 — auto-detect the player version from the homepage
+            mmp_version = cls._MMP_FALLBACK_VERSION  # safe default
             try:
-                r_home = s.get("https://stripchat.com", headers=cls.headers, timeout=5)
+                r_home = s.get(
+                    "https://stripchat.com",
+                    headers=cls.headers,
+                    timeout=5
+                )
                 r_home.raise_for_status()
+                # Pattern matches e.g. "…/player/mmp/v2.6.0/main.js"
                 version_match = re.search(
                     r'mmp\.doppiocdn\.com/player/mmp/(v[\d.]+)/',
                     r_home.text
@@ -133,7 +178,12 @@ class StripChat(Bot):
                 if version_match:
                     mmp_version = version_match.group(1)
             except Exception:
+                # Non-fatal: we fall back to the hardcoded version constant
                 pass
+
+            # -------------------------------------------------------------------
+            # END OF CHANGE 2
+            # -------------------------------------------------------------------
 
             mmp_base = f"{mmp_origin}/{mmp_version}"
 
@@ -141,9 +191,9 @@ class StripChat(Bot):
             r = s.get(f"{mmp_base}/main.js", headers=cls.headers, timeout=5)
             r.raise_for_status()
             main_js_data = r.text
-            
+
             doppio_url = None
-            
+
             if match := cls._DOPPIO_REQUIRE_PATTERN.search(main_js_data):
                 doppio_url = f"{mmp_base}/{match[1]}"
             elif match := cls._DOPPIO_INDEX_PATTERN.search(main_js_data):
@@ -153,19 +203,19 @@ class StripChat(Bot):
                     if hash_match := pattern.search(main_js_data):
                         doppio_url = f"{mmp_base}/chunk-{hash_match[1]}.js"
                         break
-            
+
             if not doppio_url:
                 raise Exception("Doppio.js not found")
-            
+
             r = s.get(doppio_url, headers=cls.headers, timeout=5)
             r.raise_for_status()
             doppio_js_data = r.text
-            
+
             # Only update class variables after everything succeeds
             StripChat._static_data = static_data
             StripChat._main_js_data = main_js_data
             StripChat._doppio_js_data = doppio_js_data
-            
+
         except Exception as e:
             print(f"ERROR in getInitialData: {e}")
             raise
@@ -186,16 +236,16 @@ class StripChat(Bot):
             hash_bytes = cls._get_hash_bytes(key)
             data = base64.b64decode(encrypted_b64 + "==")
             return bytes(a ^ b for a, b in zip(data, itertools.cycle(hash_bytes))).decode()
-        
+
         psch, pkey, pdkey = cls._getMouflonFromM3U(content)
-        
+
         if not pdkey:
             return content
-        
+
         lines = content.split('\n')
         decoded = []
         last_decoded = None
-        
+
         # v1 decoding (FILE attribute)
         if psch == "v1":
             for line in lines:
@@ -206,14 +256,14 @@ class StripChat(Bot):
                     last_decoded = None
                 else:
                     decoded.append(line)
-        
+
         # v2 decoding (URI attribute)
         elif psch == "v2":
             i = 0
             while i < len(lines):
                 line = lines[i]
                 line_stripped = line.strip()
-                
+
                 # Check for #EXT-X-MAP:URI lines (initialization segment)
                 if line_stripped.startswith('#EXT-X-MAP:URI'):
                     try:
@@ -222,52 +272,52 @@ class StripChat(Bot):
                             end_quote = line.rfind('"')
                             if start_quote >= 0 and end_quote > start_quote:
                                 map_uri = line[start_quote+1:end_quote]
-                                
+
                                 if '_init_' in map_uri and '.mp4' in map_uri:
                                     uri_without_ext = map_uri[:-4]
                                     last_us = uri_without_ext.rfind('_')
                                     if last_us > 0:
                                         url_before_encrypted = uri_without_ext[:last_us]
                                         encrypted_part = uri_without_ext[last_us+1:]
-                                        
+
                                         reversed_enc = encrypted_part[::-1]
                                         decoded_part = _decode(reversed_enc, pdkey)
-                                        
+
                                         new_map_uri = f'{url_before_encrypted}_{decoded_part}.mp4'
                                         decoded.append(f'#EXT-X-MAP:URI="{new_map_uri}"')
                                         i += 1
                                         continue
-                        
+
                         decoded.append(line)
                         i += 1
                         continue
-                        
+
                     except Exception:
                         decoded.append(line)
                         i += 1
                         continue
-                
+
                 # Check for segment URI lines
                 if line.startswith(cls._MOUFLON_URI_ATTR):
                     uri_value = line[len(cls._MOUFLON_URI_ATTR):]
-                    
+
                     try:
                         if '.mp4' in uri_value:
                             last_underscore = uri_value.rfind('_')
                             if last_underscore > 0:
                                 url_without_timestamp = uri_value[:last_underscore]
                                 timestamp_part = uri_value[last_underscore+1:]
-                                
+
                                 second_last_underscore = url_without_timestamp.rfind('_')
                                 if second_last_underscore > 0:
                                     url_before_encrypted = url_without_timestamp[:second_last_underscore]
                                     encrypted = url_without_timestamp[second_last_underscore+1:]
-                                    
+
                                     reversed_encrypted = encrypted[::-1]
                                     decoded_segment = _decode(reversed_encrypted, pdkey)
-                                    
+
                                     decoded_uri = f"{url_before_encrypted}_{decoded_segment}_{timestamp_part}"
-                                    
+
                                     i += 1
                                     if i < len(lines):
                                         next_line = lines[i]
@@ -290,17 +340,17 @@ class StripChat(Bot):
                         else:
                             i += 1
                             continue
-                        
+
                     except Exception:
                         i += 1
                         continue
                 else:
                     decoded.append(line)
-                
+
                 i += 1
         else:
             return content
-        
+
         return '\n'.join(decoded)
 
     @classmethod
@@ -308,7 +358,7 @@ class StripChat(Bot):
     def getMouflonDecKey(cls, pkey: str) -> Optional[str]:
         if pkey in cls._mouflon_keys:
             return cls._mouflon_keys[pkey]
-        
+
         pattern = f'"{pkey}:'
         idx = cls._doppio_js_data.find(pattern)
         if idx != -1:
@@ -318,29 +368,29 @@ class StripChat(Bot):
                 key = cls._doppio_js_data[start:end]
                 cls._mouflon_keys[pkey] = key
                 return key
-        
+
         return None
 
     @staticmethod
     def _getMouflonFromM3U(m3u8_doc: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         needle = StripChat._MOUFLON_NEEDLE
         idx = 0
-        
+
         while (idx := m3u8_doc.find(needle, idx)) != -1:
             line_end = m3u8_doc.find('\n', idx)
             if line_end == -1:
                 line_end = len(m3u8_doc)
-            
+
             line = m3u8_doc[idx:line_end]
             parts = line.split(':', 3)
-            
+
             if len(parts) >= 4:
                 psch, pkey = parts[2], parts[3]
                 if pdkey := StripChat.getMouflonDecKey(pkey):
                     return psch, pkey, pdkey
-            
+
             idx += len(needle)
-        
+
         return None, None, None
 
     def getWebsiteURL(self) -> str:
@@ -353,61 +403,89 @@ class StripChat(Bot):
         stream_id = self.lastInfo["streamName"]
         vr = "_vr" if self.vr else ""
         auto = "_auto" if not self.vr else ""
-        
+
         host = f"doppiocdn.{random.choice(self._CDN_DOMAINS)}"
         url = f"https://edge-hls.{host}/hls/{stream_id}{vr}/master/{stream_id}{vr}{auto}.m3u8"
-        
+
         try:
-            result = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=4)
+            result = StripChat._get_session().get(url, headers=self.headers, timeout=4)
             result.raise_for_status()
         except:
             return []
-        
+
         m3u8_doc = result.text
         psch, pkey, pdkey = self._getMouflonFromM3U(m3u8_doc)
-        
+
         variants = super().getPlaylistVariants(m3u_data=m3u8_doc)
-        
+
         if not psch or not pkey:
             return variants
-        
+
         params = f"{'&' if '?' in variants[0]['url'] else '?'}psch={psch}&pkey={pkey}"
         return [dict(v, url=f"{v['url']}{params}") for v in variants]
 
+
     def getStatus(self) -> Status:
-        url = f"https://stripchat.com/api/front/v2/models/username/{self.username}/cam?uniq={self.uniq()}"
+        import re, json
         
         try:
-            r = self.session.get(url, headers=self.headers, timeout=4)
-            r.raise_for_status()
-            data = r.json()
-        except:
-            return Status.UNKNOWN
-        
-        if "cam" not in data:
-            if data.get("error") == "Not Found":
+            r = StripChat._get_session().get(
+                f"https://stripchat.com/{self.username}/",
+                headers={
+                    **self.headers,
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.9"
+                },
+                timeout=10
+            )
+            if r.status_code == 404:
                 return Status.NOTEXIST
+            r.raise_for_status()
+        except Exception as e:
+            self.logger.error(f"getStatus page fetch failed for {self.username}: {type(e).__name__}: {e}")
             return Status.UNKNOWN
         
-        self.lastInfo = {"model": data["user"]["user"]}
-        if isinstance(data["cam"], dict):
-            self.lastInfo.update(data["cam"])
+        html = r.text
         
-        status = self.lastInfo["model"].get("status")
+        # Extract model ID
+        model_id_match = re.search(r'"modelId"\s*:\s*(\d+)', html)
+        if not model_id_match:
+            model_id_match = re.search(r'/api/front/models/(\d+)/', html)
         
-        if status == "public" and self.lastInfo.get("isCamAvailable") and self.lastInfo.get("isCamActive"):
-            return Status.PUBLIC
-        
-        if status in self._PRIVATE_STATUSES:
-            return Status.PRIVATE
-        
-        if status in self._OFFLINE_STATUSES:
-            return Status.OFFLINE
-        
-        if self.lastInfo["model"].get("isDeleted"):
+        if not model_id_match:
+            self.logger.error(f"Could not find model ID for {self.username}")
             return Status.NOTEXIST
         
-        if data["user"].get("isGeoBanned"):
-            return Status.RESTRICTED
+        model_id = model_id_match.group(1)
         
-        return Status.UNKNOWN
+        stream_name_match = re.search(r"streamName[^:]*:[^\"]*\"([^\"]+)\"", html)
+        
+        # Skip members API - it returns 200 for offline models too
+        # Status will be determined from HTML below
+        
+        # Try to extract status from embedded HTML
+        status_match = re.search(r'"status"\s*:\s*"([^"]+)"', html)
+        if status_match:
+            status = status_match.group(1)
+            stream_name_match = re.search(r'"streamName"\s*:\s*"([^"]*)"', html)
+            
+            self.lastInfo = {
+                "model": {"status": status, "id": int(model_id)},
+                "streamName": model_id,
+                "isCamAvailable": "isCamAvailable" in html,
+                "isCamActive": "isCamActive" in html
+            }
+            
+            if status == "public":
+                return Status.PUBLIC
+            if status in self._PRIVATE_STATUSES:
+                return Status.PRIVATE
+            if status in self._OFFLINE_STATUSES:
+                return Status.OFFLINE
+            
+            if '"isDeleted":true' in html or '"isDeleted": true' in html:
+                return Status.NOTEXIST
+            if '"isGeoBanned":true' in html:
+                return Status.RESTRICTED
+        
+        return Status.OFFLINE
