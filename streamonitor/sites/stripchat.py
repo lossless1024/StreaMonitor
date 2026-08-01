@@ -6,6 +6,7 @@ import requests
 import base64
 import hashlib
 import os
+from curl_cffi import requests as curl_requests
 from functools import lru_cache
 from typing import Optional, Tuple, List, Dict
 
@@ -351,7 +352,7 @@ class StripChat(Bot):
         url = f"https://edge-hls.{host}/hls/{stream_id}{vr}/master/{stream_id}{vr}{auto}.m3u8"
         
         try:
-            result = self.session.get(url, headers=self.headers, cookies=self.cookies, timeout=4)
+            result = StripChat._get_session().get(url, headers=self.headers, timeout=4)
             result.raise_for_status()
         except:
             return []
@@ -371,10 +372,16 @@ class StripChat(Bot):
         url = f"https://stripchat.com/api/front/v2/models/username/{self.username}/cam?uniq={self.uniq()}"
         
         try:
-            r = self.session.get(url, headers=self.headers, timeout=4)
-            r.raise_for_status()
+            r = curl_requests.get(url, headers={
+                **self.headers,
+                "Accept": "application/json"
+            }, impersonate="chrome", timeout=10)
+            if r.status_code != 200:
+                self.logger.warning(f"API returned {r.status_code} for {self.username}")
+                return Status.UNKNOWN
             data = r.json()
-        except:
+        except Exception as e:
+            self.logger.error(f"API failed for {self.username}: {type(e).__name__}: {e}")
             return Status.UNKNOWN
         
         if "cam" not in data:
@@ -385,6 +392,9 @@ class StripChat(Bot):
         self.lastInfo = {"model": data["user"]["user"]}
         if isinstance(data["cam"], dict):
             self.lastInfo.update(data["cam"])
+        
+        if "streamName" not in self.lastInfo or not self.lastInfo.get("streamName"):
+            self.lastInfo["streamName"] = str(self.lastInfo["model"].get("id", ""))
         
         status = self.lastInfo["model"].get("status")
         
