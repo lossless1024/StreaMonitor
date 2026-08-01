@@ -368,49 +368,66 @@ class StripChat(Bot):
         params = f"{'&' if '?' in variants[0]['url'] else '?'}psch={psch}&pkey={pkey}"
         return [dict(v, url=f"{v['url']}{params}") for v in variants]
 
+    def _getStatusData(self, username):
+        url = f"https://stripchat.com/api/front/v2/models/username/{username}/cam?uniq={self.uniq()}"
+        r = curl_requests.get(url, headers={
+            **self.headers,
+            "Accept": "application/json"
+        }, impersonate="chrome", timeout=10)
+        if r.status_code != 200:
+            return None
+        return r.json()
+
+    def _update_lastInfo(self, data):
+        if "cam" not in data:
+            return Status.UNKNOWN
+        self.lastInfo = {"model": data["user"]["user"]}
+        if isinstance(data["cam"], dict):
+            self.lastInfo.update(data["cam"])
+        if "streamName" not in self.lastInfo or not self.lastInfo.get("streamName"):
+            self.lastInfo["streamName"] = str(self.lastInfo["model"].get("id", ""))
+        return self._determine_status(data)
+
+    def _determine_status(self, data):
+        status = self.lastInfo["model"].get("status")
+        if status == "public" and self.lastInfo.get("isCamAvailable") and self.lastInfo.get("isCamActive"):
+            return Status.PUBLIC
+        if status in self._PRIVATE_STATUSES:
+            return Status.PRIVATE
+        if status in self._OFFLINE_STATUSES:
+            return Status.OFFLINE
+        if self.lastInfo["model"].get("isDeleted"):
+            return Status.NOTEXIST
+        if data["user"].get("isGeoBanned"):
+            return Status.RESTRICTED
+        return Status.UNKNOWN
+
     def getStatus(self) -> Status:
-        url = f"https://stripchat.com/api/front/v2/models/username/{self.username}/cam?uniq={self.uniq()}"
-        
         try:
-            r = curl_requests.get(url, headers={
-                **self.headers,
-                "Accept": "application/json"
-            }, impersonate="chrome", timeout=10)
-            if r.status_code != 200:
-                self.logger.warning(f"API returned {r.status_code} for {self.username}")
-                return Status.UNKNOWN
-            data = r.json()
+            data = self._getStatusData(self.username)
         except Exception as e:
             self.logger.error(f"API failed for {self.username}: {type(e).__name__}: {e}")
             return Status.UNKNOWN
         
-        if "cam" not in data:
-            if data.get("error") == "Not Found":
-                return Status.NOTEXIST
+        if data is None:
             return Status.UNKNOWN
         
-        self.lastInfo = {"model": data["user"]["user"]}
-        if isinstance(data["cam"], dict):
-            self.lastInfo.update(data["cam"])
+        if "cam" not in data:
+            error = data.get("error", "")
+            if error == "Not Found":
+                return Status.NOTEXIST
+            elif error == "Model not found":
+                if "data" in data and "newUsername" in data["data"]:
+                    self.username = data["data"]["newUsername"]
+                    self.logger.info(f"Model name changed to {self.username}")
+                    try:
+                        data = self._getStatusData(self.username)
+                        if data and "cam" in data:
+                            return self._update_lastInfo(data)
+                    except Exception:
+                        pass
+                return Status.NOTEXIST
+            self.logger.warning(f"Status returned error: {error}")
+            return Status.UNKNOWN
         
-        if "streamName" not in self.lastInfo or not self.lastInfo.get("streamName"):
-            self.lastInfo["streamName"] = str(self.lastInfo["model"].get("id", ""))
-        
-        status = self.lastInfo["model"].get("status")
-        
-        if status == "public" and self.lastInfo.get("isCamAvailable") and self.lastInfo.get("isCamActive"):
-            return Status.PUBLIC
-        
-        if status in self._PRIVATE_STATUSES:
-            return Status.PRIVATE
-        
-        if status in self._OFFLINE_STATUSES:
-            return Status.OFFLINE
-        
-        if self.lastInfo["model"].get("isDeleted"):
-            return Status.NOTEXIST
-        
-        if data["user"].get("isGeoBanned"):
-            return Status.RESTRICTED
-        
-        return Status.UNKNOWN
+        return self._update_lastInfo(data)
