@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import time
 
@@ -17,8 +18,11 @@ def load_config():
         with open(config_loc, "w+") as f:
             json.dump([], f, indent=4)
             return []
+    except ValueError:
+        logger.error('Corrupted config.json')
+        sys.exit(1)
     except Exception as e:
-        print(e)
+        logger.exception(e)
         sys.exit(1)
 
 
@@ -26,11 +30,14 @@ def save_config(config):
     try:
         with open(config_loc, "w+") as f:
             json.dump(config, f, indent=4)
-
         return True
     except Exception as e:
-        print(e)
+        logger.exception(e)
         sys.exit(1)
+
+
+def saveStreamers(streamers):
+    save_config([s.export() for s in streamers])
 
 
 def loadStreamers():
@@ -48,4 +55,5 @@ def loadStreamers():
         streamers.append(streamer_bot)
         streamer_bot.start()
         time.sleep(0.1)
+    saveStreamers(streamers)
     return streamers

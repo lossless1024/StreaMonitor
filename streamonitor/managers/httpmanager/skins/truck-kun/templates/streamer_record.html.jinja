@@ -19,7 +19,7 @@
     <td class="streamer-container"><a class="link-fill" href="/recordings/{{ streamer.username }}/{{ streamer.site }}">{{ streamer.username }}</a></td>
     <td class="streamer-will-record">
         <span class="recording-status {{'not-recording' if not streamer.running }}">{% if streamer.running %}Yes{% else %}No{% endif %}</span>
-        <button class="{{'pause-btn' if streamer.running else 'record-btn' }}" 
+        <button class="{{'pause-btn' if streamer.running else 'record-btn' }}"
             hx-patch="/toggle/{{ streamer.username }}/{{ streamer.site }}"
             hx-trigger="click"
             hx-target="closest .streamer"
@@ -36,6 +36,7 @@
         </button>
     </td>
     <td class="center">{{ streamer.sc | status_text }}</td>
+    <td class="center last-stream-cell" title="{{ streamer.last_stream | abstime }}">{{ streamer.last_stream | reltime }}</td>
     <td class="right-align">{{ streamer.video_files_total_size | tohumanfilesize(fix_decimals=2) }}</td>
     <td class="right-align">{{ streamer.video_files | count }}</td>
     <td class="center">

@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import os
 import traceback
 from enum import Enum
+from urllib.parse import urljoin
 
 import m3u8
 from time import sleep
@@ -36,6 +37,19 @@ class Bot(Thread):
 
     headers = {
         "User-Agent": HTTP_USER_AGENT
+    }
+
+    html_headers = {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Encoding': 'none',
+        'Accept-Language': 'en,en-US;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Pragma': 'no-cache',
+        'Priority': 'u=4',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'cross-site',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
     }
 
     status_messages = {
@@ -139,6 +153,18 @@ class Bot(Thread):
     def gender_data(self):
         return GENDER_DATA.get(self.gender, GENDER_DATA.get(Gender.UNKNOWN))
 
+    @property
+    def last_stream(self):
+        """Unix timestamp of the most recent recording, or 0 if none.
+
+        Derived from recording file mtimes; a currently-recording streamer's
+        growing file keeps this near 'now', so it sorts as most recent.
+        """
+        files = getattr(self, 'video_files', None)
+        if not files:
+            return 0
+        return max((getattr(v, 'mtime', 0) for v in files), default=0)
+
     def cache_file_list(self):
         videos_folder = self.outputFolder
         _videos = []
@@ -177,7 +203,11 @@ class Bot(Thread):
                 try:
                     self.recording = False
                     if not self.bulk_update or self.sc == Status.NOTRUNNING:
-                        self.sc = self.getStatus()
+                        try:
+                            self.sc = self.getStatus()
+                        except Exception as e:
+                            self.logger.exception(e)
+                            self.sc = Status.ERROR
                     # Check if the status has changed and log the update if it's different from the previous status
                     if self.sc != self.previous_status:
                         self.log(self.status())
@@ -203,7 +233,12 @@ class Bot(Thread):
                                 cookie_update_process = Thread(target=update_cookie)
                                 cookie_update_process.start()
 
-                            video_url = self.getVideoUrl()
+                            try:
+                                video_url = self.getVideoUrl()
+                            except Exception as e:
+                                self.logger.exception(e)
+                                self.logger.error('Failed to get video url')
+                                video_url = None
                             if video_url is None:
                                 self.sc = Status.ERROR
                                 self.logger.error(self.status())
@@ -212,15 +247,23 @@ class Bot(Thread):
                             self.log('Started downloading show')
                             self.recording = True
                             file = self.genOutFilename()
-                            ret = self.getVideo(self, video_url, file)
+                            try:
+                                ret = self.getVideo(self, video_url, file)
+                            except Exception as e:
+                                self.logger.exception(e)
+                                ret = False
                             if not ret:
+                                self.log('Recording ended with error')
                                 self.sc = Status.ERROR
                                 self.log(self.status())
                                 self._sleep(self.sleep_on_error)
                                 continue
                             self.recording = False
                             self.log('Recording ended')
-                            self.cache_file_list()
+                            try:
+                                self.cache_file_list()
+                            except Exception as e:
+                                self.logger.exception(e)
                 except Exception as e:
                     self.logger.exception(e)
                     try:
@@ -331,10 +374,7 @@ class Bot(Thread):
                     frame_rate = f" {selected_source['frame_rate']}fps"
                 self.logger.info(f"Selected {selected_source['resolution'][0]}x{selected_source['resolution'][1]}{frame_rate} resolution")
             selected_source_url = selected_source['url']
-            if selected_source_url.startswith("https://"):
-                return selected_source_url
-            else:
-                return '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + selected_source_url
+            return urljoin(url, selected_source_url)
         except BaseException as e:
             self.logger.error("Can't get playlist, got some error: " + str(e))
             traceback.print_tb(e.__traceback__)
