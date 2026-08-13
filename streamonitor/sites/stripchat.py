@@ -354,7 +354,8 @@ class StripChat(Bot):
         try:
             result = StripChat._get_session().get(url, headers=self.headers, timeout=4)
             result.raise_for_status()
-        except:
+        except Exception as e:
+            self.logger.warning(f"HLS fetch failed: {e}")
             return []
         
         m3u8_doc = result.text
