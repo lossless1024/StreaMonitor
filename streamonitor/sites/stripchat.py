@@ -200,22 +200,17 @@ class StripChat(RoomIdBot):
         if username == self.username and self.room_id is not None:
             return self.room_id
 
-        data = self._getStatusData(username)
-        if username == self.username:
-            self._update_lastInfo(data)
-            _id = self.lastInfo.get('model', {}).get('id')
-            return str(_id) if _id else None
-
-        if not isinstance(data, dict):
+        r = self.session.get(f'https://hu.stripchat.com/api/front/users/user-ids/{username}', headers=self.headers)
+        try:
+            data = r.json()
+            _id = str(data['id']) if data.get('id') else None
+        except requests.exceptions.JSONDecodeError:
+            self.log('Failed to parse JSON response')
             return None
-        if 'user' not in data:
+        except (KeyError, TypeError):
+            self.log('No user ID found')
             return None
-        if 'user' not in data['user']:
-            return None
-        if 'id' not in data['user']['user']:
-            return None
-        _id = data['user']['user']['id']
-        return str(_id) if _id else None
+        return _id
 
     def getStatus(self):
         data = self._getStatusData(self.username)
