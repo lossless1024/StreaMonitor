@@ -17,7 +17,6 @@ from streamonitor.manager import Manager
 from streamonitor.managers.outofspace_detector import OOSDetector
 from streamonitor.utils import human_file_size
 
-from streamonitor.thumbnail import THUMBNAILS_DIR
 from .filters import status_icon, status_text, reltime, abstime
 from .mappers import web_status_lookup
 from .models import InvalidStreamer
