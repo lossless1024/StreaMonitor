@@ -31,7 +31,7 @@ def getVideoNativeHLS(self, url, filename, m3u_processor=None):
 
     def execute():
         nonlocal error
-        downloaded_list = []
+        downloaded_list: set[str] = set()
         with open(tmpfilename, 'wb') as outfile:
             did_download = False
             while not self.stopDownloadFlag:
@@ -42,12 +42,13 @@ def getVideoNativeHLS(self, url, filename, m3u_processor=None):
                 chunklist = m3u8.loads(content)
                 if len(chunklist.segments) == 0:
                     return
-                for chunk in chunklist.segment_map + chunklist.segments:
-                    if chunk.uri in downloaded_list:
-                        continue
+                all_segments = chunklist.segment_map + chunklist.segments
+                chunks = [chunk.uri for chunk in all_segments if chunk.uri and chunk.uri not in downloaded_list]
+                if not chunks:
+                    sleep(1)
+                for chunk_uri in chunks:
                     did_download = True
-                    downloaded_list.append(chunk.uri)
-                    chunk_uri = chunk.uri
+                    downloaded_list.add(chunk_uri)
                     self.debug('Downloading ' + chunk_uri)
                     if not chunk_uri.startswith("https://"):
                         chunk_uri = '/'.join(url.split('.m3u8')[0].split('/')[:-1]) + '/' + chunk_uri
