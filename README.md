@@ -1,5 +1,5 @@
-# StreaMonitor
-A Python3 application for monitoring and saving (mostly adult) live streams from various websites.
+# Capparr
+A Python3 application for monitoring and saving live streams from various camsites.
 
 Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 
@@ -22,12 +22,6 @@ Inspired by [Recordurbate](https://github.com/oliverjrose99/Recordurbate)
 | StripChat VR  | `SCVR`       |                             | for VR videos          | No                    |
 | XLoveCam      | `XLC`        |                             |                        | No                    |
 
-Currently not supported:
-* Amateur.TV (They use Widevine now)
-* Cherry.tv (They switched to Agora)
-* ImLive (Too strict captcha protection for scraping)
-* LiveJasmin (No nudity in free streams)
-* ManyVids Live (They switched to Agora)
 
 There are hundreds of clones of the sites above, you can read about them on [this site](https://adultwebcam.site/clone-sites-by-platform/).
 
