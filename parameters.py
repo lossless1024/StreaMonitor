@@ -6,6 +6,11 @@ env = environ.Env()
 if os.path.exists('.env'):
     environ.Env.read_env('.env')
 
+# Telegram Bot configuration
+TELEGRAM_ENABLED = env.bool("STRMNTR_TELEGRAM_ENABLED", False)
+TELEGRAM_BOT_TOKEN = env.str("STRMNTR_TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = env.int("STRMNTR_TELEGRAM_CHAT_ID", 0)
+TELEGRAM_STATUS_INTERVAL = env.int("STRMNTR_TELEGRAM_STATUS_INTERVAL", 1800)  # 30 minutes
 
 DOWNLOADS_DIR = env.str("STRMNTR_DOWNLOAD_DIR", "downloads")
 MIN_FREE_DISK_PERCENT = env.float("STRMNTR_MIN_FREE_SPACE", 5.0)  # in %
