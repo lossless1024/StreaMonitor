@@ -16,17 +16,22 @@ class StripChat(RoomIdBot):
     siteslug = 'SC'
 
     bulk_update = True
-    _static_data = None
     _mouflon_cache_filename = 'stripchat_mouflon_keys.json'
     _mouflon_keys: dict = None
     _cached_keys: dict[str, bytes] = None
+    _remote_keys_attempted = False
+    _KEYS_REMOTE_URL = 'https://raw.githubusercontent.com/kesamom/stripchat_mouflon/main/stripchat_mouflon_keys.json'
     _PRIVATE_STATUSES = frozenset(["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"])
     _OFFLINE_STATUSES = frozenset(["off", "idle"])
 
     _GENDER_MAP = {
         'female': Gender.FEMALE,
         'male': Gender.MALE,
-        'maleFemale': Gender.BOTH
+        'maleFemale': Gender.BOTH,
+        'transgenderFemale': Gender.TRANS_WOMAN,
+        'transgenderMale': Gender.TRANS_MAN,
+        'transsexual': Gender.TRANS,
+        'transgender': Gender.TRANS
     }
 
     if os.path.exists(_mouflon_cache_filename):
@@ -40,25 +45,9 @@ class StripChat(RoomIdBot):
                 print('Error loading mouflon key cache:', e)
 
     def __init__(self, username, room_id=None):
-        if StripChat._static_data is None:
-            StripChat._static_data = {}
-            try:
-                self.getInitialData()
-            except Exception as e:
-                print('Error initializing StripChat static data:', e)
-
         super().__init__(username, room_id)
-        self._id = None
         self.vr = False
         self.getVideo = lambda _, url, filename: getVideoNativeHLS(self, url, filename, StripChat.m3u_decoder)
-
-    @classmethod
-    def getInitialData(cls):
-        session = requests.Session()
-        r = session.get('https://stripchat.com/api/front/v3/config/static', headers=cls.headers)
-        if r.status_code != 200:
-            raise Exception("Failed to fetch static data from StripChat")
-        StripChat._static_data = r.json().get('static')
 
     @classmethod
     def m3u_decoder(cls, content):
@@ -106,7 +95,22 @@ class StripChat(RoomIdBot):
             cls._mouflon_keys = {}
         if pkey in cls._mouflon_keys:
             return cls._mouflon_keys[pkey]
-        # else: find pdkey
+        # Unknown key: try to refresh the key set from the community-maintained list once
+        if not cls._remote_keys_attempted:
+            cls._remote_keys_attempted = True
+            try:
+                r = requests.get(cls._KEYS_REMOTE_URL, timeout=10)
+                if r.status_code == 200:
+                    remote_keys = r.json()
+                    if isinstance(remote_keys := remote_keys, dict) and remote_keys:
+                        cls._mouflon_keys.update(remote_keys)
+                        with open(cls._mouflon_cache_filename, 'w') as f:
+                            json.dump(cls._mouflon_keys, f, indent=2)
+                        print('Updated StripChat mouflon keys from remote repository')
+            except Exception as e:
+                print('Failed to update mouflon keys remotely:', e)
+        if pkey in cls._mouflon_keys:
+            return cls._mouflon_keys[pkey]
         return None
 
     @staticmethod
@@ -117,6 +121,9 @@ class StripChat(RoomIdBot):
             _mouflon_start = _doc.find(_needle)
             if _mouflon_start > 0:
                 _mouflon = _doc[_mouflon_start:m3u8_doc.find('\n', _mouflon_start)].strip().split(':')
+                if len(_mouflon) < 4:
+                    _start += _mouflon_start + len(_needle)
+                    continue
                 psch = _mouflon[2]
                 pkey = _mouflon[3]
                 pdkey = StripChat.getMouflonDecKey(pkey)
@@ -133,18 +140,21 @@ class StripChat(RoomIdBot):
 
     def getPlaylistVariants(self, url):
         url = "https://edge-hls.{host}/hls/{id}{vr}/master/{id}{vr}{auto}.m3u8".format(
-                host='doppiocdn.' + random.choice(['org', 'com', 'net']),
+                host='doppiocdn.' + random.choice(['org', 'com', 'net', 'media']),
                 id=self.room_id,
                 vr='_vr' if self.vr else '',
                 auto='_auto' if not self.vr else ''
             )
         result = self.session.get(url, headers=self.headers, cookies=self.cookies)
-        m3u8_doc = result.content.decode("utf-8")
-        psch, pkey, pdkey = StripChat._getMouflonFromM3U(m3u8_doc)
+        if result.status_code != 200:
+            self.log(f'Failed to get master playlist (HTTP {result.status_code})')
+            return []
+        m3u_data = result.content.decode("utf-8")
+        psch, pkey, pdkey = StripChat._getMouflonFromM3U(m3u_data)
         if pdkey is None:
             self.log(f'Failed to get mouflon decryption key')
             return []
-        variants = super().getPlaylistVariants(m3u_data=m3u8_doc)
+        variants = super().getPlaylistVariants(m3u_data=m3u_data)
         return [variant | {'url': f'{variant["url"]}{"&" if "?" in variant["url"] else "?"}psch={psch}&pkey={pkey}'}
                 for variant in variants]
 
@@ -154,47 +164,25 @@ class StripChat(RoomIdBot):
         chars += ''.join(chr(i) for i in range(ord('0'), ord('9')+1))
         return ''.join(random.choice(chars) for _ in range(length))
 
-    def _getStatusData(self, username):
-        r = self.session.get(
-            f'https://stripchat.com/api/front/v2/models/username/{username}/cam?uniq={StripChat.uniq()}',
-            headers=self.headers | self.html_headers
-        )
-
-        try:
-            data = r.json()
-        except requests.exceptions.JSONDecodeError:
-            self.log('Failed to parse JSON response')
-            return None
-        return data
-
-    def _update_lastInfo(self, data):
-        if data is None:
-            return None
-        if 'cam' not in data:
-            if 'error' in data:
-                error = data['error']
-                if error == 'Not Found':
-                    return Status.NOTEXIST
-                elif error == 'Model not found':
-                    if 'newUsername' in data['data']:
-                        _new_username = data['data']['newUsername']
-                        self.logger.info(f'Model name changed, new name: {_new_username}')
-                        _old_dl_dir = self.outputFolder
-                        self.setUsername(_new_username)
-                        data = self._getStatusData(_new_username)
-                        _error = self._update_lastInfo(data)
-                        _new_dl_dir = self.outputFolder
-                        if os.path.exists(_old_dl_dir) and not os.path.exists(_new_dl_dir):
-                            os.rename(_old_dl_dir, _new_dl_dir)
-                        return _error
-                    return Status.NOTEXIST
-                self.logger.warn(f'Status returned error: {error}')
-            return Status.UNKNOWN
-
-        self.lastInfo = {'model': data['user']['user']}
-        if isinstance(data['cam'], dict):
-            self.lastInfo |= data['cam']
-        return None
+    @classmethod
+    def _fetchModelsList(cls, model_ids):
+        # The old per-username /cam endpoint is gone (HTTP 418);
+        # the bulk list endpoint still works without any special headers.
+        base_url = 'https://stripchat.com/api/front/models/list?'
+        data_map = {}
+        batch_num = 100
+        id_list = [str(model_id) for model_id in model_ids]
+        for _batch_ids in [id_list for id_list in [id_list[i:i+batch_num] for i in range(0, len(id_list), batch_num)]]:
+            session = requests.Session()
+            session.headers.update(cls.headers)
+            r = session.get(base_url + '&'.join(f'modelIds[]={model_id}' for model_id in _batch_ids), timeout=10)
+            try:
+                data = r.json()
+            except (requests.exceptions.JSONDecodeError, ValueError):
+                print('Failed to parse JSON response from models/list')
+                return {}
+            data_map |= {str(model['id']): model for model in data.get('models', [])}
+        return data_map
 
     def getRoomIdFromUsername(self, username):
         if username == self.username and self.room_id is not None:
@@ -212,41 +200,51 @@ class StripChat(RoomIdBot):
             return None
         return _id
 
-    def getStatus(self):
-        data = self._getStatusData(self.username)
-        if data is None:
-            return Status.UNKNOWN
+    def _applyModelData(self, model_data):
+        self.lastInfo = {'model': model_data}
+        if model_data.get('gender'):
+            self.gender = StripChat._GENDER_MAP.get(model_data.get('gender'))
+        if model_data.get('country'):
+            self.country = model_data.get('country', '').upper()
+        elif model_data.get('languages'):
+            for lang in model_data['languages']:
+                if lang.upper() in COUNTRIES:
+                    self.country = lang.upper()
+                    break
 
-        error = self._update_lastInfo(data)
-        if error:
-            return error
-
-        if 'user' in data and 'user' in data['user']:
-            model_data = data['user']['user']
-            if model_data.get('gender'):
-                self.gender = StripChat._GENDER_MAP.get(model_data.get('gender'))
-
-            if model_data.get('country'):
-                self.country = model_data.get('country', '').upper()
-            elif model_data.get('languages'):
-                for lang in model_data['languages']:
-                    if lang.upper() in COUNTRIES:
-                        self.country = lang.upper()
-                        break
-
-        status = self.lastInfo['model'].get('status')
-        if status == "public" and self.lastInfo["isCamAvailable"] and self.lastInfo["isCamActive"]:
+        status = model_data.get('status')
+        if status == "public" and (model_data.get('isOnline') or model_data.get('isLive')):
             return Status.PUBLIC
         if status in self._PRIVATE_STATUSES:
             return Status.PRIVATE
         if status in self._OFFLINE_STATUSES:
             return Status.OFFLINE
-        if self.lastInfo['model'].get('isDeleted') is True:
-            return Status.NOTEXIST
-        if data['user'].get('isGeoBanned') is True:
-            return Status.RESTRICTED
         self.logger.warn(f'Got unknown status: {status}')
         return Status.UNKNOWN
+
+    def getStatus(self):
+        if not self.room_id:
+            # Room ID might have never been resolved or the model was renamed
+            self.room_id = self.getRoomIdFromUsername(self.username)
+            if not self.room_id:
+                return Status.NOTEXIST
+
+        data_map = StripChat._fetchModelsList([self.room_id])
+        model_data = data_map.get(str(self.room_id))
+        if not model_data:
+            return Status.NOTEXIST
+
+        # Models keep their ID when they change their username
+        model_username = model_data.get('username')
+        if model_data.get('previousUsername') == self.username and model_data.get('username') != self.username:
+            self.logger.info(f'Model name changed, new name: {model_data["username"]}')
+            _old_dl_dir = self.outputFolder
+            self.setUsername(model_data['username'])
+            _new_dl_dir = self.outputFolder
+            if os.path.exists(_old_dl_dir) and not os.path.exists(_new_dl_dir):
+                os.rename(_old_dl_dir, _new_dl_dir)
+
+        return self._applyModelData(model_data)
 
     @classmethod
     def getStatusBulk(cls, streamers):
@@ -257,33 +255,17 @@ class StripChat(RoomIdBot):
             if streamer.room_id:
                 model_ids[streamer.room_id] = streamer
 
-        base_url = 'https://stripchat.com/api/front/models/list?'
-        batch_num = 100
-        data_map = {}
-        model_id_list = list(model_ids)
-        for _batch_ids in [model_id_list[i:i+batch_num] for i in range(0, len(model_id_list), batch_num)]:
-            session = requests.Session()
-            session.headers.update(cls.headers)
-            r = session.get(base_url + '&'.join(f'modelIds[]={model_id}' for model_id in _batch_ids), timeout=10)
-
-            try:
-                data = r.json()
-            except requests.exceptions.JSONDecodeError:
-                print('Failed to parse JSON response')
-                return
-            data_map |= {str(model['id']): model for model in data.get('models', [])}
+        data_map = cls._fetchModelsList(model_ids.keys()) if model_ids else {}
 
         for model_id, streamer in model_ids.items():
-            model_data = data_map.get(model_id)
+            model_data = data_map.get(str(model_id))
             if not model_data:
-                streamer.setStatus(Status.UNKNOWN)
-                continue
-            if model_data.get('gender'):
-                streamer.gender = cls._GENDER_MAP.get(model_data.get('gender'))
+                continue  # Don't touch status on transient failures; a missing model may be a glitch
+            streamer.gender = cls._GENDER_MAP.get(model_data.get('gender'))
             if model_data.get('country'):
                 streamer.country = model_data.get('country', '').upper()
             status = model_data.get('status')
-            if status == "public" and model_data.get("isOnline"):
+            if status == "public" and (model_data.get("isOnline") or model_data.get("isLive")):
                 streamer.setStatus(Status.PUBLIC)
             elif status in cls._PRIVATE_STATUSES:
                 streamer.setStatus(Status.PRIVATE)
