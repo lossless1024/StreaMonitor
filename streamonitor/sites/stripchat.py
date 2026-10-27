@@ -20,6 +20,8 @@ class StripChat(RoomIdBot):
     _mouflon_cache_filename = 'stripchat_mouflon_keys.json'
     _mouflon_keys: dict = None
     _cached_keys: dict[str, bytes] = None
+    _user_id_cache: dict[str, str] = {}
+    _statusSession = None
     _PRIVATE_STATUSES = frozenset(["private", "groupShow", "p2p", "virtualPrivate", "p2pVoice"])
     _OFFLINE_STATUSES = frozenset(["off", "idle"])
 
@@ -148,23 +150,69 @@ class StripChat(RoomIdBot):
         return [variant | {'url': f'{variant["url"]}{"&" if "?" in variant["url"] else "?"}psch={psch}&pkey={pkey}'}
                 for variant in variants]
 
-    @staticmethod
-    def uniq(length=16):
-        chars = ''.join(chr(i) for i in range(ord('a'), ord('z')+1))
-        chars += ''.join(chr(i) for i in range(ord('0'), ord('9')+1))
-        return ''.join(random.choice(chars) for _ in range(length))
+    def _getStatusSession(self):
+        # Plain requests (not the curl_cffi session used by Bot) - the ID based
+        # API answers 418 when requests are made with browser TLS impersonation.
+        if self._statusSession is None:
+            self._statusSession = requests.Session()
+            self._statusSession.headers.update(self.headers | self.html_headers)
+        return self._statusSession
+
+    def _resolveUserId(self, username, refresh=False):
+        cache_key = username.lower()
+        if not refresh and cache_key == self.username.lower() and self.room_id:
+            return self.room_id
+        if not refresh and cache_key in StripChat._user_id_cache:
+            return StripChat._user_id_cache[cache_key]
+
+        r = self._getStatusSession().get(
+            f'https://stripchat.com/api/front/users/user-ids/{username}',
+            timeout=10
+        )
+        if r.status_code == 404:
+            StripChat._user_id_cache.pop(cache_key, None)
+            return None
+        r.raise_for_status()
+        data = r.json()
+        _id = data.get('id') if isinstance(data, dict) else None
+        if not _id:
+            return None
+        _id = str(_id)
+        StripChat._user_id_cache[cache_key] = _id
+        return _id
 
     def _getStatusData(self, username):
-        r = self.session.get(
-            f'https://stripchat.com/api/front/v2/models/username/{username}/cam?uniq={StripChat.uniq()}',
-            headers=self.headers | self.html_headers
-        )
-
         try:
+            user_id = self._resolveUserId(username)
+            if user_id is None:
+                self.log('No user ID found')
+                return None
+
+            r = self._getStatusSession().get(
+                f'https://stripchat.com/api/front/v2/models/{user_id}/cam',
+                timeout=10
+            )
+            if r.status_code == 404:
+                # The cached ID can be stale (room renamed or recreated), retry once.
+                user_id = self._resolveUserId(username, refresh=True)
+                if user_id is None:
+                    self.log('No user ID found')
+                    return None
+                r = self._getStatusSession().get(
+                    f'https://stripchat.com/api/front/v2/models/{user_id}/cam',
+                    timeout=10
+                )
+            if r.status_code != 200:
+                self.log(f'Status API returned HTTP {r.status_code}')
+                return None
             data = r.json()
-        except requests.exceptions.JSONDecodeError:
-            self.log('Failed to parse JSON response')
+        except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
+            self.log(f'Failed to get status data: {e}')
             return None
+
+        if self.room_id != user_id:
+            self.logger.debug(f'Updated room ID: {user_id}')
+            self.room_id = user_id
         return data
 
     def _update_lastInfo(self, data):
@@ -200,16 +248,13 @@ class StripChat(RoomIdBot):
         if username == self.username and self.room_id is not None:
             return self.room_id
 
-        r = self.session.get(f'https://hu.stripchat.com/api/front/users/user-ids/{username}', headers=self.headers)
         try:
-            data = r.json()
-            _id = str(data['id']) if data.get('id') else None
-        except requests.exceptions.JSONDecodeError:
-            self.log('Failed to parse JSON response')
+            _id = self._resolveUserId(username)
+        except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
+            self.log(f'Failed to get room ID: {e}')
             return None
-        except (KeyError, TypeError):
+        if _id is None:
             self.log('No user ID found')
-            return None
         return _id
 
     def getStatus(self):
@@ -266,9 +311,12 @@ class StripChat(RoomIdBot):
             session.headers.update(cls.headers)
             r = session.get(base_url + '&'.join(f'modelIds[]={model_id}' for model_id in _batch_ids), timeout=10)
 
+            if r.status_code != 200:
+                print(f'Status API returned HTTP {r.status_code}')
+                return
             try:
                 data = r.json()
-            except requests.exceptions.JSONDecodeError:
+            except (requests.exceptions.JSONDecodeError, json.JSONDecodeError):
                 print('Failed to parse JSON response')
                 return
             data_map |= {str(model['id']): model for model in data.get('models', [])}
