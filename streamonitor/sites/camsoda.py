@@ -1,11 +1,18 @@
 import requests
 from streamonitor.bot import Bot
+from streamonitor.downloaders.hls import getVideoNativeHLS
 from streamonitor.enums import Status
 
 
 class CamSoda(Bot):
     site = 'CamSoda'
     siteslug = 'CS'
+
+    def __init__(self, username):
+        super().__init__(username)
+        # Cloudflare rejects ffmpeg's TLS fingerprint / Range requests on the
+        # CDN, while the native HLS downloader is served the segments normally.
+        self.getVideo = getVideoNativeHLS
 
     def getWebsiteURL(self):
         return "https://www.camsoda.com/" + self.username
