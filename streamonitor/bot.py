@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 import os
+import subprocess
+import time
 import traceback
 from enum import Enum
 from urllib.parse import urljoin
@@ -14,7 +16,7 @@ import requests.cookies
 
 from streamonitor.enums import Status, COUNTRIES, Gender, GENDER_DATA
 import streamonitor.log as log
-from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, CONTAINER, HTTP_USER_AGENT
+from parameters import DOWNLOADS_DIR, DEBUG, WANTED_RESOLUTION, WANTED_RESOLUTION_PREFERENCE, CONTAINER, HTTP_USER_AGENT, FFMPEG_PATH, SEGMENT_TIME
 from streamonitor.downloaders.ffmpeg import getVideoFfmpeg
 from streamonitor.models import VideoData
 
@@ -93,6 +95,12 @@ class Bot(Thread):
         self.recording = False
         self.video_files = []
         self.video_files_total_size = 0
+        # A streamer that stays online is one logical recording. When an
+        # attempt is interrupted (network error, stalled ffmpeg, expired stream
+        # URL) the next attempt continues in a part file. All parts are merged
+        # into recording_base once the show is over.
+        self.recording_base = None
+        self.recording_parts = []
         self.cache_file_list()
 
         self.gender = None
@@ -184,6 +192,139 @@ class Bot(Thread):
         self.video_files = _videos
         self.video_files_total_size = _total_size
 
+    def nextRecordingFilename(self):
+        """Output file for the next recording attempt.
+
+        Consecutive attempts for the same show write part files so the
+        recording can be resumed without creating several separate videos.
+        """
+        if SEGMENT_TIME is not None:
+            # ffmpeg writes the segment files itself. Resuming would restart
+            # the segment counter, so every attempt keeps its own name.
+            return self.genOutFilename()
+        if self.recording_base and self.recording_parts:
+            stem, ext = os.path.splitext(self.recording_base)
+            filename = f'{stem}.part{len(self.recording_parts)}{ext}'
+            self.recording_parts.append(filename)
+            return filename
+        self.recording_base = self.genOutFilename()
+        self.recording_parts = [self.recording_base]
+        return self.recording_base
+
+    def hasRecordingInProgress(self):
+        return bool(self.recording_base and self.recording_parts)
+
+    def _isReadablePart(self, path):
+        """Check that ffmpeg can open a recording part.
+
+        A part that was killed before ffmpeg could write its index is not
+        playable and would make the merge stop early.
+        """
+        try:
+            result = subprocess.run(
+                [FFMPEG_PATH, '-v', 'error', '-xerror', '-i', path,
+                 '-t', '0', '-f', 'null', '-'],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError as e:
+            # Let the merge itself report a missing ffmpeg.
+            self.logger.warning(e)
+            return True
+        return result.returncode == 0
+
+    def finalizeRecording(self):
+        """Merge the parts of the current show into a single video file."""
+        base = self.recording_base
+        parts = self.recording_parts
+        self.recording_base = None
+        self.recording_parts = []
+        if not base or not parts:
+            return
+
+        existing = []
+        for part in parts:
+            try:
+                if os.path.getsize(part) > 0:
+                    existing.append(part)
+                    continue
+            except OSError:
+                pass
+            # Attempts that never wrote media (e.g. a refused stream URL)
+            # leave empty files behind.
+            try:
+                os.unlink(part)
+            except OSError:
+                pass
+
+        if not existing:
+            return
+
+        if len(existing) == 1:
+            # A single attempt produced media, no merge needed. It may still be
+            # stored as a part file if an earlier attempt failed.
+            if existing[0] != base:
+                try:
+                    os.replace(existing[0], base)
+                except OSError as e:
+                    self.logger.warning(e)
+            return
+
+        usable = []
+        for part in existing:
+            if self._isReadablePart(part):
+                usable.append(part)
+            else:
+                self.logger.warning(
+                    f'Recording part {os.path.basename(part)} is damaged, keeping it as a separate file')
+
+        if base in existing and base not in usable:
+            # Never replace a damaged file that still holds recorded media.
+            return
+        if len(usable) < 2:
+            return
+
+        total_size = sum(os.path.getsize(part) for part in usable)
+        stem, ext = os.path.splitext(base)
+        list_path = stem + '.concat.txt'
+        merged_path = stem + '.merged' + ext
+        try:
+            with open(list_path, 'w', encoding='utf-8') as list_file:
+                for part in usable:
+                    path = os.path.abspath(part).replace("'", "'\\''")
+                    list_file.write(f"file '{path}'\n")
+
+            self.log(f'Merging {len(usable)} recording parts into one file')
+            result = subprocess.run(
+                [FFMPEG_PATH, '-hide_banner', '-loglevel', 'error',
+                 '-f', 'concat', '-safe', '0', '-i', list_path,
+                 '-c', 'copy', '-y', merged_path],
+                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            merged_size = os.path.getsize(merged_path) if os.path.exists(merged_path) else 0
+            # The concat demuxer reports success even when it stops at a part
+            # it cannot read, so a much smaller result means a partial merge.
+            if result.returncode == 0 and merged_size >= total_size * 0.85:
+                os.replace(merged_path, base)
+                for part in usable:
+                    if part != base:
+                        try:
+                            os.unlink(part)
+                        except OSError:
+                            pass
+            else:
+                output = result.stderr.decode('utf-8', 'replace').strip().splitlines()
+                self.logger.error(
+                    'Could not merge recording parts, keeping them separate: '
+                    + (output[-1] if output else 'unknown error'))
+        except Exception as e:
+            self.logger.exception(e)
+        finally:
+            for path in (list_path, merged_path):
+                if os.path.exists(path):
+                    try:
+                        os.unlink(path)
+                    except OSError:
+                        pass
+
+
     def _sleep(self, time):
         while time > 0:
             sleep(1)
@@ -212,6 +353,20 @@ class Bot(Thread):
                     if self.sc != self.previous_status:
                         self.log(self.status())
                         self.previous_status = self.sc
+<<<<<<< Updated upstream
+=======
+                    # The show is over when the streamer is no longer online.
+                    # Errors while a show is running only interrupt the stream,
+                    # so keep the recording open and resume it later.
+                    if self.hasRecordingInProgress() and self.sc not in (
+                            Status.PUBLIC, Status.RESTRICTED, Status.ERROR,
+                            Status.RATELIMIT, Status.UNKNOWN):
+                        try:
+                            self.finalizeRecording()
+                            self.cache_file_list()
+                        except Exception as e:
+                            self.logger.exception(e)
+>>>>>>> Stashed changes
                     if self.sc == Status.ERROR:
                         self._sleep(self.sleep_on_error)
                     if self.sc == Status.OFFLINE:
@@ -246,7 +401,8 @@ class Bot(Thread):
                                 continue
                             self.log('Started downloading show')
                             self.recording = True
-                            file = self.genOutFilename()
+                            file = self.nextRecordingFilename()
+                            started = time.monotonic()
                             try:
                                 ret = self.getVideo(self, video_url, file)
                             except Exception as e:
@@ -254,9 +410,16 @@ class Bot(Thread):
                                 ret = False
                             if not ret:
                                 self.log('Recording ended with error')
+                                self.recording = False
                                 self.sc = Status.ERROR
                                 self.log(self.status())
-                                self._sleep(self.sleep_on_error)
+                                # A working recording that got interrupted is
+                                # resumed quickly; a stream that fails right
+                                # away keeps the full error delay.
+                                if time.monotonic() - started >= 60:
+                                    self._sleep(min(self.sleep_on_error, 5))
+                                else:
+                                    self._sleep(self.sleep_on_error)
                                 continue
                             self.recording = False
                             self.log('Recording ended')
@@ -290,6 +453,11 @@ class Bot(Thread):
 
             self.sc = Status.NOTRUNNING
             self.log("Stopped")
+            try:
+                self.finalizeRecording()
+                self.cache_file_list()
+            except Exception as e:
+                self.logger.exception(e)
 
     def setStatus(self, sc):
         if self.sc == Status.LONG_OFFLINE and sc == Status.OFFLINE:
@@ -325,47 +493,52 @@ class Bot(Thread):
             return None
         return sources  # [(url, (width, height)),...]
 
+    def _selectSource(self, sources):
+        if not sources:
+            self.logger.error("No available sources")
+            return None
+
+        for source in sources:
+            width, height = source['resolution']
+            if width < height:
+                source['resolution_diff'] = width - WANTED_RESOLUTION
+            else:
+                source['resolution_diff'] = height - WANTED_RESOLUTION
+
+        sources.sort(key=lambda a: abs(a['resolution_diff']))
+        selected_source = None
+
+        if WANTED_RESOLUTION_PREFERENCE == 'exact':
+            if sources[0]['resolution_diff'] == 0:
+                selected_source = sources[0]
+        elif WANTED_RESOLUTION_PREFERENCE == 'closest' or len(sources) == 1:
+            selected_source = sources[0]
+        elif WANTED_RESOLUTION_PREFERENCE == 'exact_or_least_higher':
+            for source in sources:
+                if source['resolution_diff'] >= 0:
+                    selected_source = source
+                    break
+        elif WANTED_RESOLUTION_PREFERENCE == 'exact_or_highest_lower':
+            for source in sources:
+                if source['resolution_diff'] <= 0:
+                    selected_source = source
+                    break
+        else:
+            self.logger.error('Invalid value for WANTED_RESOLUTION_PREFERENCE')
+            return None
+
+        if selected_source is None:
+            self.logger.error("Couldn't select a resolution")
+        return selected_source
+
     def getWantedResolutionPlaylist(self, url):
         try:
             sources = self.getPlaylistVariants(url)
             if sources is None:
                 return None
 
-            if len(sources) == 0:
-                self.logger.error("No available sources")
-                return None
-
-            for source in sources:
-                width, height = source['resolution']
-                if width < height:
-                    source['resolution_diff'] = width - WANTED_RESOLUTION
-                else:
-                    source['resolution_diff'] = height - WANTED_RESOLUTION
-
-            sources.sort(key=lambda a: abs(a['resolution_diff']))
-            selected_source = None
-
-            if WANTED_RESOLUTION_PREFERENCE == 'exact':
-                if sources[0]['resolution_diff'] == 0:
-                    selected_source = sources[0]
-            elif WANTED_RESOLUTION_PREFERENCE == 'closest' or len(sources) == 1:
-                selected_source = sources[0]
-            elif WANTED_RESOLUTION_PREFERENCE == 'exact_or_least_higher':
-                for source in sources:
-                    if source['resolution_diff'] >= 0:
-                        selected_source = source
-                        break
-            elif WANTED_RESOLUTION_PREFERENCE == 'exact_or_highest_lower':
-                for source in sources:
-                    if source['resolution_diff'] <= 0:
-                        selected_source = source
-                        break
-            else:
-                self.logger.error('Invalid value for WANTED_RESOLUTION_PREFERENCE')
-                return None
-
+            selected_source = self._selectSource(sources)
             if selected_source is None:
-                self.logger.error("Couldn't select a resolution")
                 return None
 
             if selected_source['resolution'][1] != 0:
