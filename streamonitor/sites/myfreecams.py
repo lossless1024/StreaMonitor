@@ -13,6 +13,11 @@ class MyFreeCams(Bot):
         super().__init__(username)
         self.attrs = {}
         self.videoUrl = None
+        # share.myfreecams.com only includes the campreview markup for visitors
+        # that accepted the 18+ prompt. Without the cookie it renders a SFW page
+        # with an age-verification modal instead, so getStatus() would report
+        # every model as OFFLINE. The server only checks that 'gw' is present.
+        self.session.cookies.set('gw', 'true', domain='.myfreecams.com')
 
     def getWebsiteURL(self):
         return "https://www.myfreecams.com/#" + self.username
