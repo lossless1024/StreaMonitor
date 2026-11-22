@@ -1,10 +1,10 @@
 services:
   streamonitor:
-# If you want to build locally, use this instead the image line below:
-#    build: ./
-#    image: streamonitor:latest
-
-    image: ghcr.io/lossless1024/streamonitor:latest
+    # Build locally so the image contains the Python WebRTC recorder deps.
+    build: ./
+    image: streamonitor:latest
+# To use a published image instead, remove the two lines above and use:
+#    image: ghcr.io/whimsical-c4lic0/streamonitor:latest
 
     restart: unless-stopped
     environment:
@@ -25,6 +25,8 @@ services:
       STRMNTR_STATUS_FREQ: "5"
       # set refresh frequency on list page
       STRMNTR_LIST_FREQ: "30"
+      # Agora simulcast layer for ManyVids (high or low)
+      #STRMNTR_AGORA_STREAM: "high"
     volumes:
       - ./downloads:/app/downloads
       - ./config.json:/app/config.json

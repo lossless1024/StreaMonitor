@@ -4,7 +4,6 @@ from .cam4 import Cam4
 from .camscom import CamsCom
 from .camsoda import CamSoda
 from .chaturbate import Chaturbate
-from .cherrytv import CherryTV
 from .dreamcam import DreamCam
 from .dreamcam_vr import DreamCamVR
 from .fansly_live import FanslyLive

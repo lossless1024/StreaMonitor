@@ -11,7 +11,7 @@ class CamsCom(Bot):
         return "https://cams.com/" + self.username
 
     def getVideoUrl(self):
-        return f'https://camscdn.cams.com/camscdn/cdn-{self.username.lower()}.m3u8'
+        return f'https://camshls.cams.com/cdn-{self.username.lower()}.m3u8'
 
     def getStatus(self):
         r = self.session.get(f'https://beta-api.cams.com/models/stream/{self.username}/')
