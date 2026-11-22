@@ -7,6 +7,7 @@ from terminaltables import AsciiTable
 import streamonitor.config as config
 import streamonitor.log as log
 from streamonitor.bot import Bot, LOADED_SITES
+from streamonitor.clean_exit import CleanExit
 from streamonitor.managers.outofspace_detector import OOSDetector
 
 from streamonitor.enums import Status
@@ -50,7 +51,80 @@ class Manager(Thread):
         return found
 
     def saveConfig(self):
+        if config.favorites_only:
+            return
         config.saveStreamers(self.streamers)
+
+    def do_fav(self, streamer, username, site):
+        if username.lower() == "list":
+            favorites_config = config.load_favorites_config()
+            if favorites_config is None:
+                favorites_config = []
+            favorites = [
+                entry for entry in favorites_config
+                if entry.get("favorite") is True
+            ]
+            if not favorites:
+                return "No favorite models"
+            return "\n".join(
+                f"{entry['site']}/{entry['username']}" for entry in favorites
+            )
+        if not username:
+            return "Missing username"
+
+        matches = config.sync_favorites_config()
+        candidates = []
+        for entry in matches:
+            if entry["username"].lower() != username.lower():
+                continue
+            if site:
+                site_class = Bot.str2site(site)
+                if not site_class or entry["site"].lower() not in (
+                    site_class.site.lower(),
+                    site_class.siteslug.lower(),
+                    *(alias.lower() for alias in site_class.aliases),
+                ):
+                    continue
+            candidates.append(entry)
+
+        if not candidates:
+            return "Streamer not found in config.json"
+        if len(candidates) > 1:
+            return "Multiple matches, specify site"
+
+        entry = candidates[0]
+        if config.set_favorite(entry["username"], entry["site"], True):
+            return f"Added favorite [{entry['site']}] {entry['username']}"
+        return "Could not save favorite"
+
+    def do_unfav(self, streamer, username, site):
+        if not username:
+            return "Missing username"
+
+        matches = config.sync_favorites_config()
+        candidates = []
+        for entry in matches:
+            if entry["username"].lower() != username.lower():
+                continue
+            if site:
+                site_class = Bot.str2site(site)
+                if not site_class or entry["site"].lower() not in (
+                    site_class.site.lower(),
+                    site_class.siteslug.lower(),
+                    *(alias.lower() for alias in site_class.aliases),
+                ):
+                    continue
+            candidates.append(entry)
+
+        if not candidates:
+            return "Streamer not found in config.json"
+        if len(candidates) > 1:
+            return "Multiple matches, specify site"
+
+        entry = candidates[0]
+        if config.set_favorite(entry["username"], entry["site"], False):
+            return f"Removed favorite [{entry['site']}] {entry['username']}"
+        return "Could not remove favorite"
 
     def do_add(self, streamer, username, site):
         if streamer:
@@ -175,3 +249,7 @@ class Manager(Thread):
             output += ('+' + '-'*(maxlen+2))*table_nx + '+\n'
             output += '\n'
         return output
+
+    def do_quit(self, _=None, __=None, ___=None):
+        CleanExit(self.streamers)()
+        return "Quitting..."

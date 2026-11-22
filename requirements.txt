@@ -11,3 +11,8 @@ fake-useragent
 django-environ
 pycurl
 pycurl-requests
+curl_cffi
+aiortc
+av
+numpy
+websockets
